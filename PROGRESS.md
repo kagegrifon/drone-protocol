@@ -15,7 +15,7 @@
 | 4  | Игровые системы симуляции (Movement, Mining, Energy, Statistics)  | ✅ Завершена  |         |
 | 5  | Система программ (types, interpreter, ProgramExecutionSystem)     | ✅ Завершена  |         |
 | 6  | Phaser 3 рендеринг (карта, дроны, эффекты, камера)               | ✅ Завершена  |         |
-| 7  | React UI (ProgramEditor, DroneInspector, StatsPanel, Zustand)     | ⬜ Не начата  |         |
+| 7  | React UI (ProgramEditor, DroneInspector, StatsPanel, Zustand)     | ✅ Завершена  |         |
 | 8  | Игровой цикл и интеграция (GameLoop, GameController, win/fail)    | ⬜ Не начата  |         |
 | 9  | Миссии (4 обучающих миссии)                                       | ⬜ Не начата  |         |
 | 10 | Аудио и полировка (звук, частицы, эффекты, баланс)               | ⬜ Не начата  |         |
@@ -26,7 +26,7 @@
 
 ## Текущая точка входа
 
-**Начинать с:** Фаза 7 — React UI
+**Начинать с:** Фаза 8 — Игровой цикл и интеграция
 
 ---
 
@@ -98,12 +98,15 @@
 - [x] TypeScript strict — ошибок нет
 
 ### Фаза 7 — React UI
-- [ ] `src/shared/store/gameStore.ts` — Zustand store: мост симуляция ↔ UI, обновление раз в 100ms
-- [ ] `src/ui/editor/ProgramEditor/index.tsx` — список инструкций, add/remove, редактирование условий, назначение программ
-- [ ] `src/ui/panels/DroneInspector/index.tsx` — energy, inventory, current task, current program
-- [ ] `src/ui/panels/StatsPanel/index.tsx` — throughput, congestion, efficiency
-- [ ] `src/ui/App.tsx` — layout: Phaser canvas + панели, sci-fi terminal стиль
-- [ ] Можно редактировать программы через UI и назначать дрону
+- [x] `src/shared/store/gameStore.ts` — Zustand store: мост симуляция ↔ UI, обновление раз в 100ms
+- [x] `src/ui/editor/ProgramEditor/index.tsx` — список инструкций, add/remove, редактирование условий, назначение программ
+- [x] `src/ui/editor/ProgramEditor/InstructionBlock.tsx` — рекурсивный компонент с иконками
+- [x] `src/ui/panels/DroneInspector/index.tsx` — energy, inventory, current task, current program
+- [x] `src/ui/panels/StatsPanel/index.tsx` — throughput, congestion, efficiency
+- [x] `src/ui/panels/DroneList.tsx` — список дронов с цветовым статусом
+- [x] `src/ui/controls/SimControls.tsx` — Play/Pause/Step + счётчик тиков
+- [x] `src/App.tsx` — layout: Phaser canvas слева + sidebar справа, sci-fi terminal стиль
+- [x] Можно редактировать программы через UI и назначать дрону
 
 ### Фаза 8 — Игровой цикл и интеграция
 - [ ] `src/game/GameLoop.ts` — фиксированный timestep 10 ticks/sec, порядок вызова систем

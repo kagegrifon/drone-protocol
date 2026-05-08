@@ -74,7 +74,13 @@ export class GameScene extends Phaser.Scene {
 
     if (renderable.spriteType === 'drone') {
       if (!this._droneSprites.has(entityId)) {
-        this._droneSprites.set(entityId, new DroneSprite(this, cx, cy));
+        const sprite = new DroneSprite(this, cx, cy);
+        const onDroneClick = this.registry.get('onDroneClick') as ((id: EntityId) => void) | undefined;
+        if (onDroneClick) {
+          sprite.setInteractive();
+          sprite.on('pointerdown', () => onDroneClick(entityId));
+        }
+        this._droneSprites.set(entityId, sprite);
       }
     } else {
       if (!this._staticSprites.has(entityId)) {

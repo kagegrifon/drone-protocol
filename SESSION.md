@@ -2,6 +2,42 @@
 
 ---
 
+## Сессия 10 — 2026-05-08
+
+**Цель:** Фаза 7 — React UI (Zustand store, SimControls, DroneList, DroneInspector, ProgramEditor, StatsPanel, App.tsx).
+
+**Результаты:**
+- Создан `src/shared/store/gameStore.ts` — Zustand store: `init()`, `tick()`, `selectDrone()`, `setRunning()`, `stepOnce()`, `addInstruction()`, `removeInstruction()`, `createProgram()`, `assignProgram()`; snapshot дронов и статистики обновляется каждый тик
+- Обновлён `src/renderer/GameRenderer.ts` — добавлен опциональный параметр `onDroneClick?: (id: EntityId) => void`, передаётся через Phaser registry
+- Обновлён `src/renderer/scenes/GameScene.ts` — спрайты дронов становятся интерактивными и вызывают `onDroneClick` по клику
+- Создан `src/ui/controls/SimControls.tsx` — кнопки Play/Pause/Step + счётчик тиков
+- Создан `src/ui/panels/DroneList.tsx` — список дронов с цветовыми индикаторами статуса (cyan=running, gold=waiting, grey=idle)
+- Создан `src/ui/panels/DroneInspector/index.tsx` — energy bar, inventory bar, current task, program, position
+- Создан `src/ui/editor/ProgramEditor/InstructionBlock.tsx` — рекурсивный компонент с иконками, поддержка вложенных блоков (LOOP/REPEAT/IF)
+- Создан `src/ui/editor/ProgramEditor/index.tsx` — вкладки Drone/Library; добавление/удаление инструкций, создание и назначение программ
+- Создан `src/ui/panels/StatsPanel/index.tsx` — ore/min, congestion, efficiency
+- Переписан `src/App.tsx` — flex-row layout (canvas слева, sidebar 340px справа); buildScene() создаёт мир с mine-loop программой и двумя дронами; setInterval на 100ms когда isRunning
+- `npm run type-check` — ошибок нет
+
+**Следующий шаг:** Фаза 8 — Игровой цикл и интеграция (GameLoop, GameController, win/fail)
+
+---
+
+## Сессия 9 — 2026-05-08
+
+**Цель:** Планирование Фазы 7 — React UI (brainstorming + design).
+
+**Результаты:**
+- Проведён brainstorming с визуальными мокапами (visual companion)
+- Приняты решения по дизайну UI: layout A (canvas слева, sidebar справа), блочный редактор программ (карточки), выбор дрона двумя способами (canvas + список), ProgramEditor с двумя вкладками (Drone + Library), Play/Pause/Step контролы
+- Выбрана архитектура bridge: Zustand snapshot-store, `tick()` каждые 100ms
+- Написан детальный план реализации: `C:\Users\Master\.claude\plans\progress-md-session-md-stateful-abelson.md`
+- Реализация не начата — отложена на следующую сессию
+
+**Следующий шаг:** Фаза 7 — реализация (gameStore.ts → компоненты → App.tsx)
+
+---
+
 ## Сессия 8 — 2026-05-08
 
 **Цель:** Фаза 6 — Phaser 3 рендеринг (BootScene, GameScene, DroneSprite, GameRenderer, App.tsx).
