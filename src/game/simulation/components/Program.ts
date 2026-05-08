@@ -1,4 +1,5 @@
 export type ProgramState = 'idle' | 'running' | 'waiting';
+export type WaitingFor = 'move' | 'mine' | 'drop' | 'charge';
 
 export interface CallFrame {
   programId: string;
@@ -12,4 +13,5 @@ export interface ProgramComponent {
   callStack: CallFrame[];
   state: ProgramState;
   commandSlots: number;
+  waitingFor?: WaitingFor;
 }

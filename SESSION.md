@@ -2,6 +2,23 @@
 
 ---
 
+## Сессия 6 — 2026-05-08
+
+**Цель:** Фаза 4 — Игровые системы симуляции (Movement, Mining, Energy, Statistics).
+
+**Результаты:**
+- Добавлен тип `WaitingFor = 'move' | 'mine' | 'drop' | 'charge'` и поле `waitingFor?` в `ProgramComponent`
+- Создан `MovementSystem.ts` — движение по A*-пути (speed шагов/тик), дренаж энергии при входе в клетку, resume программы при `waitingFor='move'` по прибытии
+- Создан `MiningSystem.ts` — MINE: добыча `mineRate` руды/тик с дренажем энергии, resume когда инвентарь полон или залежь иссякла; DROP: мгновенная передача руды на базу по позиции, resume сразу
+- Создан `EnergySystem.ts` — зарядка `chargeRate`/тик при нахождении на станции, resume когда `current >= max` и `waitingFor='charge'`; пассивная зарядка при нахождении на станции без программной команды
+- Создан `StatisticsSystem.ts` — `recordOreMined()`, `recordCongestion()`, скользящее среднее ore/min (окно 600 тиков = 60 сек), подсчёт idle дронов и efficiency
+- Написаны 35 тестов по TDD (RED→GREEN) для 4 систем; итого 47 тестов — все проходят
+- `npm run type-check` — ошибок нет
+
+**Следующий шаг:** Фаза 5 — Система программ (types, interpreter, ProgramExecutionSystem)
+
+---
+
 ## Сессия 5 — 2026-05-08
 
 **Цель:** Фаза 3 — A* pathfinding и CollisionSystem.

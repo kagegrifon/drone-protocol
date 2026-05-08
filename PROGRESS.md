@@ -1,6 +1,6 @@
 # Drone Loop — Прогресс реализации
 
-## Статус: Фаза 3 завершена, Фаза 4 — следующая
+## Статус: Фаза 4 завершена, Фаза 5 — следующая
 
 ---
 
@@ -12,7 +12,7 @@
 | 1  | ECS ядро и shared types (World, компоненты)                       | ✅ Завершена  |         |
 | 2  | Сетка 20×20 и фабрики сущностей (Base, Mine, Charger, Drone)      | ✅ Завершена  |         |
 | 3  | A* pathfinding и CollisionSystem                                  | ✅ Завершена  |         |
-| 4  | Игровые системы симуляции (Movement, Mining, Energy, Statistics)  | ⬜ Не начата  |         |
+| 4  | Игровые системы симуляции (Movement, Mining, Energy, Statistics)  | ✅ Завершена  |         |
 | 5  | Система программ (types, interpreter, ProgramExecutionSystem)     | ⬜ Не начата  |         |
 | 6  | Phaser 3 рендеринг (карта, дроны, эффекты, камера)               | ⬜ Не начата  |         |
 | 7  | React UI (ProgramEditor, DroneInspector, StatsPanel, Zustand)     | ⬜ Не начата  |         |
@@ -26,7 +26,7 @@
 
 ## Текущая точка входа
 
-**Начинать с:** Фаза 4 — Игровые системы симуляции
+**Начинать с:** Фаза 5 — Система программ
 
 ---
 
@@ -68,12 +68,12 @@
 - [x] TypeScript strict — ошибок нет
 
 ### Фаза 4 — Игровые системы симуляции
-- [ ] `src/game/simulation/systems/MovementSystem.ts` — движение по A*-пути, дренаж энергии per step (при входе в клетку), resume программы по прибытии
-- [ ] `src/game/simulation/systems/MiningSystem.ts` — добыча руды тик-за-тиком + мгновенный DROP через пространственное обнаружение по позиции
-- [ ] `src/game/simulation/systems/EnergySystem.ts` — зарядка тик-за-тиком при нахождении на ChargerStation
-- [ ] `src/game/simulation/systems/StatisticsSystem.ts` — ore/min (скользящее среднее 60s), idle time, congestion, efficiency
-- [ ] Порядок систем задокументирован: `Collision → ProgramExecution → Movement → Mining → Energy → Statistics`
-- [ ] TypeScript strict — ошибок нет
+- [x] `src/game/simulation/systems/MovementSystem.ts` — движение по A*-пути, дренаж энергии per step (при входе в клетку), resume программы по прибытии
+- [x] `src/game/simulation/systems/MiningSystem.ts` — добыча руды тик-за-тиком + мгновенный DROP через пространственное обнаружение по позиции
+- [x] `src/game/simulation/systems/EnergySystem.ts` — зарядка тик-за-тиком при нахождении на ChargerStation
+- [x] `src/game/simulation/systems/StatisticsSystem.ts` — ore/min (скользящее среднее 60s), idle time, congestion, efficiency
+- [x] Порядок систем задокументирован: `Collision → ProgramExecution → Movement → Mining → Energy → Statistics`
+- [x] TypeScript strict — ошибок нет
 
 ### Фаза 5 — Система программ
 - [ ] `src/game/programs/types.ts` — `ActionBlock` (MOVE_TO, MINE, PICKUP, DROP, CHARGE, WAIT), `ConditionBlock` (IF + Condition), `FlowBlock` (LOOP, REPEAT, RUN_PROGRAM), `ProgramDef`, `ProgramRegistry`
