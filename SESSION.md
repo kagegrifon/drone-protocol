@@ -2,6 +2,20 @@
 
 ---
 
+## Сессия 4 — 2026-05-08
+
+**Цель:** Фаза 2 — Сетка 20×20 и фабрики сущностей.
+
+**Результаты:**
+- Создан `src/shared/constants/cellTypes.ts` — тип `CellType`: `'empty' | 'wall' | 'mine' | 'base' | 'charger'`
+- Создан `src/game/simulation/world/Grid.ts` — класс `Grid` (20×20): `getTile`, `setTile`, `isWalkable`, `neighbours` (4 направления); out-of-bounds возвращает `'wall'`
+- Созданы 4 фабрики сущностей: `createDrone`, `createBase`, `createMine`, `createCharger`
+- `npm run type-check` — ошибок нет
+
+**Следующий шаг:** Фаза 3 — A* pathfinding и CollisionSystem
+
+---
+
 ## Сессия 3 — 2026-05-08
 
 **Цель:** Фаза 1 — ECS ядро и shared types.

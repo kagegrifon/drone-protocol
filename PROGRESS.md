@@ -1,6 +1,6 @@
 # Drone Loop — Прогресс реализации
 
-## Статус: Фаза 1 завершена, Фаза 2 — следующая
+## Статус: Фаза 2 завершена, Фаза 3 — следующая
 
 ---
 
@@ -10,7 +10,7 @@
 |----|-------------------------------------------------------------------|---------------|---------|
 | 0  | Инициализация проекта (Vite + TS + React + Phaser 3)              | ✅ Завершена  |         |
 | 1  | ECS ядро и shared types (World, компоненты)                       | ✅ Завершена  |         |
-| 2  | Сетка 20×20 и фабрики сущностей (Base, Mine, Charger, Drone)      | ⬜ Не начата  |         |
+| 2  | Сетка 20×20 и фабрики сущностей (Base, Mine, Charger, Drone)      | ✅ Завершена  |         |
 | 3  | A* pathfinding и CollisionSystem                                  | ⬜ Не начата  |         |
 | 4  | Игровые системы симуляции (Movement, Mining, Energy, Statistics)  | ⬜ Не начата  |         |
 | 5  | Система программ (types, interpreter, ProgramExecutionSystem)     | ⬜ Не начата  |         |
@@ -26,7 +26,7 @@
 
 ## Текущая точка входа
 
-**Начинать с:** Фаза 2 — Сетка 20×20 и фабрики сущностей
+**Начинать с:** Фаза 3 — A* pathfinding и CollisionSystem
 
 ---
 
@@ -54,13 +54,13 @@
 - [x] TypeScript strict — ошибок нет
 
 ### Фаза 2 — Сетка и фабрики сущностей
-- [ ] `src/game/simulation/world/Grid.ts` — `Grid` 20×20: `getTile`, `setTile`, `isWalkable`, `neighbours` (4 направления)
-- [ ] `src/shared/constants/cellTypes.ts` — `empty | wall | mine | base | charger`
-- [ ] `src/game/simulation/entities/createDrone.ts` — Position + Energy(100/100, drain 1/move, 2/mine) + Inventory(cap 10) + Program(4 slots) + Movement + Renderable
-- [ ] `src/game/simulation/entities/createBase.ts` — Position + Inventory(cap 99999) + Renderable
-- [ ] `src/game/simulation/entities/createMine.ts` — Position + Deposit(200 ore, rate 1) + Renderable
-- [ ] `src/game/simulation/entities/createCharger.ts` — Position + ChargerStation(rate 10) + Renderable
-- [ ] TypeScript strict — ошибок нет
+- [x] `src/game/simulation/world/Grid.ts` — `Grid` 20×20: `getTile`, `setTile`, `isWalkable`, `neighbours` (4 направления)
+- [x] `src/shared/constants/cellTypes.ts` — `empty | wall | mine | base | charger`
+- [x] `src/game/simulation/entities/createDrone.ts` — Position + Energy(100/100, drain 1/move, 2/mine) + Inventory(cap 10) + Program(4 slots) + Movement + Renderable
+- [x] `src/game/simulation/entities/createBase.ts` — Position + Inventory(cap 99999) + Renderable
+- [x] `src/game/simulation/entities/createMine.ts` — Position + Deposit(200 ore, rate 1) + Renderable
+- [x] `src/game/simulation/entities/createCharger.ts` — Position + ChargerStation(rate 10) + Renderable
+- [x] TypeScript strict — ошибок нет
 
 ### Фаза 3 — A* и система столкновений
 - [ ] `src/game/pathfinding/astar.ts` — A*, Manhattan heuristic, `occupied: Set<string>` для обхода занятых клеток, lazy path-computation
