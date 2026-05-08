@@ -37,10 +37,15 @@ export default function App() {
     const renderer = new GameRenderer(world, grid, containerRef.current);
 
     // Temporary tick loop for Phase 6 visual testing.
-    // Phase 8 GameController will replace this setInterval.
-    // No simulation systems called here — static scene is enough to verify rendering.
+    // Phase 8 GameController will replace this setInterval with real simulation ticks.
+    const tickInterval = setInterval(() => {
+      // No simulation systems ticked here — static scene is enough to verify rendering.
+    }, 100);
 
-    return () => renderer.destroy();
+    return () => {
+      clearInterval(tickInterval);
+      renderer.destroy();
+    };
   }, []);
 
   return (
