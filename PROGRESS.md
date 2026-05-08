@@ -1,6 +1,6 @@
 # Drone Loop — Прогресс реализации
 
-## Статус: Фаза 0 завершена, Фаза 1 — следующая
+## Статус: Фаза 1 завершена, Фаза 2 — следующая
 
 ---
 
@@ -9,7 +9,7 @@
 | #  | Фаза                                                              | Статус        | Заметки |
 |----|-------------------------------------------------------------------|---------------|---------|
 | 0  | Инициализация проекта (Vite + TS + React + Phaser 3)              | ✅ Завершена  |         |
-| 1  | ECS ядро и shared types (World, компоненты)                       | ⬜ Не начата  |         |
+| 1  | ECS ядро и shared types (World, компоненты)                       | ✅ Завершена  |         |
 | 2  | Сетка 20×20 и фабрики сущностей (Base, Mine, Charger, Drone)      | ⬜ Не начата  |         |
 | 3  | A* pathfinding и CollisionSystem                                  | ⬜ Не начата  |         |
 | 4  | Игровые системы симуляции (Movement, Mining, Energy, Statistics)  | ⬜ Не начата  |         |
@@ -26,7 +26,7 @@
 
 ## Текущая точка входа
 
-**Начинать с:** Фаза 1 — ECS ядро и shared types
+**Начинать с:** Фаза 2 — Сетка 20×20 и фабрики сущностей
 
 ---
 
@@ -41,17 +41,17 @@
 - [x] Заглушки `src/main.tsx`, `src/App.tsx`
 
 ### Фаза 1 — ECS ядро и shared types
-- [ ] `src/shared/types/index.ts` — `EntityId`, базовые типы
-- [ ] `src/game/simulation/world/World.ts` — класс `World`: `createEntity`, `destroyEntity`, `addComponent`, `removeComponent`, `getComponent`, `hasComponent`, `query`; инвертированный индекс по имени компонента
-- [ ] `src/game/simulation/components/Position.ts` — `{ x: number; y: number }`
-- [ ] `src/game/simulation/components/Energy.ts` — `{ current, max, drainPerMove, drainPerMine }`
-- [ ] `src/game/simulation/components/Inventory.ts` — `{ ore, capacity }`
-- [ ] `src/game/simulation/components/Program.ts` — `{ currentProgramId, callStack: CallFrame[], state, commandSlots }`
-- [ ] `src/game/simulation/components/Movement.ts` — `{ targetX, targetY, path, progress, speed }`
-- [ ] `src/game/simulation/components/Renderable.ts` — `{ spriteType, visible, tint }`
-- [ ] `src/game/simulation/components/Deposit.ts` — `{ oreRemaining, mineRate }`
-- [ ] `src/game/simulation/components/ChargerStation.ts` — `{ chargeRate }`
-- [ ] TypeScript strict — ошибок нет
+- [x] `src/shared/types/index.ts` — `EntityId`, базовые типы
+- [x] `src/game/simulation/world/World.ts` — класс `World`: `createEntity`, `destroyEntity`, `addComponent`, `removeComponent`, `getComponent`, `hasComponent`, `query`; инвертированный индекс по имени компонента
+- [x] `src/game/simulation/components/Position.ts` — `{ x: number; y: number }`
+- [x] `src/game/simulation/components/Energy.ts` — `{ current, max, drainPerMove, drainPerMine }`
+- [x] `src/game/simulation/components/Inventory.ts` — `{ ore, capacity }`
+- [x] `src/game/simulation/components/Program.ts` — `{ currentProgramId, callStack: CallFrame[], state, commandSlots }`
+- [x] `src/game/simulation/components/Movement.ts` — `{ targetX, targetY, path, progress, speed }`
+- [x] `src/game/simulation/components/Renderable.ts` — `{ spriteType, visible, tint }`
+- [x] `src/game/simulation/components/Deposit.ts` — `{ oreRemaining, mineRate }`
+- [x] `src/game/simulation/components/ChargerStation.ts` — `{ chargeRate }`
+- [x] TypeScript strict — ошибок нет
 
 ### Фаза 2 — Сетка и фабрики сущностей
 - [ ] `src/game/simulation/world/Grid.ts` — `Grid` 20×20: `getTile`, `setTile`, `isWalkable`, `neighbours` (4 направления)

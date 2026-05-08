@@ -2,6 +2,20 @@
 
 ---
 
+## Сессия 3 — 2026-05-08
+
+**Цель:** Фаза 1 — ECS ядро и shared types.
+
+**Результаты:**
+- Создан `src/shared/types/index.ts` — `EntityId`, `ComponentName`, `Position`
+- Создан `src/game/simulation/world/World.ts` — typed ECS с инвертированным индексом (`ComponentMap`, `query`, `createEntity`, `destroyEntity`, `addComponent`, `removeComponent`, `getComponent`, `hasComponent`)
+- Созданы 8 компонентов: `Position`, `Energy`, `Inventory`, `Program` (с `CallFrame`, `ProgramState`), `Movement`, `Renderable` (с `SpriteType`), `Deposit`, `ChargerStation`
+- `npm run type-check` — ошибок нет
+
+**Следующий шаг:** Фаза 2 — Сетка 20×20 и фабрики сущностей (Grid, createDrone, createBase, createMine, createCharger)
+
+---
+
 ## Сессия 2 — 2026-05-08
 
 **Цель:** Фаза 0 — инициализация проекта.
