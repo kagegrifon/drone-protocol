@@ -6,6 +6,8 @@ export interface CallFrame {
   instructionIndex: number;
   waitRemaining?: number;
   repeatRemaining?: number;
+  isLoop?: boolean;
+  inlineInstructions?: readonly unknown[];
 }
 
 export interface ProgramComponent {

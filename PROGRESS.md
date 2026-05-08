@@ -1,6 +1,6 @@
 # Drone Loop — Прогресс реализации
 
-## Статус: Фаза 4 завершена, Фаза 5 — следующая
+## Статус: Фаза 5 завершена, Фаза 6 — следующая
 
 ---
 
@@ -13,7 +13,7 @@
 | 2  | Сетка 20×20 и фабрики сущностей (Base, Mine, Charger, Drone)      | ✅ Завершена  |         |
 | 3  | A* pathfinding и CollisionSystem                                  | ✅ Завершена  |         |
 | 4  | Игровые системы симуляции (Movement, Mining, Energy, Statistics)  | ✅ Завершена  |         |
-| 5  | Система программ (types, interpreter, ProgramExecutionSystem)     | ⬜ Не начата  |         |
+| 5  | Система программ (types, interpreter, ProgramExecutionSystem)     | ✅ Завершена  |         |
 | 6  | Phaser 3 рендеринг (карта, дроны, эффекты, камера)               | ⬜ Не начата  |         |
 | 7  | React UI (ProgramEditor, DroneInspector, StatsPanel, Zustand)     | ⬜ Не начата  |         |
 | 8  | Игровой цикл и интеграция (GameLoop, GameController, win/fail)    | ⬜ Не начата  |         |
@@ -26,7 +26,7 @@
 
 ## Текущая точка входа
 
-**Начинать с:** Фаза 5 — Система программ
+**Начинать с:** Фаза 6 — Phaser 3 рендеринг
 
 ---
 
@@ -76,11 +76,13 @@
 - [x] TypeScript strict — ошибок нет
 
 ### Фаза 5 — Система программ
-- [ ] `src/game/programs/types.ts` — `ActionBlock` (MOVE_TO, MINE, PICKUP, DROP, CHARGE, WAIT), `ConditionBlock` (IF + Condition), `FlowBlock` (LOOP, REPEAT, RUN_PROGRAM), `ProgramDef`, `ProgramRegistry`
-- [ ] `src/game/programs/interpreter.ts` — `stepProgram(drone, programs, world)`: стековый интерпретатор; REPEAT = перезапуск фрейма; RUN_PROGRAM = push нового фрейма; WAIT = `CallFrame.waitRemaining`
-- [ ] `src/game/programs/index.ts` — реэкспорт
-- [ ] `src/game/simulation/systems/ProgramExecutionSystem.ts` — вызывает `stepProgram`, транслирует результат в Movement; MINE/DROP/CHARGE → `state: 'waiting'`
-- [ ] TypeScript strict — ошибок нет
+- [x] `src/game/programs/types.ts` — `ActionBlock` (MOVE_TO, MINE, DROP, CHARGE, WAIT), `ConditionBlock` (IF + Condition), `FlowBlock` (LOOP, REPEAT, RUN_PROGRAM), `ProgramDef`, `ProgramRegistry`
+- [x] `src/game/programs/interpreter.ts` — `stepProgram(droneId, world, registry, grid, occupied)`: стековый интерпретатор; REPEAT = перезапуск фрейма; RUN_PROGRAM = push нового фрейма; WAIT = `CallFrame.waitRemaining`; IF = push then/else inline-фрейма
+- [x] `src/game/programs/index.ts` — реэкспорт
+- [x] `src/game/simulation/systems/ProgramExecutionSystem.ts` — вызывает `stepProgram` для всех running-дронов; получает `occupied` из `CollisionSystem`
+- [x] CallFrame дополнен `isLoop?: boolean` и `inlineInstructions?: readonly unknown[]` для LOOP/REPEAT тел
+- [x] 30 новых тестов по TDD (RED→GREEN); итого 77 тестов — все проходят
+- [x] TypeScript strict — ошибок нет
 
 ### Фаза 6 — Phaser 3 рендеринг
 - [ ] `src/renderer/scenes/BootScene.ts` — загрузка ассетов (textures, audio)

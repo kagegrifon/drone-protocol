@@ -2,6 +2,23 @@
 
 ---
 
+## Сессия 7 — 2026-05-08
+
+**Цель:** Фаза 5 — Система программ (types, interpreter, ProgramExecutionSystem).
+
+**Результаты:**
+- Создан `src/game/programs/types.ts` — `Condition` (5 вариантов), `ActionBlock` (MOVE_TO, MINE, DROP, CHARGE, WAIT), `FlowBlock` (LOOP, REPEAT, RUN_PROGRAM), `ConditionBlock` (IF + then/else), `Instruction`, `ProgramDef`, `ProgramRegistry`
+- Обновлён `CallFrame` в `Program.ts` — добавлены `isLoop?: boolean` и `inlineInstructions?: readonly unknown[]` для хранения тел LOOP/REPEAT как inline-фреймов
+- Создан `src/game/programs/interpreter.ts` — `stepProgram(droneId, world, registry, grid, occupied)`: стековый интерпретатор; фреймы всегда продвигают родителя через механизм pop (не двойное продвижение); LOOP = перезапуск бесконечно; REPEAT = перезапуск N раз затем pop; IF = push then/else inline-фрейма при наличии тела; WAIT = `waitRemaining` счётчик в фрейме
+- Создан `src/game/simulation/systems/ProgramExecutionSystem.ts` — query дронов с Position+Movement+Program, вызывает `stepProgram` для каждого running-дрона, передаёт `CollisionSystem.occupied`
+- Создан `src/game/programs/index.ts` — реэкспорт всех типов и `stepProgram`
+- Написаны 30 тестов по TDD (RED→GREEN): 24 для interpreter, 6 для ProgramExecutionSystem; итого 77 тестов — все проходят
+- `npm run type-check` — ошибок нет
+
+**Следующий шаг:** Фаза 6 — Phaser 3 рендеринг (BootScene, GameScene, DroneSprite, камера)
+
+---
+
 ## Сессия 6 — 2026-05-08
 
 **Цель:** Фаза 4 — Игровые системы симуляции (Movement, Mining, Energy, Statistics).
