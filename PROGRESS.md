@@ -1,6 +1,6 @@
 # Drone Loop — Прогресс реализации
 
-## Статус: Фаза 2 завершена, Фаза 3 — следующая
+## Статус: Фаза 3 завершена, Фаза 4 — следующая
 
 ---
 
@@ -11,7 +11,7 @@
 | 0  | Инициализация проекта (Vite + TS + React + Phaser 3)              | ✅ Завершена  |         |
 | 1  | ECS ядро и shared types (World, компоненты)                       | ✅ Завершена  |         |
 | 2  | Сетка 20×20 и фабрики сущностей (Base, Mine, Charger, Drone)      | ✅ Завершена  |         |
-| 3  | A* pathfinding и CollisionSystem                                  | ⬜ Не начата  |         |
+| 3  | A* pathfinding и CollisionSystem                                  | ✅ Завершена  |         |
 | 4  | Игровые системы симуляции (Movement, Mining, Energy, Statistics)  | ⬜ Не начата  |         |
 | 5  | Система программ (types, interpreter, ProgramExecutionSystem)     | ⬜ Не начата  |         |
 | 6  | Phaser 3 рендеринг (карта, дроны, эффекты, камера)               | ⬜ Не начата  |         |
@@ -26,7 +26,7 @@
 
 ## Текущая точка входа
 
-**Начинать с:** Фаза 3 — A* pathfinding и CollisionSystem
+**Начинать с:** Фаза 4 — Игровые системы симуляции
 
 ---
 
@@ -63,9 +63,9 @@
 - [x] TypeScript strict — ошибок нет
 
 ### Фаза 3 — A* и система столкновений
-- [ ] `src/game/pathfinding/astar.ts` — A*, Manhattan heuristic, `occupied: Set<string>` для обхода занятых клеток, lazy path-computation
-- [ ] `src/game/simulation/systems/CollisionSystem.ts` — snapshot целочисленных позиций дронов (вызывается до ProgramExecutionSystem)
-- [ ] TypeScript strict — ошибок нет
+- [x] `src/game/pathfinding/astar.ts` — A*, Manhattan heuristic, `occupied: Set<string>` для обхода занятых клеток, lazy path-computation
+- [x] `src/game/simulation/systems/CollisionSystem.ts` — snapshot целочисленных позиций дронов (вызывается до ProgramExecutionSystem)
+- [x] TypeScript strict — ошибок нет
 
 ### Фаза 4 — Игровые системы симуляции
 - [ ] `src/game/simulation/systems/MovementSystem.ts` — движение по A*-пути, дренаж энергии per step (при входе в клетку), resume программы по прибытии

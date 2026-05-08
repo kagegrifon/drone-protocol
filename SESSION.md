@@ -2,6 +2,21 @@
 
 ---
 
+## Сессия 5 — 2026-05-08
+
+**Цель:** Фаза 3 — A* pathfinding и CollisionSystem.
+
+**Результаты:**
+- Установлен Vitest, добавлен скрипт `test` в package.json, настроен `vite.config.ts`
+- Создан `src/game/pathfinding/astar.ts` — A* с Manhattan heuristic, поддержкой `occupied: Set<string>`, возвращает путь без стартовой клетки (null если недостижимо)
+- Создан `src/game/simulation/systems/CollisionSystem.ts` — снимает snapshot позиций всех дронов (Position + Movement) в `occupied: Set<string>` перед каждым тиком
+- Написаны 12 тестов (7 для A*, 5 для CollisionSystem) — все проходят
+- `npm run type-check` — ошибок нет
+
+**Следующий шаг:** Фаза 4 — Игровые системы симуляции (Movement, Mining, Energy, Statistics)
+
+---
+
 ## Сессия 4 — 2026-05-08
 
 **Цель:** Фаза 2 — Сетка 20×20 и фабрики сущностей.
