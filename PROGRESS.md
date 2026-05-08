@@ -1,6 +1,6 @@
 # Drone Loop — Прогресс реализации
 
-## Статус: Фаза 5 завершена, Фаза 6 — следующая
+## Статус: Фаза 6 завершена, Фаза 7 — следующая
 
 ---
 
@@ -14,7 +14,7 @@
 | 3  | A* pathfinding и CollisionSystem                                  | ✅ Завершена  |         |
 | 4  | Игровые системы симуляции (Movement, Mining, Energy, Statistics)  | ✅ Завершена  |         |
 | 5  | Система программ (types, interpreter, ProgramExecutionSystem)     | ✅ Завершена  |         |
-| 6  | Phaser 3 рендеринг (карта, дроны, эффекты, камера)               | ⬜ Не начата  |         |
+| 6  | Phaser 3 рендеринг (карта, дроны, эффекты, камера)               | ✅ Завершена  |         |
 | 7  | React UI (ProgramEditor, DroneInspector, StatsPanel, Zustand)     | ⬜ Не начата  |         |
 | 8  | Игровой цикл и интеграция (GameLoop, GameController, win/fail)    | ⬜ Не начата  |         |
 | 9  | Миссии (4 обучающих миссии)                                       | ⬜ Не начата  |         |
@@ -26,7 +26,7 @@
 
 ## Текущая точка входа
 
-**Начинать с:** Фаза 6 — Phaser 3 рендеринг
+**Начинать с:** Фаза 7 — React UI
 
 ---
 
@@ -85,15 +85,17 @@
 - [x] TypeScript strict — ошибок нет
 
 ### Фаза 6 — Phaser 3 рендеринг
-- [ ] `src/renderer/scenes/BootScene.ts` — загрузка ассетов (textures, audio)
-- [ ] `src/renderer/scenes/GameScene.ts` — основная сцена: рендер карты, дронов, эффектов
-- [ ] `src/renderer/GameRenderer.ts` — инициализация `Phaser.Game`, интеграция с симуляцией
-- [ ] `src/renderer/sprites/DroneSprite.ts` — спрайт дрона с интерполяцией движения между тиками
-- [ ] Рендер тайлов карты (Phaser.GameObjects.Graphics или TileMap)
-- [ ] Camera: pan (drag) + zoom (scroll wheel)
-- [ ] Базовые эффекты: glow, light trail (Phaser Particles), blinking lights
-- [ ] Phaser **только наблюдает** состояние симуляции — не изменяет его
-- [ ] Дроны видны на экране и движутся плавно
+- [x] `src/renderer/config.ts` — TILE_SIZE, GRID_SIZE, цветовая палитра
+- [x] `src/renderer/scenes/BootScene.ts` — программные текстуры сущностей (drone, base, mine, charger)
+- [x] `src/renderer/scenes/GameScene.ts` — основная сцена: рендер карты, дронов, следов, управление спрайтами
+- [x] `src/renderer/GameRenderer.ts` — инициализация `Phaser.Game`, передача World+Grid через registry
+- [x] `src/renderer/sprites/DroneSprite.ts` — Container: тело дрона + мигающий Arc + история следа
+- [x] Рендер тайлов карты (Phaser.GameObjects.Graphics, программная отрисовка)
+- [x] Camera: pan (drag) + zoom (scroll wheel, 0.4×–2.5×)
+- [x] Базовые эффекты: glow-кольца, мигающие огни (Tween), следы дронов
+- [x] Phaser **только наблюдает** состояние симуляции — не изменяет его
+- [x] Интерполяция позиций дронов между тиками (movement.progress 0–1)
+- [x] TypeScript strict — ошибок нет
 
 ### Фаза 7 — React UI
 - [ ] `src/shared/store/gameStore.ts` — Zustand store: мост симуляция ↔ UI, обновление раз в 100ms

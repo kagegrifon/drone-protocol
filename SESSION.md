@@ -2,6 +2,23 @@
 
 ---
 
+## Сессия 8 — 2026-05-08
+
+**Цель:** Фаза 6 — Phaser 3 рендеринг (BootScene, GameScene, DroneSprite, GameRenderer, App.tsx).
+
+**Результаты:**
+- Создан `src/renderer/config.ts` — TILE_SIZE=40, GRID_SIZE=20, цветовая палитра COLORS, TILE_COLORS
+- Создан `src/renderer/scenes/BootScene.ts` — программная генерация текстур 48×48 для всех сущностей (drone, base, mine, charger) без внешних ассетов; исправлена совместимость с Phaser 3.90 (убрана устаревшая опция `{ add: false }` в `make.graphics()`)
+- Создан `src/renderer/sprites/DroneSprite.ts` — Container с телом дрона, мигающим Arc (Tween, 700ms yoyo), историей следа (8 точек)
+- Создан `src/renderer/scenes/GameScene.ts` — отрисовка карты (Graphics), управление спрайтами (создание/удаление), интерполяция позиций дронов по `movement.progress`, рендер следов, pan+zoom камера
+- Создан `src/renderer/GameRenderer.ts` — инициализация `Phaser.Game`, передача World+Grid через registry; не владеет тик-циклом (это задача Фазы 8)
+- Обновлён `src/App.tsx` — тестовый сценарий: 2 базы/шахты/зарядника/дрона, статическая сцена для визуальной проверки рендерера
+- `npm run type-check` — ошибок нет на всех этапах
+
+**Следующий шаг:** Фаза 7 — React UI (Zustand store, ProgramEditor, DroneInspector, StatsPanel)
+
+---
+
 ## Сессия 7 — 2026-05-08
 
 **Цель:** Фаза 5 — Система программ (types, interpreter, ProgramExecutionSystem).
