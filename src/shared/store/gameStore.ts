@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { EntityId } from '../types/index.js';
+import type { GameStatus } from '../../game/types.js';
 import type { World } from '../../game/simulation/world/World.js';
 import type { Grid } from '../../game/simulation/world/Grid.js';
 import type { ProgramRegistry, ProgramDef, Instruction, Condition } from '../../game/programs/types.js';
@@ -26,6 +27,7 @@ export interface StatsState {
   congestion: number;
   efficiency: number;
   tick: number;
+  oreMined: number;
 }
 
 interface Systems {
@@ -46,6 +48,8 @@ interface GameStore {
   programs: ProgramDef[];
   stats: StatsState;
   isRunning: boolean;
+  gameStatus: GameStatus;
+  statusMessage: string | null;
   _systems: Systems | null;
   _tickCount: number;
 
@@ -54,6 +58,7 @@ interface GameStore {
   selectDrone(id: EntityId | null): void;
   setRunning(v: boolean): void;
   stepOnce(): void;
+  setGameStatus(status: GameStatus, message?: string): void;
   addInstruction(programId: string, instruction: Instruction, parentPath?: number[]): void;
   removeInstruction(programId: string, path: number[]): void;
   createProgram(name: string): void;
@@ -139,8 +144,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
   drones: [],
   selectedDroneId: null,
   programs: [],
-  stats: { orePerMin: 0, congestion: 0, efficiency: 0, tick: 0 },
+  stats: { orePerMin: 0, congestion: 0, efficiency: 0, tick: 0, oreMined: 0 },
   isRunning: false,
+  gameStatus: 'idle' as GameStatus,
+  statusMessage: null,
   _systems: null,
   _tickCount: 0,
 
@@ -182,6 +189,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           : 0,
         efficiency: Math.round(s.efficiency * 100),
         tick: tickCount,
+        oreMined: s.oreMined,
       },
       _tickCount: tickCount,
     });
@@ -197,6 +205,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   stepOnce() {
     get().tick();
+  },
+
+  setGameStatus(status, message) {
+    set({ gameStatus: status, statusMessage: message ?? null });
   },
 
   addInstruction(programId, instruction, parentPath = []) {
