@@ -2,6 +2,26 @@
 
 ---
 
+## Сессия 11 — 2026-05-09
+
+**Цель:** Фаза 8 — Игровой цикл и интеграция (GameLoop, GameController, win/fail).
+
+**Результаты:**
+- Созданы типы `GameStatus`, `WinCondition`, `FailCondition`, `GameConfig` в `src/game/types.ts`
+- Создан `src/game/GameLoop.ts` — обёртка над `setInterval` (100ms = 10 ticks/sec), 5 тестов
+- Созданы `checkWin` / `checkFail` — чистые экспортируемые функции с 10 тестами (TDD)
+- Создан `src/game/GameController.ts` — класс-оркестратор: `setup()`, `start()`, `pause()`, `step()`, `reset()`, `destroy()`; перенесена `buildScene()` из App.tsx
+- `src/shared/store/gameStore.ts` — добавлены `gameStatus`, `statusMessage`, `oreMined`, `setGameStatus()`
+- `src/ui/controls/SimControls.tsx` — принимает `onPlay`/`onPause`/`onStep` пропсы
+- Создан `src/ui/overlays/GameStatusOverlay.tsx` — оверлей победы/поражения с кнопкой «Заново»
+- `src/App.tsx` — убраны `buildScene()` и `setInterval`, подключён `GameController`
+- Полный цикл добычи работает end-to-end; win/fail условия через `GameConfig`
+- Итого 92 теста — все проходят; 0 ошибок type-check
+
+**Следующий шаг:** Фаза 9 — Миссии (mission1–mission4, Mission UI)
+
+---
+
 ## Сессия 10 — 2026-05-08
 
 **Цель:** Фаза 7 — React UI (Zustand store, SimControls, DroneList, DroneInspector, ProgramEditor, StatsPanel, App.tsx).
