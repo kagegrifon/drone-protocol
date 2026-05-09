@@ -1,5 +1,11 @@
 import { useGameStore } from '../../shared/store/gameStore.js';
 
+interface SimControlsProps {
+  onPlay: () => void;
+  onPause: () => void;
+  onStep: () => void;
+}
+
 const BTN: React.CSSProperties = {
   background: '#0a1628',
   border: '1px solid #1e3a5f',
@@ -18,26 +24,34 @@ const BTN_ACTIVE: React.CSSProperties = {
   borderColor: '#00d4ff',
 };
 
-export function SimControls() {
+const BTN_DISABLED: React.CSSProperties = {
+  ...BTN,
+  opacity: 0.4,
+  cursor: 'default',
+};
+
+export function SimControls({ onPlay, onPause, onStep }: SimControlsProps) {
   const isRunning = useGameStore((s) => s.isRunning);
-  const setRunning = useGameStore((s) => s.setRunning);
-  const stepOnce = useGameStore((s) => s.stepOnce);
+  const gameStatus = useGameStore((s) => s.gameStatus);
   const tick = useGameStore((s) => s.stats.tick);
+
+  const isFinished = gameStatus === 'won' || gameStatus === 'failed';
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', borderBottom: '1px solid #1e3a5f' }}>
       <button
-        style={isRunning ? BTN_ACTIVE : BTN}
-        onClick={() => setRunning(!isRunning)}
+        style={isFinished ? BTN_DISABLED : (isRunning ? BTN_ACTIVE : BTN)}
+        disabled={isFinished}
+        onClick={() => isRunning ? onPause() : onPlay()}
       >
         {isRunning ? '⏸ Pause' : '▶ Play'}
       </button>
       <button
-        style={BTN}
-        onClick={() => { setRunning(false); stepOnce(); }}
-        disabled={isRunning}
+        style={isRunning || isFinished ? BTN_DISABLED : BTN}
+        onClick={onStep}
+        disabled={isRunning || isFinished}
       >
-        →| Step
+        {'→| '}Step
       </button>
       <span style={{ color: '#4488ff', fontFamily: 'monospace', fontSize: '12px', marginLeft: '8px' }}>
         Tick: {tick}
