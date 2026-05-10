@@ -3,7 +3,6 @@ import type { StatsState } from '../shared/store/gameStore.js';
 import type { EntityId } from '../shared/types/index.js';
 import type { World as WorldType } from './simulation/world/World.js';
 import type { MissionDef } from './missions/types.js';
-import { World } from './simulation/world/World.js';
 import { GameLoop } from './GameLoop.js';
 import { useGameStore } from '../shared/store/gameStore.js';
 import { GameRenderer } from '../renderer/GameRenderer.js';
