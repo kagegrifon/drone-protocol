@@ -2,19 +2,21 @@ import Phaser from 'phaser';
 import type { World } from '../game/simulation/world/World.js';
 import type { Grid } from '../game/simulation/world/Grid.js';
 import type { EntityId } from '../shared/types/index.js';
+import type { AudioManager } from './audio/AudioManager.js';
 import { BootScene } from './scenes/BootScene.js';
 import { GameScene } from './scenes/GameScene.js';
 import { CANVAS_W, CANVAS_H, COLORS } from './config.js';
 
+export interface GameRendererOptions {
+  onDroneClick?: (id: EntityId) => void;
+  onReady?: () => void;
+  onAudioReady?: (am: AudioManager) => void;
+}
+
 export class GameRenderer {
   private readonly _game: Phaser.Game;
 
-  constructor(
-    world: World,
-    grid: Grid,
-    parent: HTMLElement,
-    onDroneClick?: (id: EntityId) => void,
-  ) {
+  constructor(world: World, grid: Grid, parent: HTMLElement, options: GameRendererOptions = {}) {
     this._game = new Phaser.Game({
       type: Phaser.AUTO,
       width: CANVAS_W,
@@ -26,14 +28,14 @@ export class GameRenderer {
         preBoot: (game: Phaser.Game) => {
           game.registry.set('world', world);
           game.registry.set('grid', grid);
-          if (onDroneClick) game.registry.set('onDroneClick', onDroneClick);
+          if (options.onDroneClick) game.registry.set('onDroneClick', options.onDroneClick);
+          if (options.onReady) game.registry.set('onReady', options.onReady);
+          if (options.onAudioReady) game.registry.set('onAudioReady', options.onAudioReady);
         },
       },
     });
   }
 
-  // GameRenderer does NOT own the simulation tick loop.
-  // Phase 8 GameController will drive simulation ticks externally.
   destroy(): void {
     this._game.destroy(true);
   }
