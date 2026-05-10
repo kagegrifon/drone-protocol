@@ -1,6 +1,6 @@
 # Drone Loop — Прогресс реализации
 
-## Статус: Фаза 6 завершена, Фаза 7 — следующая
+## Статус: Фаза 9 завершена, Фаза 10 — следующая
 
 ---
 
@@ -17,7 +17,7 @@
 | 6  | Phaser 3 рендеринг (карта, дроны, эффекты, камера)               | ✅ Завершена  |         |
 | 7  | React UI (ProgramEditor, DroneInspector, StatsPanel, Zustand)     | ✅ Завершена  |         |
 | 8  | Игровой цикл и интеграция (GameLoop, GameController, win/fail)    | ✅ Завершена  |         |
-| 9  | Миссии (4 обучающих миссии)                                       | ⬜ Не начата  |         |
+| 9  | Миссии (4 обучающих миссии)                                       | ✅ Завершена  |         |
 | 10 | Аудио и полировка (звук, частицы, эффекты, баланс)               | ⬜ Не начата  |         |
 
 **Легенда:** ⬜ Не начата · 🔄 В процессе · ✅ Завершена
@@ -26,7 +26,7 @@
 
 ## Текущая точка входа
 
-**Начинать с:** Фаза 9 — Миссии
+**Начинать с:** Фаза 10 — Аудио и полировка
 
 ---
 
@@ -122,11 +122,18 @@
 - [x] Доработать следы и glow
 
 ### Фаза 9 — Миссии
-- [ ] `src/game/missions/mission1.ts` — 1 дрон, простой цикл добычи
-- [ ] `src/game/missions/mission2.ts` — добавляется энергия + зарядка
-- [ ] `src/game/missions/mission3.ts` — 2 дрона, пробки
-- [ ] `src/game/missions/mission4.ts` — command slots + subprograms
-- [ ] Mission UI: загрузка миссии, отображение цели, win/fail экран
+- [x] `src/game/missions/types.ts` — `MissionDef`, `SceneResult`
+- [x] `src/game/missions/mission1.ts` — 1 дрон без программы, win: 50 ore, без зарядника
+- [x] `src/game/missions/mission2.ts` — 1 дрон без программы, win: 80 ore, зарядник есть
+- [x] `src/game/missions/mission3.ts` — 2 дрона с неэффективными программами (одна шахта), win: 200 ore
+- [x] `src/game/missions/mission4.ts` — 2 дрона без зарядки в программах, win: ore_per_min >= 8
+- [x] `src/game/missions/index.ts` — `ALL_MISSIONS: MissionDef[]`
+- [x] Win condition `ore_per_min` добавлен в `types.ts` и `checkWin`
+- [x] `GameController` рефакторен: принимает `MissionDef`
+- [x] `src/ui/overlays/MissionSelectOverlay.tsx` — выбор миссии
+- [x] `src/ui/panels/MissionGoalPanel.tsx` — прогресс к цели
+- [x] `src/ui/overlays/GameStatusOverlay.tsx` — кнопка «Следующая миссия»
+- [x] `src/App.tsx` — управляет `selectedMissionIndex`, переключение миссий
 
 ### Фаза 10 — Аудио и полировка
 - [ ] Phaser Sound Manager: ambient музыка (loop), mining clicks, servo sounds, drone hum, electric buzz

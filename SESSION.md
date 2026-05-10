@@ -2,6 +2,23 @@
 
 ---
 
+## Сессия 12 — 2026-05-10
+
+**Цель:** Фаза 9 — Миссии (4 обучающих миссии, Mission UI).
+
+**Результаты:**
+- Добавлен win condition `ore_per_min` в `src/game/types.ts` и `checkWin`
+- Создан модуль `src/game/missions/` с `MissionDef`, `SceneResult`, `mission1`–`mission4`
+- Mission 1–2: дроны без программ (игрок пишет сам); Mission 3: неэффективные программы (одна шахта); Mission 4: программы без зарядки (ore/min падает)
+- `GameController` рефакторен: принимает `MissionDef` вместо `GameConfig`
+- Создан `MissionSelectOverlay`, `MissionGoalPanel`, обновлён `GameStatusOverlay` («Следующая миссия»)
+- `App.tsx` управляет `selectedMissionIndex`, переключение между миссиями
+- Все тесты проходят (92); TypeScript strict — 0 ошибок
+
+**Следующий шаг:** Фаза 10 — Аудио и полировка
+
+---
+
 ## Сессия 11 — 2026-05-09
 
 **Цель:** Фаза 8 — Игровой цикл и интеграция (GameLoop, GameController, win/fail).
