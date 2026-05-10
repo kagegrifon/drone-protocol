@@ -1,6 +1,7 @@
 import type { EntityId } from '../../../shared/types/index.js';
 import type { ComponentName } from '../world/World.js';
 import type { World } from '../world/World.js';
+import { gameEvents } from '../../../shared/events/gameEvents.js';
 
 export class MiningSystem {
   constructor(private readonly world: World) {}
@@ -38,6 +39,7 @@ export class MiningSystem {
       deposit.oreRemaining -= amount;
       inventory.ore += amount;
       energy.current = Math.max(0, energy.current - energy.drainPerMine);
+      gameEvents.emit('ore:mined', { droneId: id, x: position.x, y: position.y });
     }
   }
 
@@ -55,6 +57,7 @@ export class MiningSystem {
         const baseInventory = this.world.getComponent(baseId, 'Inventory')!;
         baseInventory.ore += droneInventory.ore;
         droneInventory.ore = 0;
+        gameEvents.emit('ore:dropped', { droneId: id });
       }
 
       program.state = 'running';
