@@ -4,6 +4,7 @@ interface SimControlsProps {
   onPlay: () => void;
   onPause: () => void;
   onStep: () => void;
+  onBackToMissions: () => void;
 }
 
 const BTN: React.CSSProperties = {
@@ -30,7 +31,7 @@ const BTN_DISABLED: React.CSSProperties = {
   cursor: 'default',
 };
 
-export function SimControls({ onPlay, onPause, onStep }: SimControlsProps) {
+export function SimControls({ onPlay, onPause, onStep, onBackToMissions }: SimControlsProps) {
   const isRunning = useGameStore((s) => s.isRunning);
   const gameStatus = useGameStore((s) => s.gameStatus);
   const tick = useGameStore((s) => s.stats.tick);
@@ -38,7 +39,7 @@ export function SimControls({ onPlay, onPause, onStep }: SimControlsProps) {
   const isFinished = gameStatus === 'won' || gameStatus === 'failed';
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', borderBottom: '1px solid #1e3a5f' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', borderBottom: '1px solid #1e3a5f', flexWrap: 'wrap' }}>
       <button
         style={isFinished ? BTN_DISABLED : (isRunning ? BTN_ACTIVE : BTN)}
         disabled={isFinished}
@@ -53,9 +54,12 @@ export function SimControls({ onPlay, onPause, onStep }: SimControlsProps) {
       >
         {'→| '}Step
       </button>
-      <span style={{ color: '#4488ff', fontFamily: 'monospace', fontSize: '12px', marginLeft: '8px' }}>
+      <span style={{ color: '#4488ff', fontFamily: 'monospace', fontSize: '12px', marginLeft: '8px', flex: 1 }}>
         Tick: {tick}
       </span>
+      <button style={{ ...BTN, fontSize: '11px', padding: '4px 10px', color: '#4a6a8a' }} onClick={onBackToMissions}>
+        ← Миссии
+      </button>
     </div>
   );
 }
