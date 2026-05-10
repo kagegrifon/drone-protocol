@@ -2,7 +2,8 @@ export type GameStatus = 'idle' | 'running' | 'paused' | 'won' | 'failed';
 
 export type WinCondition =
   | { type: 'ore_mined'; target: number }
-  | { type: 'efficiency'; target: number };
+  | { type: 'efficiency'; target: number }
+  | { type: 'ore_per_min'; target: number };
 
 export type FailCondition =
   | { type: 'time_limit'; maxTicks: number }
