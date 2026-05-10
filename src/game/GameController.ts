@@ -3,9 +3,11 @@ import type { StatsState } from '../shared/store/gameStore.js';
 import type { EntityId } from '../shared/types/index.js';
 import type { World as WorldType } from './simulation/world/World.js';
 import type { MissionDef } from './missions/types.js';
+import type { AudioManager } from '../renderer/audio/AudioManager.js';
 import { GameLoop } from './GameLoop.js';
 import { useGameStore } from '../shared/store/gameStore.js';
 import { GameRenderer } from '../renderer/GameRenderer.js';
+import { gameEvents } from '../shared/events/gameEvents.js';
 
 export function checkWin(
   win: WinCondition,
@@ -35,6 +37,12 @@ export function checkFail(fail: FailCondition, stats: StatsState): boolean {
   }
 }
 
+export interface GameControllerSetupOptions {
+  onDroneClick: (id: EntityId) => void;
+  onReady?: () => void;
+  onAudioReady?: (am: AudioManager) => void;
+}
+
 export class GameController {
   private readonly loop = new GameLoop();
   private renderer: GameRenderer | null = null;
@@ -42,7 +50,7 @@ export class GameController {
   private baseId: EntityId | null = null;
   private _entityIds: EntityId[] = [];
   private container: HTMLElement | null = null;
-  private onDroneClick: ((id: EntityId) => void) | null = null;
+  private _setupOptions: GameControllerSetupOptions | null = null;
 
   constructor(private readonly mission: MissionDef) {}
 
@@ -50,9 +58,9 @@ export class GameController {
     return this._entityIds;
   }
 
-  setup(container: HTMLElement, onDroneClick: (id: EntityId) => void): void {
+  setup(container: HTMLElement, options: GameControllerSetupOptions): void {
     this.container = container;
-    this.onDroneClick = onDroneClick;
+    this._setupOptions = options;
     this.initWorld();
   }
 
@@ -102,7 +110,11 @@ export class GameController {
       scene.world,
       scene.grid,
       this.container!,
-      this.onDroneClick ?? undefined,
+      {
+        onDroneClick: this._setupOptions?.onDroneClick,
+        onReady: this._setupOptions?.onReady,
+        onAudioReady: this._setupOptions?.onAudioReady,
+      },
     );
 
     const store = useGameStore.getState();
@@ -124,6 +136,7 @@ export class GameController {
       this.loop.stop();
       store.setRunning(false);
       store.setGameStatus('won', 'Цель достигнута!');
+      gameEvents.emit('mission:complete', undefined);
     } else if (checkFail(this.mission.config.fail, store.stats)) {
       this.loop.stop();
       store.setRunning(false);
