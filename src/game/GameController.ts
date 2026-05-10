@@ -1,19 +1,12 @@
-import type { WinCondition, FailCondition, GameConfig } from './types.js';
+import type { WinCondition, FailCondition } from './types.js';
 import type { StatsState } from '../shared/store/gameStore.js';
 import type { EntityId } from '../shared/types/index.js';
 import type { World as WorldType } from './simulation/world/World.js';
+import type { MissionDef } from './missions/types.js';
 import { World } from './simulation/world/World.js';
-import { Grid } from './simulation/world/Grid.js';
 import { GameLoop } from './GameLoop.js';
 import { useGameStore } from '../shared/store/gameStore.js';
-import type { ProgramRegistry, ProgramDef } from './programs/types.js';
-import { createBase } from './simulation/entities/createBase.js';
-import { createMine } from './simulation/entities/createMine.js';
-import { createCharger } from './simulation/entities/createCharger.js';
-import { createDrone } from './simulation/entities/createDrone.js';
 import { GameRenderer } from '../renderer/GameRenderer.js';
-
-// ─── Pure functions (exported for testing) ───────────────────────────────────
 
 export function checkWin(
   win: WinCondition,
@@ -28,6 +21,8 @@ export function checkWin(
     }
     case 'efficiency':
       return stats.efficiency >= win.target;
+    case 'ore_per_min':
+      return stats.orePerMin >= win.target;
   }
 }
 
@@ -41,84 +36,16 @@ export function checkFail(fail: FailCondition, stats: StatsState): boolean {
   }
 }
 
-// ─── Scene builder ────────────────────────────────────────────────────────────
-
-interface SceneResult {
-  world: World;
-  grid: Grid;
-  registry: ProgramRegistry;
-  baseId: EntityId;
-  staticEntityIds: EntityId[];
-}
-
-function buildScene(): SceneResult {
-  const world = new World();
-  const grid = new Grid();
-  const registry: ProgramRegistry = new Map();
-
-  grid.setTile(1, 1, 'base');
-  grid.setTile(18, 1, 'mine');
-  grid.setTile(10, 10, 'mine');
-  grid.setTile(1, 18, 'charger');
-  grid.setTile(10, 5, 'charger');
-
-  const baseId = createBase(world, 1, 1);
-  const mine1Id = createMine(world, 18, 1);
-  const mine2Id = createMine(world, 10, 10);
-  const charger1Id = createCharger(world, 1, 18);
-  const charger2Id = createCharger(world, 10, 5);
-  const drone1Id = createDrone(world, 5, 5);
-  const drone2Id = createDrone(world, 12, 12);
-
-  const mineLoop: ProgramDef = {
-    id: 'mine-loop',
-    name: 'mine-loop',
-    instructions: [
-      { type: 'LOOP', body: [
-        { type: 'MOVE_TO', targetEntityId: mine1Id },
-        { type: 'MINE' },
-        { type: 'MOVE_TO', targetEntityId: baseId },
-        { type: 'DROP' },
-        { type: 'IF', condition: { type: 'ENERGY_LOW', threshold: 30 }, then: [
-          { type: 'MOVE_TO', targetEntityId: charger1Id },
-          { type: 'CHARGE' },
-        ]},
-      ]},
-    ],
-  };
-  registry.set(mineLoop.id, mineLoop);
-
-  const prog1 = world.getComponent(drone1Id, 'Program')!;
-  prog1.currentProgramId = mineLoop.id;
-  prog1.callStack = [{ programId: mineLoop.id, instructionIndex: 0 }];
-  prog1.state = 'running';
-
-  const prog2 = world.getComponent(drone2Id, 'Program')!;
-  prog2.currentProgramId = mineLoop.id;
-  prog2.callStack = [{ programId: mineLoop.id, instructionIndex: 0 }];
-  prog2.state = 'running';
-
-  return {
-    world,
-    grid,
-    registry,
-    baseId,
-    staticEntityIds: [baseId, mine1Id, mine2Id, charger1Id, charger2Id],
-  };
-}
-
-// ─── GameController class ─────────────────────────────────────────────────────
-
 export class GameController {
   private readonly loop = new GameLoop();
   private renderer: GameRenderer | null = null;
-  private world: World | null = null;
+  private world: WorldType | null = null;
   private baseId: EntityId | null = null;
   private _entityIds: EntityId[] = [];
   private container: HTMLElement | null = null;
   private onDroneClick: ((id: EntityId) => void) | null = null;
 
-  constructor(private readonly config: GameConfig) {}
+  constructor(private readonly mission: MissionDef) {}
 
   get entityIds(): EntityId[] {
     return this._entityIds;
@@ -166,7 +93,7 @@ export class GameController {
   }
 
   private initWorld(): void {
-    const scene = buildScene();
+    const scene = this.mission.buildScene();
     this.world = scene.world;
     this.baseId = scene.baseId;
     this._entityIds = scene.staticEntityIds;
@@ -194,11 +121,11 @@ export class GameController {
     if (store.gameStatus !== 'running') return;
     if (!this.world || this.baseId === null) return;
 
-    if (checkWin(this.config.win, this.world, this.baseId, store.stats)) {
+    if (checkWin(this.mission.config.win, this.world, this.baseId, store.stats)) {
       this.loop.stop();
       store.setRunning(false);
       store.setGameStatus('won', 'Цель достигнута!');
-    } else if (checkFail(this.config.fail, store.stats)) {
+    } else if (checkFail(this.mission.config.fail, store.stats)) {
       this.loop.stop();
       store.setRunning(false);
       store.setGameStatus('failed', this.getFailMessage());
@@ -206,9 +133,9 @@ export class GameController {
   }
 
   private getFailMessage(): string {
-    switch (this.config.fail.type) {
+    switch (this.mission.config.fail.type) {
       case 'time_limit':
-        return `Время истекло (${this.config.fail.maxTicks} тиков)`;
+        return `Время истекло (${this.mission.config.fail.maxTicks} тиков)`;
       case 'low_throughput':
         return `Производительность слишком низкая`;
     }
