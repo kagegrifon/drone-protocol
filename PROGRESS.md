@@ -1,6 +1,6 @@
 # Drone Loop — Прогресс реализации
 
-## Статус: Фаза 9 завершена, Фаза 10 — следующая
+## Статус: Фаза 10 завершена — все фазы реализованы
 
 ---
 
@@ -18,7 +18,7 @@
 | 7  | React UI (ProgramEditor, DroneInspector, StatsPanel, Zustand)     | ✅ Завершена  |         |
 | 8  | Игровой цикл и интеграция (GameLoop, GameController, win/fail)    | ✅ Завершена  |         |
 | 9  | Миссии (4 обучающих миссии)                                       | ✅ Завершена  |         |
-| 10 | Аудио и полировка (звук, частицы, эффекты, баланс)               | ⬜ Не начата  |         |
+| 10 | Аудио и полировка (звук, частицы, эффекты, баланс)               | ✅ Завершена  |         |
 
 **Легенда:** ⬜ Не начата · 🔄 В процессе · ✅ Завершена
 
@@ -26,7 +26,7 @@
 
 ## Текущая точка входа
 
-**Начинать с:** Фаза 10 — Аудио и полировка
+**Все фазы завершены.** Игра Drone Loop полностью реализована.
 
 ---
 
@@ -136,12 +136,23 @@
 - [x] `src/App.tsx` — управляет `selectedMissionIndex`, переключение миссий
 
 ### Фаза 10 — Аудио и полировка
-- [ ] Phaser Sound Manager: ambient музыка (loop), mining clicks, servo sounds, drone hum, electric buzz
-- [ ] Phaser Particles: dust, fog, ambient particles
-- [ ] Полировка эффектов: glow, light trails, idle animation дронов
-- [ ] Финальный баланс: энергия (drain, max), скорость дронов, запасы шахт, rate зарядки
-- [ ] Игра атмосферна и приятна для наблюдения
-- [ ] Звуки не раздражают (нет агрессивных алертов, хаотичного микса)
+- [x] `src/shared/events/gameEvents.ts` — typed EventEmitter + singleton, 4 теста
+- [x] `src/renderer/audio/AudioManager.ts` — Phaser Sound Manager + Web Audio API синтез + volume control
+- [x] `src/ui/controls/AudioControls.tsx` — ползунки громкости музыки и SFX
+- [x] `src/ui/screens/StartScreen.tsx` — полноэкранный выбор миссии (карточки + glow)
+- [x] `src/ui/screens/LoadingScreen.tsx` — spinner «ИНИЦИАЛИЗАЦИЯ СИСТЕМ»
+- [x] vite.config.ts — `publicDir: 'assets'` для аудиофайлов
+- [x] MiningSystem — emit ore:mined / ore:dropped через gameEvents
+- [x] EnergySystem — emit charge:started / charge:completed с transitions
+- [x] GameController — emit mission:complete, SetupOptions (onReady, onAudioReady)
+- [x] BootScene — preload аудиофайлов + synthesizeAudio() (drop_ore, charge_buzz, mission_complete)
+- [x] GameRenderer — принимает GameRendererOptions (onReady, onAudioReady)
+- [x] GameScene — AudioManager, dust particles, glow sync, drone hum poll
+- [x] DroneSprite — idle tween + setGlowMode (normal/mining/charging)
+- [x] SimControls — кнопка «← Миссии» (onBackToMissions)
+- [x] App.tsx — gamePhase flow ('start'|'loading'|'game'), credits
+- [x] MissionSelectOverlay.tsx удалён (заменён StartScreen)
+- [x] 96 тестов PASS; TypeScript strict — 0 ошибок
 
 ---
 

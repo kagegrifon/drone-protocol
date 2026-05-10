@@ -2,6 +2,33 @@
 
 ---
 
+## Сессия 13 — 2026-05-10
+
+**Цель:** Фаза 10 — Аудио и полировка (звук, частицы, glow, StartScreen, credits).
+
+**Результаты:**
+- Создан `src/shared/events/gameEvents.ts` — typed EventEmitter + singleton `gameEvents`, 4 теста
+- `vite.config.ts` — добавлен `publicDir: 'assets'` для аудиофайлов
+- `MiningSystem` — emit ore:mined / ore:dropped при добыче и сдаче руды
+- `EnergySystem` — emit charge:started / charge:completed с transition-логикой
+- `GameController` — emit mission:complete, рефакторинг setup → GameControllerSetupOptions (onReady, onAudioReady)
+- Создан `src/renderer/audio/AudioManager.ts` — Phaser Sound Manager + Web Audio API синтез + volume control
+- `BootScene` — добавлен preload() аудиофайлов + synthesizeAudio() (3 синтезированных буфера через registry)
+- `GameRenderer` — принимает GameRendererOptions (onReady, onAudioReady) вместо onDroneClick
+- `GameScene` — полная переработка: AudioManager, dust particles, glow sync по событиям, drone hum loop
+- `DroneSprite` — idle tween (покачивание) + setGlowMode (normal/mining/charging)
+- Создан `src/ui/controls/AudioControls.tsx` — ползунки 🎵 и 🔊
+- Создан `src/ui/screens/StartScreen.tsx` — карточки миссий с glow-заголовком DRONE LOOP
+- Создан `src/ui/screens/LoadingScreen.tsx` — spinner ИНИЦИАЛИЗАЦИЯ СИСТЕМ
+- `SimControls` — добавлена кнопка «← Миссии»
+- `App.tsx` — gamePhase flow ('start'|'loading'|'game'), AudioManager ref, credits в сайдбаре
+- Удалён `MissionSelectOverlay.tsx` (заменён StartScreen)
+- 96 тестов PASS; TypeScript strict — 0 ошибок
+
+**Следующий шаг:** Игра завершена. Можно добавить реальные аудиофайлы в `/assets/music/` и `/assets/sound/`.
+
+---
+
 ## Сессия 12 — 2026-05-10
 
 **Цель:** Фаза 9 — Миссии (4 обучающих миссии, Mission UI).
