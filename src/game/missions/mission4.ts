@@ -1,0 +1,92 @@
+import { World } from '../simulation/world/World.js';
+import { Grid } from '../simulation/world/Grid.js';
+import { createBase } from '../simulation/entities/createBase.js';
+import { createMine } from '../simulation/entities/createMine.js';
+import { createCharger } from '../simulation/entities/createCharger.js';
+import { createDrone } from '../simulation/entities/createDrone.js';
+import type { MissionDef } from './types.js';
+import type { ProgramDef, ProgramRegistry } from '../programs/types.js';
+
+export const mission4: MissionDef = {
+  id: 'mission4',
+  title: 'Миссия 4: Подпрограммы',
+  description: 'Дроны работают, но разряжаются и останавливаются. Создай подпрограмму зарядки и подключи через RUN_PROGRAM.',
+  goalText: 'Достичь 8 руды/мин',
+  config: {
+    win: { type: 'ore_per_min', target: 8 },
+    fail: { type: 'time_limit', maxTicks: 1000 },
+  },
+  buildScene() {
+    const world = new World();
+    const grid = new Grid();
+    const registry: ProgramRegistry = new Map();
+
+    grid.setTile(1, 1, 'base');
+    grid.setTile(15, 3, 'mine');
+    grid.setTile(3, 15, 'mine');
+    grid.setTile(17, 15, 'mine');
+    grid.setTile(1, 10, 'charger');
+    grid.setTile(10, 1, 'charger');
+
+    const baseId = createBase(world, 1, 1);
+    const mine1Id = createMine(world, 15, 3);
+    const mine2Id = createMine(world, 3, 15);
+    const mine3Id = createMine(world, 17, 15);
+    const charger1Id = createCharger(world, 1, 10);
+    const charger2Id = createCharger(world, 10, 1);
+    const drone1Id = createDrone(world, 4, 4);
+    const drone2Id = createDrone(world, 12, 12);
+
+    const loop1: ProgramDef = {
+      id: 'loop-m4-d1',
+      name: 'mine-no-charge',
+      instructions: [
+        {
+          type: 'LOOP',
+          body: [
+            { type: 'MOVE_TO', targetEntityId: mine1Id },
+            { type: 'MINE' },
+            { type: 'MOVE_TO', targetEntityId: baseId },
+            { type: 'DROP' },
+          ],
+        },
+      ],
+    };
+
+    const loop2: ProgramDef = {
+      id: 'loop-m4-d2',
+      name: 'mine-no-charge',
+      instructions: [
+        {
+          type: 'LOOP',
+          body: [
+            { type: 'MOVE_TO', targetEntityId: mine2Id },
+            { type: 'MINE' },
+            { type: 'MOVE_TO', targetEntityId: baseId },
+            { type: 'DROP' },
+          ],
+        },
+      ],
+    };
+
+    registry.set(loop1.id, loop1);
+    registry.set(loop2.id, loop2);
+
+    const prog1 = world.getComponent(drone1Id, 'Program')!;
+    prog1.currentProgramId = loop1.id;
+    prog1.callStack = [{ programId: loop1.id, instructionIndex: 0 }];
+    prog1.state = 'running';
+
+    const prog2 = world.getComponent(drone2Id, 'Program')!;
+    prog2.currentProgramId = loop2.id;
+    prog2.callStack = [{ programId: loop2.id, instructionIndex: 0 }];
+    prog2.state = 'running';
+
+    void mine3Id; void charger1Id; void charger2Id;
+
+    return {
+      world, grid, registry, baseId,
+      staticEntityIds: [baseId, mine1Id, mine2Id, mine3Id, charger1Id, charger2Id],
+    };
+  },
+};
