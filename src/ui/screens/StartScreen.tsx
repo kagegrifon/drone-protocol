@@ -4,6 +4,7 @@ import type { MissionDef } from '../../game/missions/types.js';
 interface StartScreenProps {
   missions: MissionDef[];
   onStart: (missionIndex: number) => void;
+  onOpenSettings: () => void;
 }
 
 const DIFFICULTY = ['★☆☆', '★★☆', '★★☆', '★★★'];
@@ -19,6 +20,20 @@ const CARD: React.CSSProperties = {
   maxWidth: '360px',
 };
 
+const GEAR_BTN: React.CSSProperties = {
+  position: 'absolute',
+  top: '16px',
+  right: '16px',
+  background: 'transparent',
+  border: 'none',
+  color: '#4a8aaa',
+  fontSize: '20px',
+  cursor: 'pointer',
+  zIndex: 10,
+  padding: '4px 8px',
+  lineHeight: 1,
+};
+
 const BTN: React.CSSProperties = {
   background: '#0d2040',
   border: '1px solid #00d4ff',
@@ -32,7 +47,7 @@ const BTN: React.CSSProperties = {
   marginTop: '8px',
 };
 
-export function StartScreen({ missions, onStart }: StartScreenProps) {
+export function StartScreen({ missions, onStart, onOpenSettings }: StartScreenProps) {
   const [selected, setSelected] = useState(0);
 
   return (
@@ -42,6 +57,15 @@ export function StartScreen({ missions, onStart }: StartScreenProps) {
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       gap: '12px',
     }}>
+      <button
+        style={GEAR_BTN}
+        onClick={onOpenSettings}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#00d4ff'; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#4a8aaa'; }}
+        title="Настройки"
+      >
+        ⚙
+      </button>
       <div style={{
         fontFamily: 'monospace', fontSize: '36px', letterSpacing: '8px',
         color: '#00d4ff',

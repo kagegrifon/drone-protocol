@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { GameController } from './game/GameController.js';
 import { ALL_MISSIONS } from './game/missions/index.js';
 import { useGameStore } from './shared/store/gameStore.js';
+import { useAudioStore } from './shared/store/audioStore.js';
 import { SimControls } from './ui/controls/SimControls.js';
-import { AudioControls } from './ui/controls/AudioControls.js';
 import { DroneList } from './ui/panels/DroneList.js';
 import { DroneInspector } from './ui/panels/DroneInspector/index.js';
 import { ProgramEditor } from './ui/editor/ProgramEditor/index.js';
@@ -12,6 +12,7 @@ import { MissionGoalPanel } from './ui/panels/MissionGoalPanel.js';
 import { GameStatusOverlay } from './ui/overlays/GameStatusOverlay.js';
 import { StartScreen } from './ui/screens/StartScreen.js';
 import { LoadingScreen } from './ui/screens/LoadingScreen.js';
+import { AudioSettingsModal } from './ui/modals/AudioSettingsModal.js';
 import type { EntityId } from './shared/types/index.js';
 import type { AudioManager } from './renderer/audio/AudioManager.js';
 
@@ -21,14 +22,32 @@ export default function App() {
   const containerRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef<GameController | null>(null);
   const entityIdsRef = useRef<EntityId[]>([]);
+  const wasRunningRef = useRef<boolean>(false);
   const selectDrone = useGameStore((s) => s.selectDrone);
 
   const [gamePhase, setGamePhase] = useState<GamePhase>('start');
   const [missionIndex, setMissionIndex] = useState<number>(0);
   const [audioManager, setAudioManager] = useState<AudioManager | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const currentMission = ALL_MISSIONS[missionIndex] ?? ALL_MISSIONS[0];
   const isLastMission = missionIndex === ALL_MISSIONS.length - 1;
+
+  const openSettings = () => {
+    if (gamePhase === 'game') {
+      const { isRunning } = useGameStore.getState();
+      wasRunningRef.current = isRunning;
+      if (isRunning) controllerRef.current?.pause();
+    }
+    setIsSettingsOpen(true);
+  };
+
+  const closeSettings = () => {
+    setIsSettingsOpen(false);
+    if (gamePhase === 'game' && wasRunningRef.current) {
+      controllerRef.current?.start();
+    }
+  };
 
   const handleStart = (index: number) => {
     setMissionIndex(index);
@@ -52,12 +71,31 @@ export default function App() {
     ctrl.setup(containerRef.current, {
       onDroneClick: (id) => selectDrone(id),
       onReady: () => setGamePhase('game'),
-      onAudioReady: (am) => setAudioManager(am),
+      onAudioReady: (am) => {
+        const { musicVol, sfxVol } = useAudioStore.getState();
+        am.setMusicVolume(musicVol / 100);
+        am.setSfxVolume(sfxVol / 100);
+        setAudioManager(am);
+      },
     });
     entityIdsRef.current = ctrl.entityIds;
     controllerRef.current = ctrl;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gamePhase, missionIndex]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (isSettingsOpen) {
+        closeSettings();
+      } else if (gamePhase === 'game') {
+        openSettings();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSettingsOpen, gamePhase]);
 
   useEffect(() => {
     return () => controllerRef.current?.destroy();
@@ -89,8 +127,8 @@ export default function App() {
             onPause={() => controllerRef.current?.pause()}
             onStep={() => controllerRef.current?.step()}
             onBackToMissions={handleBackToMissions}
+            onOpenSettings={openSettings}
           />
-          <AudioControls audioManager={audioManager} />
           <MissionGoalPanel mission={currentMission} />
           <SectionLabel label="DRONES" />
           <DroneList />
@@ -112,9 +150,15 @@ export default function App() {
 
       {/* Overlays */}
       {gamePhase === 'start' && (
-        <StartScreen missions={ALL_MISSIONS} onStart={handleStart} />
+        <StartScreen missions={ALL_MISSIONS} onStart={handleStart} onOpenSettings={openSettings} />
       )}
       {gamePhase === 'loading' && <LoadingScreen />}
+
+      <AudioSettingsModal
+        isOpen={isSettingsOpen}
+        onClose={closeSettings}
+        audioManager={audioManager}
+      />
     </div>
   );
 }
