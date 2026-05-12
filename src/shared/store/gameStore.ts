@@ -163,7 +163,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const programs = Array.from(registry.values());
     const drones = snapshotDrones(world, registry);
 
-    set({ world, grid, registry, _systems: systems, programs, drones });
+    set({
+      world, grid, registry, _systems: systems, programs, drones,
+      _tickCount: 0,
+      stats: { orePerMin: 0, congestion: 0, efficiency: 0, tick: 0, oreMined: 0 },
+      isRunning: false,
+      gameStatus: 'idle',
+      statusMessage: null,
+    });
   },
 
   tick() {
