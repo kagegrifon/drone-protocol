@@ -22,7 +22,7 @@ const BTN: React.CSSProperties = {
 const BTN_ACTIVE: React.CSSProperties = {
   ...BTN,
   background: '#0d2040',
-  borderColor: '#00d4ff',
+  border: '1px solid #00d4ff',
 };
 
 const BTN_DISABLED: React.CSSProperties = {
