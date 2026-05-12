@@ -56,10 +56,12 @@ export default function App() {
     });
     entityIdsRef.current = ctrl.entityIds;
     controllerRef.current = ctrl;
-
-    return () => ctrl.destroy();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gamePhase, missionIndex]);
+
+  useEffect(() => {
+    return () => controllerRef.current?.destroy();
+  }, []);
 
   return (
     <div style={{ display: 'flex', background: '#050810', minHeight: '100vh', color: '#c0cfe0' }}>
