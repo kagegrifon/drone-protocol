@@ -97,6 +97,7 @@ export class GameController {
   destroy(): void {
     this.loop.stop();
     this.renderer?.destroy();
+    gameEvents.clearAll();
   }
 
   private initWorld(): void {
@@ -106,6 +107,7 @@ export class GameController {
     this._entityIds = scene.staticEntityIds;
 
     this.renderer?.destroy();
+    gameEvents.clearAll();
     this.renderer = new GameRenderer(
       scene.world,
       scene.grid,
