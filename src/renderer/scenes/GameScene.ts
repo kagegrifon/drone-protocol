@@ -177,6 +177,7 @@ export class GameScene extends Phaser.Scene {
         const sprite = new DroneSprite(this, cx, cy);
         const onDroneClick = this.registry.get('onDroneClick') as ((id: EntityId) => void) | undefined;
         if (onDroneClick) {
+          sprite.setSize(TILE_SIZE, TILE_SIZE);
           sprite.setInteractive();
           sprite.on('pointerdown', () => onDroneClick(entityId));
         }
