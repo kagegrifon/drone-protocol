@@ -2,6 +2,30 @@
 
 ---
 
+## Сессия 14 — 2026-05-12
+
+**Цель:** Исправление трёх багов после Фазы 10 + написание регрессионных тестов (e2e + unit).
+
+**Результаты:**
+
+*Баги:*
+- **Bug 1** (`src/App.tsx`) — чёрный canvas после загрузки миссии. Причина: `useEffect`-cleanup `return () => ctrl.destroy()` вызывался при переходе `loading→game`, уничтожая Phaser сразу после `onReady`. Исправление: cleanup убран из loading-эффекта, вынесен в отдельный unmount-эффект.
+- **Bug 2** (`src/game/GameController.ts`) — `TypeError: Cannot read properties of null (reading 'cache')` при смене миссий. Причина: `GameScene._setupEventListeners()` подписывалась на `gameEvents` инлайн-стрелками и никогда не отписывалась — при уничтожении игры старые слушатели оставались и обращались к уничтоженному `AudioManager`. Исправление: `gameEvents.clearAll()` добавлен в `destroy()` и `initWorld()`.
+- **Bug 3** (`src/shared/store/gameStore.ts`) — тики не сбрасывались после «Заново» и смены миссии. Причина: `store.init()` не сбрасывал `_tickCount` и `stats`. Исправление: `init()` теперь явно обнуляет `_tickCount`, `stats`, `isRunning`, `gameStatus`, `statusMessage`.
+
+*Тесты:*
+- Установлен Playwright (`@playwright/test`), добавлен скрипт `test:e2e`
+- Создан `playwright.config.ts` — Chromium, webServer (vite), screenshot on failure
+- Создан `e2e/regression.spec.ts` — 3 e2e теста (по одному на каждый баг): canvas виден после загрузки, нет console-ошибок при смене миссий, тики сбрасываются в 0
+- Создан `src/shared/store/gameStore.test.ts` — 4 unit теста для Bug 3: init() сбрасывает tick, stats, gameStatus
+- `vite.config.ts` — добавлен `define: { __BUNDLED_DEV__, __SERVER_FORWARD_CONSOLE__ }` (Phaser требует эти глобалы при холодном старте в Playwright), добавлен `exclude: ['e2e/**']` для vitest
+- `StartScreen.tsx` — добавлен `data-testid="mission-card-N"` на карточки миссий для надёжных e2e-селекторов
+- 100 unit тестов — все проходят
+
+**Следующий шаг:** Запустить `npm run test:e2e` после прогрева dev-сервера и убедиться, что все 3 e2e теста проходят.
+
+---
+
 ## Сессия 13 — 2026-05-10
 
 **Цель:** Фаза 10 — Аудио и полировка (звук, частицы, glow, StartScreen, credits).

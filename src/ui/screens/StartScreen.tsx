@@ -58,6 +58,7 @@ export function StartScreen({ missions, onStart }: StartScreenProps) {
         {missions.map((mission, index) => (
           <div
             key={mission.id}
+            data-testid={`mission-card-${index}`}
             style={{ ...CARD, borderColor: selected === index ? '#00d4ff' : '#1e3a5f' }}
             onClick={() => setSelected(index)}
           >
