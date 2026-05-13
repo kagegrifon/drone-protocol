@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useGameStore } from '../../../shared/store/gameStore.js';
 import { InstructionBlock } from './InstructionBlock.js';
 import type { Instruction } from '../../../game/programs/types.js';
-import type { EntityId } from '../../../shared/types/index.js';
+import type { EntityMeta } from '../../../game/missions/types.js';
 
 const TAB_BTN = (active: boolean): React.CSSProperties => ({
   background: active ? '#0d2040' : 'transparent',
@@ -20,9 +20,9 @@ const NEW_INSTRUCTION_TYPES: Instruction['type'][] = [
   'MOVE_TO', 'MINE', 'DROP', 'CHARGE', 'WAIT', 'LOOP', 'REPEAT', 'IF', 'RUN_PROGRAM',
 ];
 
-function makeDefaultInstruction(type: Instruction['type'], entityIds: EntityId[], programIds: string[]): Instruction {
+function makeDefaultInstruction(type: Instruction['type'], entities: EntityMeta[], programIds: string[]): Instruction {
   switch (type) {
-    case 'MOVE_TO': return { type: 'MOVE_TO', targetEntityId: entityIds[0] ?? 1 };
+    case 'MOVE_TO': return { type: 'MOVE_TO', targetEntityId: entities[0]?.id ?? 1 };
     case 'MINE': return { type: 'MINE' };
     case 'DROP': return { type: 'DROP' };
     case 'CHARGE': return { type: 'CHARGE' };
@@ -34,7 +34,7 @@ function makeDefaultInstruction(type: Instruction['type'], entityIds: EntityId[]
   }
 }
 
-export function ProgramEditor({ entityIds }: { entityIds: EntityId[] }) {
+export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
   const [tab, setTab] = useState<'drone' | 'library'>('drone');
   const [newProgramName, setNewProgramName] = useState('');
 
@@ -51,7 +51,7 @@ export function ProgramEditor({ entityIds }: { entityIds: EntityId[] }) {
 
   const handleAddTopLevel = (type: Instruction['type']) => {
     if (!droneProgram) return;
-    const instr = makeDefaultInstruction(type, entityIds, programIds);
+    const instr = makeDefaultInstruction(type, entities, programIds);
     addInstruction(droneProgram.id, instr);
   };
 
@@ -86,7 +86,7 @@ export function ProgramEditor({ entityIds }: { entityIds: EntityId[] }) {
                     instruction={instr}
                     programId={droneProgram.id}
                     path={[i]}
-                    entityIds={entityIds}
+                    entities={entities}
                     programIds={programIds}
                   />
                 ))}

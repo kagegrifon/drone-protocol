@@ -30,8 +30,13 @@ export const mission2: MissionDef = {
     const chargerId = createCharger(world, 1, 10);
     createDrone(world, 5, 5);
 
-    void mineId; void chargerId;
-
-    return { world, grid, registry, baseId, staticEntityIds: [baseId, mineId, chargerId] };
+    return {
+      world, grid, registry, baseId,
+      staticEntities: [
+        { id: baseId, type: 'base' },
+        { id: mineId, type: 'mine' },
+        { id: chargerId, type: 'charger' },
+      ],
+    };
   },
 };

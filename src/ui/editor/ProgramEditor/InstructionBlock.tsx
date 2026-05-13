@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import type { Instruction, ActionBlock, FlowBlock, ConditionBlock } from '../../../game/programs/types.js';
-import type { EntityId } from '../../../shared/types/index.js';
+import type { EntityMeta } from '../../../game/missions/types.js';
 import { useGameStore } from '../../../shared/store/gameStore.js';
 
 const ICONS: Record<string, string> = {
@@ -11,17 +12,15 @@ interface Props {
   instruction: Instruction;
   programId: string;
   path: number[];
-  entityIds: EntityId[];
+  entities: EntityMeta[];
   programIds: string[];
 }
 
-function labelForEntityId(id: EntityId): string {
-  return `#${id}`;
-}
-
-export function InstructionBlock({ instruction, programId, path, entityIds, programIds }: Props) {
+export function InstructionBlock({ instruction, programId, path, entities, programIds }: Props) {
+  const [pickerOpen, setPickerOpen] = useState(false);
   const removeInstruction = useGameStore((s) => s.removeInstruction);
   const addInstruction = useGameStore((s) => s.addInstruction);
+  const updateInstruction = useGameStore((s) => s.updateInstruction);
 
   const CARD: React.CSSProperties = {
     background: '#060f1e',
@@ -50,7 +49,31 @@ export function InstructionBlock({ instruction, programId, path, entityIds, prog
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         <span style={{ color: '#4488ff', fontSize: '14px' }}>{ICONS[instruction.type] ?? '•'}</span>
         <span style={{ color: '#00d4ff', flex: 1 }}>{instruction.type}</span>
-        <InstructionParams instruction={instruction} entityIds={entityIds} programIds={programIds} />
+        {instruction.type === 'MOVE_TO' && (() => {
+          const label = entities.find(e => e.id === instruction.targetEntityId)?.label
+                        ?? `#${instruction.targetEntityId}`;
+          return (
+            <button
+              data-testid="move-to-toggle"
+              onClick={() => setPickerOpen(p => !p)}
+              style={{
+                background: '#0a1628',
+                border: `1px solid ${pickerOpen ? '#00d4ff' : '#1e3a5f'}`,
+                color: '#aabbcc',
+                fontFamily: 'monospace',
+                fontSize: '11px',
+                padding: '2px 6px',
+                borderRadius: '2px',
+                cursor: 'pointer',
+              }}
+            >
+              {label} {pickerOpen ? '▴' : '▾'}
+            </button>
+          );
+        })()}
+        {instruction.type !== 'MOVE_TO' && (
+          <InstructionParams instruction={instruction} programIds={programIds} />
+        )}
         <button
           onClick={() => removeInstruction(programId, path)}
           style={{ background: 'none', border: 'none', color: '#445566', cursor: 'pointer', fontSize: '14px', padding: '0 2px', lineHeight: 1 }}
@@ -60,6 +83,38 @@ export function InstructionBlock({ instruction, programId, path, entityIds, prog
         </button>
       </div>
 
+      {instruction.type === 'MOVE_TO' && pickerOpen && (
+        <div style={{ marginTop: '6px', paddingLeft: '12px', borderLeft: '1px solid #1e3a5f' }}>
+          {entities.map(({ id, label }) => (
+            <button
+              key={id}
+              data-testid={`move-to-option-${label}`}
+              onClick={() => {
+                updateInstruction(programId, path, { type: 'MOVE_TO', targetEntityId: id });
+                setPickerOpen(false);
+              }}
+              style={{
+                display: 'block',
+                width: '100%',
+                textAlign: 'left',
+                background: id === instruction.targetEntityId ? '#0d2040' : 'none',
+                border: '1px solid',
+                borderColor: id === instruction.targetEntityId ? '#00d4ff' : '#1e3a5f',
+                color: id === instruction.targetEntityId ? '#00d4ff' : '#aabbcc',
+                fontFamily: 'monospace',
+                fontSize: '11px',
+                padding: '3px 8px',
+                borderRadius: '3px',
+                cursor: 'pointer',
+                marginBottom: '3px',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {isContainer && (
         <div style={{ marginTop: '6px', paddingLeft: '12px', borderLeft: '1px solid #1e3a5f' }}>
           {children.map((child, i) => (
@@ -68,7 +123,7 @@ export function InstructionBlock({ instruction, programId, path, entityIds, prog
               instruction={child}
               programId={programId}
               path={[...path, i]}
-              entityIds={entityIds}
+              entities={entities}
               programIds={programIds}
             />
           ))}
@@ -86,11 +141,9 @@ export function InstructionBlock({ instruction, programId, path, entityIds, prog
 
 function InstructionParams({
   instruction,
-  entityIds,
   programIds,
 }: {
   instruction: Instruction;
-  entityIds: EntityId[];
   programIds: string[];
 }) {
   const style: React.CSSProperties = {
@@ -102,14 +155,6 @@ function InstructionParams({
     padding: '2px 4px',
     borderRadius: '2px',
   };
-
-  if (instruction.type === 'MOVE_TO') {
-    return (
-      <span style={{ color: '#778899', fontSize: '11px' }}>
-        {labelForEntityId((instruction as ActionBlock & { type: 'MOVE_TO' }).targetEntityId)}
-      </span>
-    );
-  }
 
   if (instruction.type === 'WAIT') {
     return (
@@ -144,7 +189,6 @@ function InstructionParams({
     );
   }
 
-  // Suppress unused param warnings
-  void style; void entityIds; void programIds;
+  void style; void programIds;
   return null;
 }

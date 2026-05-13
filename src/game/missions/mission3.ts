@@ -67,11 +67,15 @@ export const mission3: MissionDef = {
       prog.state = 'running';
     }
 
-    void mine2Id; void charger2Id;
-
     return {
       world, grid, registry, baseId,
-      staticEntityIds: [baseId, mine1Id, mine2Id, charger1Id, charger2Id],
+      staticEntities: [
+        { id: baseId, type: 'base' },
+        { id: mine1Id, type: 'mine' },
+        { id: mine2Id, type: 'mine' },
+        { id: charger1Id, type: 'charger' },
+        { id: charger2Id, type: 'charger' },
+      ],
     };
   },
 };

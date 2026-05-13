@@ -82,11 +82,16 @@ export const mission4: MissionDef = {
     prog2.callStack = [{ programId: loop2.id, instructionIndex: 0 }];
     prog2.state = 'running';
 
-    void mine3Id; void charger1Id; void charger2Id;
-
     return {
       world, grid, registry, baseId,
-      staticEntityIds: [baseId, mine1Id, mine2Id, mine3Id, charger1Id, charger2Id],
+      staticEntities: [
+        { id: baseId, type: 'base' },
+        { id: mine1Id, type: 'mine' },
+        { id: mine2Id, type: 'mine' },
+        { id: mine3Id, type: 'mine' },
+        { id: charger1Id, type: 'charger' },
+        { id: charger2Id, type: 'charger' },
+      ],
     };
   },
 };

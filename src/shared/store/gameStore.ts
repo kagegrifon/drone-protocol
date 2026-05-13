@@ -61,6 +61,7 @@ interface GameStore {
   setGameStatus(status: GameStatus, message?: string): void;
   addInstruction(programId: string, instruction: Instruction, parentPath?: number[]): void;
   removeInstruction(programId: string, path: number[]): void;
+  updateInstruction(programId: string, path: number[], updated: Instruction): void;
   createProgram(name: string): void;
   assignProgram(droneId: EntityId, programId: string): void;
 }
@@ -239,6 +240,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const list = getInstructionList(prog.instructions, parentPath);
     list.splice(idx, 1);
 
+    set({ programs: Array.from(registry.values()) });
+  },
+
+  updateInstruction(programId, path, updated) {
+    const { registry } = get();
+    const prog = registry.get(programId);
+    if (!prog || path.length === 0) return;
+    const parentPath = path.slice(0, -1);
+    const idx = path[path.length - 1];
+    const list = getInstructionList(prog.instructions, parentPath);
+    list[idx] = updated;
     set({ programs: Array.from(registry.values()) });
   },
 

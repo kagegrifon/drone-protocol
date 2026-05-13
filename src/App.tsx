@@ -13,7 +13,7 @@ import { GameStatusOverlay } from './ui/overlays/GameStatusOverlay.js';
 import { StartScreen } from './ui/screens/StartScreen.js';
 import { LoadingScreen } from './ui/screens/LoadingScreen.js';
 import { AudioSettingsModal } from './ui/modals/AudioSettingsModal.js';
-import type { EntityId } from './shared/types/index.js';
+import type { EntityMeta } from './game/missions/types.js';
 import type { AudioManager } from './renderer/audio/AudioManager.js';
 
 type GamePhase = 'start' | 'loading' | 'game';
@@ -21,7 +21,7 @@ type GamePhase = 'start' | 'loading' | 'game';
 export default function App() {
   const containerRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef<GameController | null>(null);
-  const entityIdsRef = useRef<EntityId[]>([]);
+  const entityMetasRef = useRef<EntityMeta[]>([]);
   const wasRunningRef = useRef<boolean>(false);
   const selectDrone = useGameStore((s) => s.selectDrone);
 
@@ -78,7 +78,7 @@ export default function App() {
         setAudioManager(am);
       },
     });
-    entityIdsRef.current = ctrl.entityIds;
+    entityMetasRef.current = ctrl.entities;
     controllerRef.current = ctrl;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gamePhase, missionIndex]);
@@ -136,7 +136,7 @@ export default function App() {
           <DroneInspector />
           <SectionLabel label="PROGRAM" />
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '200px' }}>
-            <ProgramEditor entityIds={entityIdsRef.current} />
+            <ProgramEditor entities={entityMetasRef.current} />
           </div>
           <SectionLabel label="STATS" />
           <StatsPanel />

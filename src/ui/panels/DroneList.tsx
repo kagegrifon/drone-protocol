@@ -33,6 +33,7 @@ export function DroneList() {
         return (
           <div
             key={d.id}
+            data-testid={`drone-item-${d.id}`}
             onClick={() => selectDrone(d.id)}
             style={{
               display: 'flex',

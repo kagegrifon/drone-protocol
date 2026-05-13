@@ -2,12 +2,27 @@ import type { WinCondition, FailCondition } from './types.js';
 import type { StatsState } from '../shared/store/gameStore.js';
 import type { EntityId } from '../shared/types/index.js';
 import type { World as WorldType } from './simulation/world/World.js';
-import type { MissionDef } from './missions/types.js';
+import type { MissionDef, EntityMeta, EntityType } from './missions/types.js';
 import type { AudioManager } from '../renderer/audio/AudioManager.js';
 import { GameLoop } from './GameLoop.js';
 import { useGameStore } from '../shared/store/gameStore.js';
 import { GameRenderer } from '../renderer/GameRenderer.js';
 import { gameEvents } from '../shared/events/gameEvents.js';
+
+function buildEntityMetas(
+  entities: Array<{ id: EntityId; type: EntityType }>
+): EntityMeta[] {
+  const counts: Partial<Record<EntityType, number>> = {};
+  return entities.map(({ id, type }) => {
+    counts[type] = (counts[type] ?? 0) + 1;
+    const n = counts[type]!;
+    const label =
+      type === 'mine' ? `Mine ${n}` :
+      type === 'charger' ? `Charger ${n}` :
+      n === 1 ? 'Base' : `Base ${n}`;
+    return { id, type, label };
+  });
+}
 
 export function checkWin(
   win: WinCondition,
@@ -48,14 +63,14 @@ export class GameController {
   private renderer: GameRenderer | null = null;
   private world: WorldType | null = null;
   private baseId: EntityId | null = null;
-  private _entityIds: EntityId[] = [];
+  private _entities: EntityMeta[] = [];
   private container: HTMLElement | null = null;
   private _setupOptions: GameControllerSetupOptions | null = null;
 
   constructor(private readonly mission: MissionDef) {}
 
-  get entityIds(): EntityId[] {
-    return this._entityIds;
+  get entities(): EntityMeta[] {
+    return this._entities;
   }
 
   setup(container: HTMLElement, options: GameControllerSetupOptions): void {
@@ -104,7 +119,7 @@ export class GameController {
     const scene = this.mission.buildScene();
     this.world = scene.world;
     this.baseId = scene.baseId;
-    this._entityIds = scene.staticEntityIds;
+    this._entities = buildEntityMetas(scene.staticEntities);
 
     this.renderer?.destroy();
     gameEvents.clearAll();

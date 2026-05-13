@@ -31,8 +31,12 @@ export const mission1: MissionDef = {
     energy.drainPerMove = 0;
     energy.drainPerMine = 0;
 
-    void mineId;
-
-    return { world, grid, registry, baseId, staticEntityIds: [baseId, mineId] };
+    return {
+      world, grid, registry, baseId,
+      staticEntities: [
+        { id: baseId, type: 'base' },
+        { id: mineId, type: 'mine' },
+      ],
+    };
   },
 };
