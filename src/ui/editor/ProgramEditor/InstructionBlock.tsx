@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { Instruction, ActionBlock, FlowBlock, ConditionBlock } from '../../../game/programs/types.js';
 import type { EntityMeta } from '../../../game/missions/types.js';
 import { useGameStore } from '../../../shared/store/gameStore.js';
+import { makeDefaultInstruction, AddInstructionMenu } from './instructionUtils.js';
 
 const ICONS: Record<string, string> = {
   MOVE_TO: '→', MINE: '⛏', DROP: '↓', CHARGE: '⚡', WAIT: '⏱',
@@ -52,10 +53,6 @@ export function InstructionBlock({ instruction, programId, path, entities, progr
       : instruction.type === 'IF'
       ? instruction.then
       : [];
-
-  const handleAddChild = () => {
-    addInstruction(programId, { type: 'WAIT', ticks: 1 }, path);
-  };
 
   return (
     <div style={cardStyle}>
@@ -141,12 +138,11 @@ export function InstructionBlock({ instruction, programId, path, entities, progr
               activeInstructionPath={activeInstructionPath}
             />
           ))}
-          <button
-            onClick={handleAddChild}
-            style={{ background: 'none', border: '1px dashed #1e3a5f', color: '#445566', cursor: 'pointer', fontFamily: 'monospace', fontSize: '11px', padding: '3px 8px', borderRadius: '3px', width: '100%', marginTop: '2px' }}
-          >
-            + add inside
-          </button>
+          <AddInstructionMenu
+            onAdd={(type) => {
+              addInstruction(programId, makeDefaultInstruction(type, entities, programIds), path);
+            }}
+          />
         </div>
       )}
     </div>
