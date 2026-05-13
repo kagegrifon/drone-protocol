@@ -2,6 +2,18 @@
 
 ---
 
+## Сессия 20 — 2026-05-13
+
+**Цель:** Добавить меню выбора типа инструкции внутри блоков LOOP/IF/REPEAT.
+
+**Результаты:**
+- Кнопка `+ add inside` заменена на `AddInstructionMenu` — полноценное меню из 9 типов, идентичное верхнеуровневому
+- `makeDefaultInstruction`, `AddInstructionMenu`, `NEW_INSTRUCTION_TYPES` вынесены в новый файл `instructionUtils.tsx`
+- `InstructionBlock` и `ProgramEditor` импортируют общий компонент без дублирования
+- 110 тестов PASS; TypeScript strict — 0 ошибок
+
+---
+
 ## Сессия 19 — 2026-05-13
 
 **Цель:** Реализовать подсветку активной инструкции дрона в редакторе программ (план `nested-crafting-wombat.md`).
@@ -14,7 +26,6 @@
 - `ProgramEditor` передаёт `activeInstructionPath={drone.currentInstructionPath}` и показывает статус-строку: иконка `⚡`/`◌` + текст из `drone.currentInstruction`
 - 220 тестов PASS; TypeScript strict — 0 ошибок
 
-**Следующий шаг:** Визуальная проверка в браузере через `npm run dev`.
 
 ---
 
@@ -26,8 +37,6 @@
 - Проведён брейншторминг: уточнены место (блок в редакторе + статус-строка), стиль (зелёная рамка `#00ff88`), технический подход (путь из `callStack` на стороне store)
 - Составлена и одобрена спецификация: [docs/superpowers/specs/2026-05-13-active-instruction-highlight-design.md](docs/superpowers/specs/2026-05-13-active-instruction-highlight-design.md)
 - Изменений кода нет — только design doc
-
-**Следующий шаг:** В отдельной сессии создать план реализации и реализовать фичу по спецификации.
 
 ---
 
@@ -45,8 +54,6 @@
 - Новый e2e тест `e2e/move-to-picker.spec.ts` (миссия 3): открытие пикера, смена цели, повторная смена
 - Все 100 unit-тестов прошли; ошибок TypeScript нет
 
-**Следующий шаг:** Протестировать визуально в браузере и при необходимости запустить e2e (`npx playwright test e2e/move-to-picker.spec.ts`).
-
 ---
 
 ## Сессия 16 — 2026-05-12
@@ -57,7 +64,6 @@
 - Причина: `DroneSprite` наследуется от `Phaser.GameObjects.Container`, у которого нет неявного размера; вызов `sprite.setInteractive()` без указания хит-зоны бросает ошибку
 - Исправление: добавлен `sprite.setSize(TILE_SIZE, TILE_SIZE)` перед `sprite.setInteractive()` в `src/renderer/scenes/GameScene.ts:180`
 
-**Следующий шаг:** Продолжить разработку или тестирование в следующей сессии.
 
 ---
 
@@ -73,7 +79,6 @@
 - Убит зависший dev-сервер на порту 5173 (ещё работал на старом Vite 8)
 - Результат: все 4 e2e теста проходят (debug + 3 regression)
 
-**Следующий шаг:** Зафиксировать исправление коммитом.
 
 ---
 
@@ -97,7 +102,6 @@
 - `StartScreen.tsx` — добавлен `data-testid="mission-card-N"` на карточки миссий для надёжных e2e-селекторов
 - 100 unit тестов — все проходят
 
-**Следующий шаг:** Запустить `npm run test:e2e` после прогрева dev-сервера и убедиться, что все 3 e2e теста проходят.
 
 ---
 
@@ -124,7 +128,6 @@
 - Удалён `MissionSelectOverlay.tsx` (заменён StartScreen)
 - 96 тестов PASS; TypeScript strict — 0 ошибок
 
-**Следующий шаг:** Игра завершена. Можно добавить реальные аудиофайлы в `/assets/music/` и `/assets/sound/`.
 
 ---
 
@@ -141,7 +144,6 @@
 - `App.tsx` управляет `selectedMissionIndex`, переключение между миссиями
 - Все тесты проходят (92); TypeScript strict — 0 ошибок
 
-**Следующий шаг:** Фаза 10 — Аудио и полировка
 
 ---
 
@@ -161,7 +163,6 @@
 - Полный цикл добычи работает end-to-end; win/fail условия через `GameConfig`
 - Итого 92 теста — все проходят; 0 ошибок type-check
 
-**Следующий шаг:** Фаза 9 — Миссии (mission1–mission4, Mission UI)
 
 ---
 
@@ -182,7 +183,6 @@
 - Переписан `src/App.tsx` — flex-row layout (canvas слева, sidebar 340px справа); buildScene() создаёт мир с mine-loop программой и двумя дронами; setInterval на 100ms когда isRunning
 - `npm run type-check` — ошибок нет
 
-**Следующий шаг:** Фаза 8 — Игровой цикл и интеграция (GameLoop, GameController, win/fail)
 
 ---
 
@@ -197,7 +197,6 @@
 - Написан детальный план реализации: `C:\Users\Master\.claude\plans\progress-md-session-md-stateful-abelson.md`
 - Реализация не начата — отложена на следующую сессию
 
-**Следующий шаг:** Фаза 7 — реализация (gameStore.ts → компоненты → App.tsx)
 
 ---
 
@@ -214,7 +213,6 @@
 - Обновлён `src/App.tsx` — тестовый сценарий: 2 базы/шахты/зарядника/дрона, статическая сцена для визуальной проверки рендерера
 - `npm run type-check` — ошибок нет на всех этапах
 
-**Следующий шаг:** Фаза 7 — React UI (Zustand store, ProgramEditor, DroneInspector, StatsPanel)
 
 ---
 
@@ -231,7 +229,6 @@
 - Написаны 30 тестов по TDD (RED→GREEN): 24 для interpreter, 6 для ProgramExecutionSystem; итого 77 тестов — все проходят
 - `npm run type-check` — ошибок нет
 
-**Следующий шаг:** Фаза 6 — Phaser 3 рендеринг (BootScene, GameScene, DroneSprite, камера)
 
 ---
 
@@ -248,7 +245,6 @@
 - Написаны 35 тестов по TDD (RED→GREEN) для 4 систем; итого 47 тестов — все проходят
 - `npm run type-check` — ошибок нет
 
-**Следующий шаг:** Фаза 5 — Система программ (types, interpreter, ProgramExecutionSystem)
 
 ---
 
@@ -263,7 +259,6 @@
 - Написаны 12 тестов (7 для A*, 5 для CollisionSystem) — все проходят
 - `npm run type-check` — ошибок нет
 
-**Следующий шаг:** Фаза 4 — Игровые системы симуляции (Movement, Mining, Energy, Statistics)
 
 ---
 
@@ -277,7 +272,6 @@
 - Созданы 4 фабрики сущностей: `createDrone`, `createBase`, `createMine`, `createCharger`
 - `npm run type-check` — ошибок нет
 
-**Следующий шаг:** Фаза 3 — A* pathfinding и CollisionSystem
 
 ---
 
@@ -291,7 +285,6 @@
 - Созданы 8 компонентов: `Position`, `Energy`, `Inventory`, `Program` (с `CallFrame`, `ProgramState`), `Movement`, `Renderable` (с `SpriteType`), `Deposit`, `ChargerStation`
 - `npm run type-check` — ошибок нет
 
-**Следующий шаг:** Фаза 2 — Сетка 20×20 и фабрики сущностей (Grid, createDrone, createBase, createMine, createCharger)
 
 ---
 
@@ -308,7 +301,6 @@
 - Созданы заглушки `src/main.tsx`, `src/App.tsx`
 - `npm run type-check` — ошибок нет
 
-**Следующий шаг:** Фаза 1 — ECS ядро (World, компоненты)
 
 ---
 
@@ -324,6 +316,5 @@
 - Создан [SESSION.md](SESSION.md) — журнал сессий
 - Дополнен [CLAUDE.md](CLAUDE.md) — добавлены правила архитектуры, ведения документации, имя игры
 
-**Следующий шаг:** Фаза 0 — инициализация проекта (`npm create vite`, структура папок, зависимости)
 
 ---
