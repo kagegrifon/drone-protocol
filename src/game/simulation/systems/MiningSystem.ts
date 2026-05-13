@@ -55,9 +55,10 @@ export class MiningSystem {
       const baseId = this.findEntityAt(position.x, position.y, 'Inventory', id);
       if (baseId !== null) {
         const baseInventory = this.world.getComponent(baseId, 'Inventory')!;
-        baseInventory.ore += droneInventory.ore;
+        const amount = droneInventory.ore;
+        baseInventory.ore += amount;
         droneInventory.ore = 0;
-        gameEvents.emit('ore:dropped', { droneId: id });
+        gameEvents.emit('ore:dropped', { droneId: id, amount });
       }
 
       program.state = 'running';

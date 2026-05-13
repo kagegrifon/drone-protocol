@@ -2,7 +2,7 @@ import type { EntityId } from '../types/index.js';
 
 export type GameEventMap = {
   'ore:mined':        { droneId: EntityId; x: number; y: number };
-  'ore:dropped':      { droneId: EntityId };
+  'ore:dropped':      { droneId: EntityId; amount: number };
   'charge:started':   { droneId: EntityId };
   'charge:completed': { droneId: EntityId };
   'mission:complete': undefined;

@@ -190,6 +190,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   _tickCount: 0,
 
   init(world, grid, registry) {
+    get()._systems?.statistics.destroy();
     const collision = new CollisionSystem(world);
     const programExecution = new ProgramExecutionSystem(world, grid, collision, registry);
     const movement = new MovementSystem(world);

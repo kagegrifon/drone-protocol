@@ -1,4 +1,5 @@
 import type { World } from '../world/World.js';
+import { gameEvents, type GameEventMap } from '../../../shared/events/gameEvents.js';
 
 export interface StatisticsState {
   oreMined: number;
@@ -25,7 +26,16 @@ export class StatisticsSystem {
   private oreThisTick = 0;
   private oreHistory: number[] = [];
 
-  constructor(private readonly world: World) {}
+  private readonly _onOreDropped: (data: GameEventMap['ore:dropped']) => void;
+
+  constructor(private readonly world: World) {
+    this._onOreDropped = ({ amount }) => this.recordOreMined(amount);
+    gameEvents.on('ore:dropped', this._onOreDropped);
+  }
+
+  destroy(): void {
+    gameEvents.off('ore:dropped', this._onOreDropped);
+  }
 
   recordOreMined(amount: number): void {
     this.oreThisTick += amount;
