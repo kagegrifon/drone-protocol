@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { Instruction, ActionBlock, FlowBlock, ConditionBlock } from '../../../game/programs/types.js';
 import type { EntityMeta } from '../../../game/missions/types.js';
 import { useGameStore } from '../../../shared/store/gameStore.js';
@@ -14,23 +14,36 @@ interface Props {
   path: number[];
   entities: EntityMeta[];
   programIds: string[];
+  activeInstructionPath: number[] | null;
 }
 
-export function InstructionBlock({ instruction, programId, path, entities, programIds }: Props) {
+export function InstructionBlock({ instruction, programId, path, entities, programIds, activeInstructionPath }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const removeInstruction = useGameStore((s) => s.removeInstruction);
   const addInstruction = useGameStore((s) => s.addInstruction);
   const updateInstruction = useGameStore((s) => s.updateInstruction);
 
-  const CARD: React.CSSProperties = {
-    background: '#060f1e',
-    border: '1px solid #1e3a5f',
-    borderRadius: '4px',
-    padding: '6px 8px',
-    marginBottom: '4px',
-    fontFamily: 'monospace',
-    fontSize: '12px',
-  };
+  const cardStyle = useMemo<React.CSSProperties>(() => {
+    const isActive =
+      activeInstructionPath !== null &&
+      path.length === activeInstructionPath.length &&
+      path.every((v, i) => v === activeInstructionPath[i]);
+
+    const isAncestor =
+      activeInstructionPath !== null &&
+      path.length < activeInstructionPath.length &&
+      path.every((v, i) => v === activeInstructionPath[i]);
+
+    return {
+      background: isActive ? '#00ff8812' : '#060f1e',
+      border: `1px solid ${isActive ? '#00ff88' : isAncestor ? '#00ff8840' : '#1e3a5f'}`,
+      borderRadius: '4px',
+      padding: '6px 8px',
+      marginBottom: '4px',
+      fontFamily: 'monospace',
+      fontSize: '12px',
+    };
+  }, [activeInstructionPath, path]);
 
   const isContainer = instruction.type === 'LOOP' || instruction.type === 'REPEAT' || instruction.type === 'IF';
   const children: Instruction[] =
@@ -45,7 +58,7 @@ export function InstructionBlock({ instruction, programId, path, entities, progr
   };
 
   return (
-    <div style={CARD}>
+    <div style={cardStyle}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         <span style={{ color: '#4488ff', fontSize: '14px' }}>{ICONS[instruction.type] ?? '•'}</span>
         <span style={{ color: '#00d4ff', flex: 1 }}>{instruction.type}</span>
@@ -125,6 +138,7 @@ export function InstructionBlock({ instruction, programId, path, entities, progr
               path={[...path, i]}
               entities={entities}
               programIds={programIds}
+              activeInstructionPath={activeInstructionPath}
             />
           ))}
           <button

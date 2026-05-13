@@ -88,8 +88,23 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
                     path={[i]}
                     entities={entities}
                     programIds={programIds}
+                    activeInstructionPath={drone.currentInstructionPath ?? null}
                   />
                 ))}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '5px 8px',
+                  marginTop: '4px',
+                  borderTop: '1px solid #1e3a5f',
+                  fontFamily: 'monospace',
+                  fontSize: '11px',
+                  color: drone.waitingFor ? '#00ff88' : '#445566',
+                }}>
+                  <span>{drone.waitingFor ? '⚡' : '◌'}</span>
+                  <span>{drone.currentInstruction}</span>
+                </div>
                 <AddInstructionMenu onAdd={handleAddTopLevel} />
               </>
             )}
