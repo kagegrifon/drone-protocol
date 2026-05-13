@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from './gameStore.js';
 import { World } from '../../game/simulation/world/World.js';
 import { Grid } from '../../game/simulation/world/Grid.js';
-import type { ProgramRegistry } from '../../game/programs/types.js';
+import type { ProgramRegistry, ProgramDef } from '../../game/programs/types.js';
 
 function makeWorld(): World {
   return new World();
@@ -69,5 +69,82 @@ describe('store.init() — сброс счётчика тиков', () => {
 
     expect(useGameStore.getState().gameStatus).toBe('idle');
     expect(useGameStore.getState().statusMessage).toBeNull();
+  });
+});
+
+// ─── restartProgram ───────────────────────────────────────────────────────────
+
+function makeWorldWithDrone(programId: string, prog: ProgramDef): { world: World; registry: ProgramRegistry; droneId: number } {
+  const world = new World();
+  const registry: ProgramRegistry = new Map([[programId, prog]]);
+
+  const droneId = world.createEntity();
+  world.addComponent(droneId, 'Position', { x: 0, y: 0 });
+  world.addComponent(droneId, 'Energy', { current: 100, max: 100, drainPerMove: 0, drainPerMine: 0 });
+  world.addComponent(droneId, 'Inventory', { ore: 0, capacity: 10 });
+  world.addComponent(droneId, 'Movement', { targetX: 0, targetY: 0, path: [], progress: 0, speed: 1 });
+  world.addComponent(droneId, 'Program', {
+    currentProgramId: programId,
+    callStack: [{ programId, instructionIndex: 0 }],
+    state: 'running',
+    commandSlots: 4,
+  });
+
+  return { world, registry, droneId };
+}
+
+describe('store.restartProgram()', () => {
+  it('сбрасывает callStack и переводит дрона в state=running', () => {
+    const prog: ProgramDef = { id: 'p1', name: 'Test', instructions: [{ type: 'MINE' }] };
+    const { world, registry, droneId } = makeWorldWithDrone('p1', prog);
+    useGameStore.getState().init(world, new Grid(), registry);
+
+    // Имитируем, что дрон выполнил инструкцию и стал idle
+    const program = world.getComponent(droneId, 'Program')!;
+    program.callStack = [];
+    program.state = 'idle';
+
+    useGameStore.getState().restartProgram(droneId);
+
+    expect(program.state).toBe('running');
+    expect(program.callStack).toHaveLength(1);
+    expect(program.callStack[0].programId).toBe('p1');
+    expect(program.callStack[0].instructionIndex).toBe(0);
+  });
+
+  it('очищает waitingFor и путь движения', () => {
+    const prog: ProgramDef = { id: 'p1', name: 'Test', instructions: [{ type: 'MOVE_TO', targetEntityId: 99 }] };
+    const { world, registry, droneId } = makeWorldWithDrone('p1', prog);
+    useGameStore.getState().init(world, new Grid(), registry);
+
+    // Имитируем дрона в процессе движения
+    const program = world.getComponent(droneId, 'Program')!;
+    program.state = 'waiting';
+    program.waitingFor = 'move';
+    const movement = world.getComponent(droneId, 'Movement')!;
+    movement.path = [{ x: 1, y: 0 }, { x: 2, y: 0 }];
+    movement.progress = 0.5;
+
+    useGameStore.getState().restartProgram(droneId);
+
+    expect(program.state).toBe('running');
+    expect(program.waitingFor).toBeUndefined();
+    expect(movement.path).toHaveLength(0);
+    expect(movement.progress).toBe(0);
+  });
+
+  it('обновляет снапшот drones в store', () => {
+    const prog: ProgramDef = { id: 'p1', name: 'Test', instructions: [] };
+    const { world, registry, droneId } = makeWorldWithDrone('p1', prog);
+    useGameStore.getState().init(world, new Grid(), registry);
+
+    const program = world.getComponent(droneId, 'Program')!;
+    program.callStack = [];
+    program.state = 'idle';
+
+    useGameStore.getState().restartProgram(droneId);
+
+    const droneState = useGameStore.getState().drones.find(d => d.id === droneId);
+    expect(droneState?.programState).toBe('running');
   });
 });

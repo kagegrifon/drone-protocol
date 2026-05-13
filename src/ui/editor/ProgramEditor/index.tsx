@@ -27,6 +27,7 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
   const addInstruction = useGameStore((s) => s.addInstruction);
   const createProgram = useGameStore((s) => s.createProgram);
   const assignProgram = useGameStore((s) => s.assignProgram);
+  const restartProgram = useGameStore((s) => s.restartProgram);
 
   const drone = drones.find((d) => d.id === selectedId);
   const droneProgram = programs.find((p) => p.id === drone?.currentProgramId);
@@ -60,8 +61,26 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
             )}
             {drone && droneProgram && (
               <>
-                <div style={{ color: '#4488ff', fontFamily: 'monospace', fontSize: '11px', marginBottom: '8px', letterSpacing: '1px' }}>
-                  {droneProgram.name}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                  <span style={{ color: '#4488ff', fontFamily: 'monospace', fontSize: '11px', letterSpacing: '1px', flex: 1 }}>
+                    {droneProgram.name}
+                  </span>
+                  <button
+                    onClick={() => restartProgram(drone.id)}
+                    title="Перезапустить программу"
+                    style={{
+                      background: '#0a1628',
+                      border: '1px solid #1e3a5f',
+                      color: '#00ff88',
+                      fontFamily: 'monospace',
+                      fontSize: '11px',
+                      padding: '2px 8px',
+                      cursor: 'pointer',
+                      borderRadius: '2px',
+                    }}
+                  >
+                    ↺ RESTART
+                  </button>
                 </div>
                 {droneProgram.instructions.map((instr, i) => (
                   <InstructionBlock

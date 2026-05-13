@@ -93,6 +93,7 @@ interface GameStore {
   updateInstruction(programId: string, path: number[], updated: Instruction): void;
   createProgram(name: string): void;
   assignProgram(droneId: EntityId, programId: string): void;
+  restartProgram(droneId: EntityId): void;
 }
 
 function describeCondition(c: Condition): string {
@@ -133,6 +134,19 @@ function getInstructionList(instructions: Instruction[], path: number[]): Instru
     }
   }
   return current;
+}
+
+function resetDroneProgram(world: World, droneId: EntityId): void {
+  const program = world.getComponent(droneId, 'Program');
+  if (!program || !program.currentProgramId) return;
+  program.callStack = [{ programId: program.currentProgramId, instructionIndex: 0 }];
+  program.state = 'running';
+  program.waitingFor = undefined;
+  const movement = world.getComponent(droneId, 'Movement');
+  if (movement) {
+    movement.path = [];
+    movement.progress = 0;
+  }
 }
 
 function snapshotDrones(world: World, registry: ProgramRegistry): DroneState[] {
@@ -312,5 +326,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     program.waitingFor = undefined;
 
     set({ drones: snapshotDrones(world, get().registry) });
+  },
+
+  restartProgram(droneId) {
+    const { world, registry } = get();
+    if (!world) return;
+    resetDroneProgram(world, droneId);
+    set({ drones: snapshotDrones(world, registry) });
   },
 }));
