@@ -146,10 +146,16 @@ function snapshotDrones(world: World, registry: ProgramRegistry): DroneState[] {
     let currentInstruction = '—';
     const frame = program.callStack[program.callStack.length - 1];
     if (frame) {
-      const prog = registry.get(frame.programId);
-      if (prog) {
-        const instr = prog.instructions[frame.instructionIndex];
-        if (instr) currentInstruction = describeInstruction(instr);
+      const isWaiting =
+        program.state === 'waiting' ||
+        (frame.waitRemaining !== undefined && frame.waitRemaining > 0);
+      const idx = isWaiting ? frame.instructionIndex - 1 : frame.instructionIndex;
+      if (idx >= 0) {
+        const prog = registry.get(frame.programId);
+        if (prog) {
+          const instr = prog.instructions[idx];
+          if (instr) currentInstruction = describeInstruction(instr);
+        }
       }
     }
 
