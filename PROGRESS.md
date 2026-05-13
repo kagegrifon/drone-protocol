@@ -107,6 +107,9 @@
 - [x] `src/ui/controls/SimControls.tsx` — Play/Pause/Step + счётчик тиков
 - [x] `src/App.tsx` — layout: Phaser canvas слева + sidebar справа, sci-fi terminal стиль
 - [x] Можно редактировать программы через UI и назначать дрону
+- [x] `InstructionBlock` — подсветка активной инструкции: зелёная рамка + dim-рамка для контейнера, prop `activeInstructionPath`, `useMemo`
+- [x] `ProgramEditor` — статус-строка с иконкой и текущей инструкцией; передача `activeInstructionPath` в блоки
+- [x] `gameStore.ts` — `computeActivePath` (экспортированная), поля `currentInstructionPath`/`waitingFor` в `DroneState`
 
 ### Фаза 8 — Игровой цикл и интеграция
 - [x] `src/game/GameLoop.ts` — фиксированный timestep 10 ticks/sec, порядок вызова систем
@@ -152,7 +155,7 @@
 - [x] SimControls — кнопка «← Миссии» (onBackToMissions)
 - [x] App.tsx — gamePhase flow ('start'|'loading'|'game'), credits
 - [x] MissionSelectOverlay.tsx удалён (заменён StartScreen)
-- [x] 96 тестов PASS; TypeScript strict — 0 ошибок
+- [x] 220 тестов PASS; TypeScript strict — 0 ошибок
 
 ---
 

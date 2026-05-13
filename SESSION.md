@@ -2,6 +2,22 @@
 
 ---
 
+## Сессия 19 — 2026-05-13
+
+**Цель:** Реализовать подсветку активной инструкции дрона в редакторе программ (план `nested-crafting-wombat.md`).
+
+**Результаты:**
+- `DroneState` расширен полями `currentInstructionPath: number[] | null` и `waitingFor: string | null`
+- Экспортирована чистая функция `computeActivePath(callStack, state)` с 10 unit-тестами
+- `snapshotDrones` вычисляет оба поля из `ProgramComponent` на каждом тике
+- `InstructionBlock` принимает `activeInstructionPath` — активная инструкция подсвечивается зелёной рамкой (`#00ff88`) с фоном `#00ff8812`; контейнер-предок — dim-рамкой `#00ff8840`; стиль мемоизирован через `useMemo`
+- `ProgramEditor` передаёт `activeInstructionPath={drone.currentInstructionPath}` и показывает статус-строку: иконка `⚡`/`◌` + текст из `drone.currentInstruction`
+- 220 тестов PASS; TypeScript strict — 0 ошибок
+
+**Следующий шаг:** Визуальная проверка в браузере через `npm run dev`.
+
+---
+
 ## Сессия 18 — 2026-05-13
 
 **Цель:** Спроектировать подсветку активной команды дрона в редакторе программ.
