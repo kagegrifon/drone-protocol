@@ -2,6 +2,24 @@
 
 ---
 
+## Сессия 17 — 2026-05-13
+
+**Цель:** Реализовать динамический пикер цели для блока `MOVE_TO` (план `move-to-dynamic-book.md`).
+
+**Результаты:**
+- Введены типы `EntityType` и `EntityMeta`; `SceneResult.staticEntityIds` заменён на `staticEntities: Array<{ id, type }>`
+- Все четыре миссии обновлены с явными типами сущностей
+- `GameController` вычисляет метки один раз через `buildEntityMetas()` — `Mine 1`, `Base`, `Charger 2` и т.д.
+- `InstructionBlock`: кнопка-тоггл с текущей меткой и стрелкой `▾/▴`; при клике открывается пикер с именованными объектами сцены; выбор закрывает пикер и обновляет `targetEntityId`
+- `gameStore`: добавлен `updateInstruction` для точечной замены инструкции без пересоздания
+- `DroneList`: добавлены `data-testid="drone-item-{id}"` на элементы
+- Новый e2e тест `e2e/move-to-picker.spec.ts` (миссия 3): открытие пикера, смена цели, повторная смена
+- Все 100 unit-тестов прошли; ошибок TypeScript нет
+
+**Следующий шаг:** Протестировать визуально в браузере и при необходимости запустить e2e (`npx playwright test e2e/move-to-picker.spec.ts`).
+
+---
+
 ## Сессия 16 — 2026-05-12
 
 **Цель:** Исправить ошибку `Container.setInteractive must specify a Shape or call setSize() first` после загрузки миссии.
