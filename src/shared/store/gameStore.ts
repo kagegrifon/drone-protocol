@@ -4,7 +4,7 @@ import type { GameStatus } from '../../game/types.js';
 import type { World } from '../../game/simulation/world/World.js';
 import type { Grid } from '../../game/simulation/world/Grid.js';
 import type { ProgramRegistry, ProgramDef, Instruction, Condition } from '../../game/programs/types.js';
-import type { ProgramState } from '../../game/simulation/components/Program.js';
+import type { ProgramState, CallFrame } from '../../game/simulation/components/Program.js';
 import { CollisionSystem } from '../../game/simulation/systems/CollisionSystem.js';
 import { ProgramExecutionSystem } from '../../game/simulation/systems/ProgramExecutionSystem.js';
 import { MovementSystem } from '../../game/simulation/systems/MovementSystem.js';
@@ -20,6 +20,35 @@ export interface DroneState {
   programState: ProgramState;
   currentInstruction: string;
   currentProgramId: string | null;
+  currentInstructionPath: number[] | null;
+  waitingFor: string | null;
+}
+
+export function computeActivePath(
+  callStack: CallFrame[],
+  state: ProgramState
+): number[] | null {
+  if (callStack.length === 0) return null;
+
+  const path: number[] = [];
+
+  for (let i = 0; i < callStack.length; i++) {
+    const frame = callStack[i];
+    const isTop = i === callStack.length - 1;
+
+    if (isTop) {
+      const isWaiting =
+        state === 'waiting' ||
+        (frame.waitRemaining !== undefined && frame.waitRemaining > 0);
+      const idx = isWaiting ? frame.instructionIndex - 1 : frame.instructionIndex;
+      if (idx < 0) return null;
+      path.push(idx);
+    } else {
+      path.push(frame.instructionIndex);
+    }
+  }
+
+  return path;
 }
 
 export interface StatsState {
@@ -132,6 +161,8 @@ function snapshotDrones(world: World, registry: ProgramRegistry): DroneState[] {
       programState: program.state,
       currentInstruction,
       currentProgramId: program.currentProgramId,
+      currentInstructionPath: computeActivePath(program.callStack, program.state),
+      waitingFor: program.waitingFor ?? null,
     };
   });
 }
