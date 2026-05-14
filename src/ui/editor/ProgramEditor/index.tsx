@@ -36,7 +36,8 @@ const RADIO_STYLE = (checked: boolean): React.CSSProperties => ({
 });
 
 export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
-  const [tab, setTab] = useState<'drone' | 'library'>('drone');
+  const [tab, setTab] = useState<'drone' | 'library' | 'program'>('drone');
+  const [editingProgramId, setEditingProgramId] = useState<string | null>(null);
   const [newProgramName, setNewProgramName] = useState('');
   const [personalExpanded, setPersonalExpanded] = useState(true);
   const [highlightedProgramId, setHighlightedProgramId] = useState<string | null>(null);
@@ -66,11 +67,20 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
   // suppress unused warning — will be used in Phase 5 for scroll/highlight in library
   void highlightedProgramId;
 
+  const editingProgram = editingProgramId ? (registry.get(editingProgramId) ?? null) : null;
+
+  const handleAddToEditing = (type: Instruction['type']) => {
+    if (!editingProgramId) return;
+    const instr = makeDefaultInstruction(type, entities, programIds);
+    addInstruction(editingProgramId, instr);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <div style={{ display: 'flex', borderBottom: '1px solid #1e3a5f', flexShrink: 0 }}>
         <button style={TAB_BTN(tab === 'drone')} onClick={() => setTab('drone')}>DRONE</button>
         <button style={TAB_BTN(tab === 'library')} onClick={() => setTab('library')}>LIBRARY</button>
+        <button style={TAB_BTN(tab === 'program')} onClick={() => setTab('program')}>PROGRAM</button>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '10px' }}>
@@ -176,7 +186,6 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
               <div key={prog.id} style={{ background: '#060f1e', border: '1px solid #1e3a5f', borderRadius: '4px', padding: '8px 10px', marginBottom: '6px', fontFamily: 'monospace', fontSize: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ color: '#c0cfe0', flex: 1 }}>{prog.name}</span>
-                  <span style={{ color: '#445566', fontSize: '11px' }}>{prog.instructions.length} instr</span>
                   {selectedId !== null && (
                     <button
                       onClick={() => assignProgram(selectedId, prog.id)}
@@ -185,6 +194,12 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
                       Assign
                     </button>
                   )}
+                  <button
+                    onClick={() => { setEditingProgramId(prog.id); setTab('program'); }}
+                    style={{ background: '#0a1628', border: '1px solid #1e3a5f', color: '#ffaa00', fontFamily: 'monospace', fontSize: '10px', padding: '2px 8px', cursor: 'pointer', borderRadius: '2px' }}
+                  >
+                    Edit
+                  </button>
                 </div>
                 {(() => {
                   const assignedDrones = drones.filter((d) => d.assignedProgramId === prog.id);
@@ -228,6 +243,65 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
                 + New
               </button>
             </div>
+          </>
+        )}
+
+        {tab === 'program' && (
+          <>
+            {!editingProgram ? (
+              <div style={{ textAlign: 'center', paddingTop: '30px', color: '#445566', fontFamily: 'monospace', fontSize: '11px' }}>
+                <div style={{ fontSize: '20px', color: '#1e3a5f', marginBottom: '8px' }}>✏</div>
+                <div style={{ color: '#88aacc', marginBottom: '4px' }}>Программа не выбрана</div>
+                <div>Создай программу в LIBRARY<br />и нажми Edit</div>
+              </div>
+            ) : (
+              <>
+                <div style={{ background: '#060f1e', border: '1px solid #1e3a5f', borderRadius: '4px', padding: '8px 10px', marginBottom: '6px', fontFamily: 'monospace', fontSize: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ color: '#c0cfe0', flex: 1 }}>{editingProgram.name}</span>
+                    {selectedId !== null && (
+                      <button
+                        onClick={() => assignProgram(selectedId, editingProgramId!)}
+                        style={{ background: '#0a1628', border: '1px solid #1e3a5f', color: '#00ff88', fontFamily: 'monospace', fontSize: '10px', padding: '2px 8px', cursor: 'pointer', borderRadius: '2px' }}
+                      >
+                        Assign
+                      </button>
+                    )}
+                  </div>
+                  {(() => {
+                    const assignedDrones = drones.filter((d) => d.assignedProgramId === editingProgramId);
+                    return assignedDrones.length > 0 ? (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+                        <span style={{ color: '#445566', fontFamily: 'monospace', fontSize: '10px', alignSelf: 'center' }}>назначена:</span>
+                        {assignedDrones.map((d) => (
+                          <button
+                            key={d.id}
+                            onClick={() => { selectDrone(d.id); setTab('drone'); }}
+                            style={{ background: '#0d2040', border: '1px solid #1e3a5f', color: '#4488ff', fontFamily: 'monospace', fontSize: '10px', padding: '1px 6px', cursor: 'pointer', borderRadius: '2px' }}
+                          >
+                            drone-{d.id} ↗
+                          </button>
+                        ))}
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+                <div style={{ borderTop: '1px solid #1e3a5f', paddingTop: '8px' }}>
+                  {editingProgram.instructions.map((instr, i) => (
+                    <InstructionBlock
+                      key={i}
+                      instruction={instr}
+                      programId={editingProgramId!}
+                      path={[i]}
+                      entities={entities}
+                      programIds={programIds}
+                      activeInstructionPath={null}
+                    />
+                  ))}
+                  <AddInstructionMenu onAdd={handleAddToEditing} />
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
