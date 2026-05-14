@@ -17,27 +17,53 @@ const TAB_BTN = (active: boolean): React.CSSProperties => ({
   letterSpacing: '0.5px',
 });
 
+const BLOCK_STYLE = (active: boolean, color: string): React.CSSProperties => ({
+  background: '#060f1e',
+  border: `1px solid ${active ? color : '#1e3a5f'}`,
+  borderRadius: '4px',
+  padding: '8px 10px',
+  marginBottom: '8px',
+});
+
+const RADIO_STYLE = (checked: boolean): React.CSSProperties => ({
+  width: '10px',
+  height: '10px',
+  borderRadius: '50%',
+  border: `2px solid ${checked ? '#00ff88' : '#445566'}`,
+  background: checked ? '#00ff88' : 'transparent',
+  cursor: checked ? 'default' : 'pointer',
+  flexShrink: 0,
+});
+
 export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
   const [tab, setTab] = useState<'drone' | 'library'>('drone');
   const [newProgramName, setNewProgramName] = useState('');
+  const [personalExpanded, setPersonalExpanded] = useState(false);
+  const [highlightedProgramId, setHighlightedProgramId] = useState<string | null>(null);
 
   const selectedId = useGameStore((s) => s.selectedDroneId);
   const drones = useGameStore((s) => s.drones);
   const programs = useGameStore((s) => s.programs);
+  const registry = useGameStore((s) => s.registry);
   const addInstruction = useGameStore((s) => s.addInstruction);
   const createProgram = useGameStore((s) => s.createProgram);
   const assignProgram = useGameStore((s) => s.assignProgram);
-  const restartProgram = useGameStore((s) => s.restartProgram);
+  const unassignProgram = useGameStore((s) => s.unassignProgram);
 
   const drone = drones.find((d) => d.id === selectedId);
-  const droneProgram = programs.find((p) => p.id === drone?.currentProgramId);
   const programIds = programs.map((p) => p.id);
 
-  const handleAddTopLevel = (type: Instruction['type']) => {
-    if (!droneProgram) return;
+  const personalProgram = drone ? registry.get(drone.personalProgramId) : undefined;
+  const assignedProgram = drone?.assignedProgramId ? registry.get(drone.assignedProgramId) : undefined;
+
+  const handleAddPersonal = (type: Instruction['type']) => {
+    if (!personalProgram) return;
     const instr = makeDefaultInstruction(type, entities, programIds);
-    addInstruction(droneProgram.id, instr);
+    addInstruction(personalProgram.id, instr);
   };
+
+  // suppress unused warning — will be used in Phase 5 for scroll/highlight in library
+  void highlightedProgramId;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
@@ -54,60 +80,90 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
                 Select a drone
               </div>
             )}
-            {drone && !droneProgram && (
-              <div style={{ color: '#445566', fontFamily: 'monospace', fontSize: '12px', textAlign: 'center', paddingTop: '16px' }}>
-                No program assigned
-              </div>
-            )}
-            {drone && droneProgram && (
+            {drone && (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-                  <span style={{ color: '#4488ff', fontFamily: 'monospace', fontSize: '11px', letterSpacing: '1px', flex: 1 }}>
-                    {droneProgram.name}
-                  </span>
-                  <button
-                    onClick={() => restartProgram(drone.id)}
-                    title="Перезапустить программу"
-                    style={{
-                      background: '#0a1628',
-                      border: '1px solid #1e3a5f',
-                      color: '#00ff88',
+                {/* Assigned program block — only if present */}
+                {assignedProgram && (
+                  <div style={BLOCK_STYLE(true, '#0088ff')}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={RADIO_STYLE(true)} title="Активная программа" />
+                      <span style={{ color: '#4488ff', fontFamily: 'monospace', fontSize: '11px', flex: 1 }}>
+                        {assignedProgram.name}
+                      </span>
+                      <button
+                        onClick={() => { setHighlightedProgramId(drone.assignedProgramId!); setTab('library'); }}
+                        title="Открыть в библиотеке"
+                        style={{ background: 'transparent', border: 'none', color: '#4488ff', cursor: 'pointer', fontFamily: 'monospace', fontSize: '12px', padding: '0 4px' }}
+                      >
+                        ↗
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Personal program block */}
+                {personalProgram && (
+                  <div style={BLOCK_STYLE(!assignedProgram, '#00ff88')}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: personalExpanded ? '8px' : 0 }}>
+                      <div
+                        style={RADIO_STYLE(!assignedProgram)}
+                        title={assignedProgram ? 'Переключить на персональную' : 'Активная программа'}
+                        onClick={() => { if (assignedProgram) unassignProgram(drone.id); }}
+                      />
+                      <span style={{ color: !assignedProgram ? '#00ff88' : '#445566', fontFamily: 'monospace', fontSize: '11px', flex: 1 }}>
+                        {personalProgram.name}
+                      </span>
+                      <button
+                        onClick={() => setPersonalExpanded(!personalExpanded)}
+                        style={{ background: 'transparent', border: 'none', color: '#445566', cursor: 'pointer', fontFamily: 'monospace', fontSize: '11px', padding: '0 4px' }}
+                      >
+                        {personalExpanded ? '▲' : '▼'}
+                      </button>
+                    </div>
+                    {personalExpanded && (
+                      <>
+                        {personalProgram.instructions.map((instr, i) => (
+                          <InstructionBlock
+                            key={i}
+                            instruction={instr}
+                            programId={personalProgram.id}
+                            path={[i]}
+                            entities={entities}
+                            programIds={programIds}
+                            activeInstructionPath={!assignedProgram ? (drone.currentInstructionPath ?? null) : null}
+                          />
+                        ))}
+                        <AddInstructionMenu onAdd={handleAddPersonal} />
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* No assigned program — show status and assign button */}
+                {!assignedProgram && (
+                  <>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '5px 8px',
+                      marginTop: '4px',
+                      borderTop: '1px solid #1e3a5f',
                       fontFamily: 'monospace',
                       fontSize: '11px',
-                      padding: '2px 8px',
-                      cursor: 'pointer',
-                      borderRadius: '2px',
-                    }}
-                  >
-                    ↺ RESTART
-                  </button>
-                </div>
-                {droneProgram.instructions.map((instr, i) => (
-                  <InstructionBlock
-                    key={i}
-                    instruction={instr}
-                    programId={droneProgram.id}
-                    path={[i]}
-                    entities={entities}
-                    programIds={programIds}
-                    activeInstructionPath={drone.currentInstructionPath ?? null}
-                  />
-                ))}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '5px 8px',
-                  marginTop: '4px',
-                  borderTop: '1px solid #1e3a5f',
-                  fontFamily: 'monospace',
-                  fontSize: '11px',
-                  color: drone.waitingFor ? '#00ff88' : '#445566',
-                }}>
-                  <span>{drone.waitingFor ? '⚡' : '◌'}</span>
-                  <span>{drone.currentInstruction}</span>
-                </div>
-                <AddInstructionMenu onAdd={handleAddTopLevel} />
+                      color: drone.waitingFor ? '#00ff88' : '#445566',
+                    }}>
+                      <span>{drone.waitingFor ? '⚡' : '◌'}</span>
+                      <span>{drone.currentInstruction}</span>
+                    </div>
+                    <button
+                      onClick={() => setTab('library')}
+                      style={{ width: '100%', marginTop: '8px', background: '#0a1628', border: '1px solid #1e3a5f', color: '#4488ff', fontFamily: 'monospace', fontSize: '11px', padding: '6px', cursor: 'pointer', borderRadius: '3px', textAlign: 'left' }}
+                    >
+                      Назначить программу из библиотеки →
+                    </button>
+                  </>
+                )}
               </>
             )}
           </>
@@ -151,4 +207,3 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
     </div>
   );
 }
-
