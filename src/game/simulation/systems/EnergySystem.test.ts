@@ -17,7 +17,7 @@ function addDrone(
   const id = world.createEntity();
   world.addComponent(id, 'Position', { x, y });
   world.addComponent(id, 'Energy', { current: energy, max, drainPerMove: 5, drainPerMine: 2 });
-  world.addComponent(id, 'Program', { currentProgramId: null, callStack: [], state: 'waiting', commandSlots: 4, waitingFor });
+  world.addComponent(id, 'Program', { currentProgramId: null, callStack: [], state: 'waiting', commandSlots: 4, waitingFor, personalProgramId: '' });
   return id;
 }
 

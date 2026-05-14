@@ -9,7 +9,7 @@ function makeWorld() {
 function addDrone(world: World, state: 'idle' | 'running' | 'waiting' = 'running') {
   const id = world.createEntity();
   world.addComponent(id, 'Position', { x: 0, y: 0 });
-  world.addComponent(id, 'Program', { currentProgramId: null, callStack: [], state, commandSlots: 4 });
+  world.addComponent(id, 'Program', { currentProgramId: null, callStack: [], state, commandSlots: 4, personalProgramId: '' });
   return id;
 }
 

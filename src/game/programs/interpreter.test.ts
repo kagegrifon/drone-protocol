@@ -37,6 +37,7 @@ function addDrone(
     callStack: state === 'running' ? [{ programId, instructionIndex: 0 }] : [],
     state,
     commandSlots: 4,
+    personalProgramId: '',
   });
 
   return { id, registry };
@@ -277,6 +278,7 @@ describe('stepProgram — RUN_PROGRAM', () => {
       callStack: [{ programId: 'main', instructionIndex: 0 }],
       state: 'running',
       commandSlots: 4,
+      personalProgramId: '',
     });
 
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // enter sub
@@ -301,6 +303,7 @@ describe('stepProgram — RUN_PROGRAM', () => {
       callStack: [{ programId: 'main', instructionIndex: 0 }],
       state: 'running',
       commandSlots: 4,
+      personalProgramId: '',
     });
 
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // call sub

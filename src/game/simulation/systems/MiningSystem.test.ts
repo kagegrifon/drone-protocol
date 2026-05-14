@@ -18,7 +18,7 @@ function addDrone(
   world.addComponent(id, 'Position', { x, y });
   world.addComponent(id, 'Energy', { current: 100, max: 100, drainPerMove: 5, drainPerMine: 2 });
   world.addComponent(id, 'Inventory', { ore, capacity });
-  world.addComponent(id, 'Program', { currentProgramId: null, callStack: [], state: 'waiting', commandSlots: 4, waitingFor });
+  world.addComponent(id, 'Program', { currentProgramId: null, callStack: [], state: 'waiting', commandSlots: 4, waitingFor, personalProgramId: '' });
   return id;
 }
 

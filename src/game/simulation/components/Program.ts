@@ -16,4 +16,6 @@ export interface ProgramComponent {
   state: ProgramState;
   commandSlots: number;
   waitingFor?: WaitingFor;
+  personalProgramId: string;      // всегда заполнено, равно droneEntityId
+  assignedProgramId?: string;     // id библиотечной программы если назначена
 }

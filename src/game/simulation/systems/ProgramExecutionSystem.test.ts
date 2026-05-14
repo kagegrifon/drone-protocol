@@ -25,6 +25,7 @@ function addDrone(
     callStack: state === 'running' ? [{ programId: 'prog', instructionIndex: 0 }] : [],
     state,
     commandSlots: 4,
+    personalProgramId: '',
   });
   return id;
 }

@@ -88,6 +88,7 @@ function makeWorldWithDrone(programId: string, prog: ProgramDef): { world: World
     callStack: [{ programId, instructionIndex: 0 }],
     state: 'running',
     commandSlots: 4,
+    personalProgramId: '',
   });
 
   return { world, registry, droneId };

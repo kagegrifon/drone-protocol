@@ -21,7 +21,7 @@ function addDrone(
   world.addComponent(id, 'Energy', { current: energy, max: 100, drainPerMove: 5, drainPerMine: 2 });
   const last = pathTo[pathTo.length - 1];
   world.addComponent(id, 'Movement', { targetX: last?.x ?? x, targetY: last?.y ?? y, path: [...pathTo], progress: 0, speed });
-  world.addComponent(id, 'Program', { currentProgramId: null, callStack: [], state, commandSlots: 4, waitingFor });
+  world.addComponent(id, 'Program', { currentProgramId: null, callStack: [], state, commandSlots: 4, waitingFor, personalProgramId: '' });
   return id;
 }
 

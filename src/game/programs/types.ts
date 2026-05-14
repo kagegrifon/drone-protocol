@@ -32,6 +32,7 @@ export interface ProgramDef {
   id: string;
   name: string;
   instructions: Instruction[];
+  personal?: boolean;  // если true — скрыть из списка библиотеки
 }
 
 export type ProgramRegistry = Map<string, ProgramDef>;

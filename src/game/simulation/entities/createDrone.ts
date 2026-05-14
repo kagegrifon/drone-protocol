@@ -16,6 +16,7 @@ export function createDrone(world: World, x: number, y: number): EntityId {
     callStack: [],
     state: 'idle',
     commandSlots: 4,
+    personalProgramId: '',
   });
   world.addComponent(id, 'Movement', {
     targetX: x,

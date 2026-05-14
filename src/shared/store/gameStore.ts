@@ -22,6 +22,8 @@ export interface DroneState {
   currentProgramId: string | null;
   currentInstructionPath: number[] | null;
   waitingFor: string | null;
+  personalProgramId: string;
+  assignedProgramId?: string;
 }
 
 export function computeActivePath(
@@ -183,6 +185,8 @@ function snapshotDrones(world: World, registry: ProgramRegistry): DroneState[] {
       currentProgramId: program.currentProgramId,
       currentInstructionPath: computeActivePath(program.callStack, program.state),
       waitingFor: program.waitingFor ?? null,
+      personalProgramId: program.personalProgramId,
+      assignedProgramId: program.assignedProgramId,
     };
   });
 }
