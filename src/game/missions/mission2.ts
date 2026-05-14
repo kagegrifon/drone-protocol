@@ -5,7 +5,7 @@ import { createMine } from '../simulation/entities/createMine.js';
 import { createCharger } from '../simulation/entities/createCharger.js';
 import { createDrone } from '../simulation/entities/createDrone.js';
 import type { MissionDef } from './types.js';
-import type { ProgramRegistry } from '../programs/types.js';
+import type { ProgramDef, ProgramRegistry } from '../programs/types.js';
 
 export const mission2: MissionDef = {
   id: 'mission2',
@@ -28,7 +28,21 @@ export const mission2: MissionDef = {
     const baseId = createBase(world, 1, 1);
     const mineId = createMine(world, 15, 3);
     const chargerId = createCharger(world, 1, 10);
-    createDrone(world, 5, 5);
+    const droneId = createDrone(world, 5, 5);
+
+    // Personal program for drone
+    const personalProg: ProgramDef = {
+      id: String(droneId),
+      name: `drone-${droneId}`,
+      personal: true,
+      instructions: [],
+    };
+    registry.set(personalProg.id, personalProg);
+    const prog = world.getComponent(droneId, 'Program')!;
+    prog.personalProgramId = String(droneId);
+    prog.currentProgramId = personalProg.id;
+    prog.callStack = [{ programId: personalProg.id, instructionIndex: 0 }];
+    prog.state = 'running';
 
     return {
       world, grid, registry, baseId,

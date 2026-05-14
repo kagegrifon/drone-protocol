@@ -67,6 +67,19 @@ export const mission3: MissionDef = {
       prog.state = 'running';
     }
 
+    for (const droneId of [drone1Id, drone2Id]) {
+      const personalProg: ProgramDef = {
+        id: String(droneId),
+        name: `drone-${droneId}`,
+        personal: true,
+        instructions: [],
+      };
+      registry.set(personalProg.id, personalProg);
+      const prog = world.getComponent(droneId, 'Program')!;
+      prog.personalProgramId = String(droneId);
+      prog.assignedProgramId = sharedLoop.id;
+    }
+
     return {
       world, grid, registry, baseId,
       staticEntities: [

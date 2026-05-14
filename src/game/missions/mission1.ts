@@ -4,7 +4,7 @@ import { createBase } from '../simulation/entities/createBase.js';
 import { createMine } from '../simulation/entities/createMine.js';
 import { createDrone } from '../simulation/entities/createDrone.js';
 import type { MissionDef } from './types.js';
-import type { ProgramRegistry } from '../programs/types.js';
+import type { ProgramDef, ProgramRegistry } from '../programs/types.js';
 
 export const mission1: MissionDef = {
   id: 'mission1',
@@ -30,6 +30,20 @@ export const mission1: MissionDef = {
     const energy = world.getComponent(droneId, 'Energy')!;
     energy.drainPerMove = 0;
     energy.drainPerMine = 0;
+
+    // Personal program for drone
+    const personalProg: ProgramDef = {
+      id: String(droneId),
+      name: `drone-${droneId}`,
+      personal: true,
+      instructions: [],
+    };
+    registry.set(personalProg.id, personalProg);
+    const prog = world.getComponent(droneId, 'Program')!;
+    prog.personalProgramId = String(droneId);
+    prog.currentProgramId = personalProg.id;
+    prog.callStack = [{ programId: personalProg.id, instructionIndex: 0 }];
+    prog.state = 'running';
 
     return {
       world, grid, registry, baseId,

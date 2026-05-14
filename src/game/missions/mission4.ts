@@ -82,6 +82,30 @@ export const mission4: MissionDef = {
     prog2.callStack = [{ programId: loop2.id, instructionIndex: 0 }];
     prog2.state = 'running';
 
+    // Personal program for drone1
+    const personal1: ProgramDef = {
+      id: String(drone1Id),
+      name: `drone-${drone1Id}`,
+      personal: true,
+      instructions: [],
+    };
+    registry.set(personal1.id, personal1);
+    const p1 = world.getComponent(drone1Id, 'Program')!;
+    p1.personalProgramId = String(drone1Id);
+    p1.assignedProgramId = loop1.id;
+
+    // Personal program for drone2
+    const personal2: ProgramDef = {
+      id: String(drone2Id),
+      name: `drone-${drone2Id}`,
+      personal: true,
+      instructions: [],
+    };
+    registry.set(personal2.id, personal2);
+    const p2 = world.getComponent(drone2Id, 'Program')!;
+    p2.personalProgramId = String(drone2Id);
+    p2.assignedProgramId = loop2.id;
+
     return {
       world, grid, registry, baseId,
       staticEntities: [
