@@ -10,6 +10,11 @@ async function waitForCanvas(page: import('@playwright/test').Page) {
   expect(box!.height).toBeGreaterThan(0);
 }
 
+// Пропускает интро-экран (кнопка «Press Start»)
+async function skipIntro(page: import('@playwright/test').Page) {
+  await page.getByRole('button', { name: 'Press Start' }).click();
+}
+
 // Запускает миссию с заданным индексом (0-based)
 async function startMission(page: import('@playwright/test').Page, index: number) {
   await page.locator(`[data-testid="mission-card-${index}"]`).click();
@@ -24,6 +29,7 @@ async function startMission(page: import('@playwright/test').Page, index: number
 
 test('Bug 1: canvas виден и имеет размер после загрузки миссии', async ({ page }) => {
   await page.goto('/');
+  await skipIntro(page);
   await startMission(page, 0);
 
   await waitForCanvas(page);
@@ -48,6 +54,7 @@ test('Bug 2: нет console-ошибок при переключении мис�
   page.on('pageerror', (err) => errors.push(err.message));
 
   await page.goto('/');
+  await skipIntro(page);
 
   // Запуск миссии 1
   await startMission(page, 0);
@@ -77,6 +84,7 @@ test('Bug 2: нет console-ошибок при переключении мис�
 
 test('Bug 3: счётчик тиков сбрасывается в 0 при смене миссии', async ({ page }) => {
   await page.goto('/');
+  await skipIntro(page);
 
   // Запуск миссии 1
   await startMission(page, 0);

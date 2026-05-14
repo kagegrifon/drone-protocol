@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test';
 
+async function skipIntro(page: import('@playwright/test').Page) {
+  await page.getByRole('button', { name: 'Press Start' }).click();
+}
+
 async function waitForCanvas(page: import('@playwright/test').Page) {
   const canvas = page.locator('canvas');
   await canvas.waitFor({ state: 'visible', timeout: 15_000 });
@@ -11,6 +15,7 @@ async function waitForCanvas(page: import('@playwright/test').Page) {
 
 test('MOVE_TO picker: выбор и смена цели', async ({ page }) => {
   await page.goto('/');
+  await skipIntro(page);
 
   // Запустить миссию 3 (индекс 2): 2 дрона, Mine 1, Mine 2, Base, Charger 1, Charger 2
   await page.locator('[data-testid="mission-card-2"]').click();
