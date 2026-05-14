@@ -49,6 +49,7 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
   const createProgram = useGameStore((s) => s.createProgram);
   const assignProgram = useGameStore((s) => s.assignProgram);
   const unassignProgram = useGameStore((s) => s.unassignProgram);
+  const selectDrone = useGameStore((s) => s.selectDrone);
 
   const drone = drones.find((d) => d.id === selectedId);
   const programIds = programs.map((p) => p.id);
@@ -185,6 +186,32 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
                     </button>
                   )}
                 </div>
+                {(() => {
+                  const assignedDrones = drones.filter((d) => d.assignedProgramId === prog.id);
+                  return assignedDrones.length > 0 ? (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+                      <span style={{ color: '#445566', fontFamily: 'monospace', fontSize: '10px', alignSelf: 'center' }}>назначена:</span>
+                      {assignedDrones.map((d) => (
+                        <button
+                          key={d.id}
+                          onClick={() => { selectDrone(d.id); setTab('drone'); }}
+                          style={{
+                            background: '#0d2040',
+                            border: '1px solid #1e3a5f',
+                            color: '#4488ff',
+                            fontFamily: 'monospace',
+                            fontSize: '10px',
+                            padding: '1px 6px',
+                            cursor: 'pointer',
+                            borderRadius: '2px',
+                          }}
+                        >
+                          drone-{d.id} ↗
+                        </button>
+                      ))}
+                    </div>
+                  ) : null;
+                })()}
               </div>
             ))}
             <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
