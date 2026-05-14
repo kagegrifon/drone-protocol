@@ -263,16 +263,25 @@ export class GameScene extends Phaser.Scene {
 
   private setupCamera(): void {
     const cam = this.cameras.main;
-    cam.setBounds(0, 0, CANVAS_W, CANVAS_H);
+    const worldW = CANVAS_W;
+    const worldH = CANVAS_H;
+    const minZoom = Math.max(CANVAS_W / worldW, CANVAS_H / worldH);
+    const maxZoom = 2.0;
+
+    cam.setBounds(0, 0, worldW, worldH);
     cam.setBackgroundColor(COLORS.BG);
+
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (pointer.isDown) {
         cam.scrollX -= (pointer.x - pointer.prevPosition.x) / cam.zoom;
         cam.scrollY -= (pointer.y - pointer.prevPosition.y) / cam.zoom;
       }
     });
-    this.input.on('wheel', (_p: unknown, _go: unknown, _dx: unknown, dy: number) => {
-      cam.setZoom(Phaser.Math.Clamp(cam.zoom - dy * 0.001, 0.4, 2.5));
-    });
+
+    this.sys.game.canvas.addEventListener('wheel', (e: WheelEvent) => {
+      e.preventDefault();
+      if (!e.ctrlKey) return;
+      cam.setZoom(Phaser.Math.Clamp(cam.zoom - e.deltaY * 0.001, minZoom, maxZoom));
+    }, { passive: false });
   }
 }
