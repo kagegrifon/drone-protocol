@@ -1,7 +1,7 @@
 import type { EntityId } from '../../shared/types/index.js';
 import type { World } from '../simulation/world/World.js';
 import type { Grid } from '../simulation/world/Grid.js';
-import type { Instruction, ProgramRegistry, Condition } from './types.js';
+import type { Instruction, ProgramRegistry, ConditionLeaf, ConditionLogic } from './types.js';
 import { astar } from '../pathfinding/astar.js';
 
 export function stepProgram(
@@ -120,21 +120,19 @@ export function stepProgram(
       break;
 
     case 'IF': {
-      const met = evaluateCondition(instruction.condition, droneId, world);
+      const met = evaluateConditions(instruction.conditions, instruction.operators, droneId, world);
       if (met && instruction.then.length > 0) {
         program.callStack.push({
           programId: '__inline__',
           instructionIndex: 0,
           inlineInstructions: instruction.then,
         });
-        // parent index is advanced when sub-frame pops
       } else if (!met && instruction.else && instruction.else.length > 0) {
         program.callStack.push({
           programId: '__inline__',
           instructionIndex: 0,
           inlineInstructions: instruction.else,
         });
-        // parent index is advanced when sub-frame pops
       } else {
         frame.instructionIndex++;
       }
@@ -143,34 +141,69 @@ export function stepProgram(
   }
 }
 
-function evaluateCondition(condition: Condition, droneId: EntityId, world: World): boolean {
-  switch (condition.type) {
-    case 'INVENTORY_FULL': {
-      const inv = world.getComponent(droneId, 'Inventory');
-      return inv !== undefined && inv.ore >= inv.capacity;
-    }
-    case 'INVENTORY_EMPTY': {
-      const inv = world.getComponent(droneId, 'Inventory');
-      return inv === undefined || inv.ore === 0;
-    }
-    case 'ENERGY_LOW': {
+function evaluateLeaf(leaf: ConditionLeaf, droneId: EntityId, world: World): boolean {
+  const { property, operator, value } = leaf;
+  let actual: number;
+
+  switch (property.kind) {
+    case 'ENERGY': {
       const energy = world.getComponent(droneId, 'Energy');
-      return energy !== undefined && energy.current <= condition.threshold;
+      if (!energy) return false;
+      actual = property.unit === '%'
+        ? (energy.current / energy.max) * 100
+        : energy.current;
+      break;
     }
-    case 'ENERGY_FULL': {
-      const energy = world.getComponent(droneId, 'Energy');
-      return energy !== undefined && energy.current >= energy.max;
+    case 'INVENTORY': {
+      const inv = world.getComponent(droneId, 'Inventory');
+      if (!inv) return false;
+      actual = property.unit === '%'
+        ? (inv.ore / inv.capacity) * 100
+        : inv.ore;
+      break;
     }
-    case 'DEPOSIT_EMPTY': {
+    case 'DEPOSIT': {
       const pos = world.getComponent(droneId, 'Position');
-      if (!pos) return true;
+      if (!pos) return false;
+      actual = 0;
       for (const depId of world.query('Position', 'Deposit')) {
         const depPos = world.getComponent(depId, 'Position')!;
         if (depPos.x === pos.x && depPos.y === pos.y) {
-          return world.getComponent(depId, 'Deposit')!.oreRemaining <= 0;
+          actual = world.getComponent(depId, 'Deposit')!.oreRemaining;
+          break;
         }
       }
-      return true;
+      break;
+    }
+    case 'DISTANCE': {
+      const dronePos = world.getComponent(droneId, 'Position');
+      const targetPos = world.getComponent(property.targetEntityId, 'Position');
+      if (!dronePos || !targetPos) return false;
+      actual = Math.abs(dronePos.x - targetPos.x) + Math.abs(dronePos.y - targetPos.y);
+      break;
     }
   }
+
+  switch (operator) {
+    case '<':  return actual < value;
+    case '<=': return actual <= value;
+    case '=':  return actual === value;
+    case '>=': return actual >= value;
+    case '>':  return actual > value;
+  }
+}
+
+function evaluateConditions(
+  conditions: ConditionLeaf[],
+  operators: ConditionLogic[],
+  droneId: EntityId,
+  world: World
+): boolean {
+  if (conditions.length === 0) return false;
+  let result = evaluateLeaf(conditions[0], droneId, world);
+  for (let i = 0; i < operators.length; i++) {
+    const next = evaluateLeaf(conditions[i + 1], droneId, world);
+    result = operators[i] === 'AND' ? result && next : result || next;
+  }
+  return result;
 }
