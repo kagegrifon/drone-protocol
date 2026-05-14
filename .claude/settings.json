@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(npm test *)",
+      "Bash(npx vitest *)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\Master\\.claude\\plans"
+    ]
+  }
+}
