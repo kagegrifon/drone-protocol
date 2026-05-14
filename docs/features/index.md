@@ -17,7 +17,6 @@ docs/features/
 | Файл | Название | Статус |
 |---|---|---|
 | [congestion-metric.md](planned/congestion-metric.md) | Метрика Congestion (затор дронов) | planned |
-| [personal-programs.md](planned/personal-programs.md) | Персональные программы дронов + вкладка PROGRAM | done |
 | [if-condition-editor.md](planned/if-condition-editor.md) | Редактор условий IF-блока | planned |
 
 
@@ -25,3 +24,4 @@ docs/features/
 
 | Файл | Название |
 |---|---|
+| [personal-programs.md](done/personal-programs.md) | Персональные программы дронов + вкладка PROGRAM |
