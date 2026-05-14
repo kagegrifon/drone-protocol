@@ -1,64 +1,34 @@
-# Сессия: Дизайн фичи «Редактор условий IF-блока»
+# Session: Редактор условий IF-блока
 
-**Дата:** 2026-05-14  
-**Ветка:** feature/personal-programs
+**Дата:** 2026-05-14
+**Фича:** [if-condition-editor.md](../features/done/if-condition-editor.md)
 
 ## Цель
 
-Продумать и спроектировать фичу редактирования условий в IF-блоке программы дрона — сейчас условие захардкожено и не редактируется в UI.
+Заменить захардкоженное условие `INVENTORY_FULL` в IF-блоке полноценным редактором с линейным списком условий, связанных операторами И/ИЛИ.
 
 ## Результаты
 
-### Дизайн принят
+### Фаза 1 — Типы и интерпретатор (коммит `1225a95`)
 
-Через итеративный брейншторминг (с визуальными мокапами) согласован полный дизайн фичи:
+- `src/game/programs/types.ts` — удалён старый тип `Condition` (5 вариантов), добавлены `ConditionLeaf`, `ConditionLogic`, `ConditionOperator`, `ConditionProperty`; `ConditionBlock` переработан: `condition` → `conditions[]` + `operators[]`
+- `src/game/programs/interpreter.ts` — `evaluateCondition()` заменена на `evaluateLeaf()` + `evaluateConditions()` с поддержкой AND/OR цепочек и свойств ENERGY/INVENTORY/DEPOSIT/DISTANCE
+- `src/game/programs/interpreter.test.ts` — 33 новых теста покрывают все 4 свойства, оба единицы измерения, все 5 операторов, AND/OR, пустой список и else-ветку
 
-**UI:**
-- IF-блок отображает условия цветными чипами: `⚡ < 30%`, `И`, `📦 = 100%`
-- При отсутствии условий — предупреждение «условие не задано» + кнопка «✏️ задать»
-- Кнопка ✏️ открывает попап-редактор прямо под блоком
+### Фаза 2 — UI (коммит `9ddffd1`)
 
-**Редактор условий (попап):**
-- Линейный список строк: `[свойство] [ед.?] [оператор] [значение] [✕]`
-- Переключатель И / ИЛИ между каждыми двумя строками (клик toggles)
-- Кнопка «+ добавить условие» (аналог добавления инструкций)
-- Превью-строка в реальном времени
-- Сохранить / Отмена
+- `src/ui/editor/ProgramEditor/ConditionEditor.tsx` — новый попап-компонент: список строк условий, переключатель И/ИЛИ, кнопка «+ добавить условие», превью-строка, кнопки Сохранить/Отмена
+- `src/ui/editor/ProgramEditor/InstructionBlock.tsx` — IF-блок показывает чипы условий или «условие не задано», кнопка ✏️ открывает/закрывает `ConditionEditor`
+- `src/ui/editor/ProgramEditor/instructionUtils.tsx` — `makeDefaultInstruction('IF')` возвращает пустой `conditions: []`
 
-**Свойства:**
-| Свойство | Единицы | Особенность |
-|---|---|---|
-| ⚡ Энергия | % или ед. | селект % / ед. |
-| 📦 Загрузка рудой | % или ед. | селект % / ед. |
-| ⛏️ Депозит | только ед. | нет переключателя |
-| 📍 Расстояние | только кл. | + селект объекта как в MOVE_TO |
+### Попутные исправления
 
-**Операторы:** `<`, `<=`, `=`, `>=`, `>`
+- `src/game/missions/mission3.ts` — IF-блок обновлён под новый формат
+- `src/game/programs/index.ts` — экспорт обновлён (убран `Condition`, добавлены новые типы)
+- `src/shared/store/gameStore.ts` — убрана `describeCondition()`, `describeInstruction` для IF упрощён
+- `src/shared/events/gameEvents.test.ts` — исправлен pre-existing баг (пропущено поле `amount`)
+- `package.json` — исправлен build-скрипт: `tsc && vite build` → `tsc --noEmit && vite build`
 
-**Ограничения v1:** одна группа (без вложенности), без оператора НЕ.
+## Итог
 
-### Документация создана
-
-- Спек фичи: [docs/features/planned/if-condition-editor.md](../features/planned/if-condition-editor.md)
-- Индекс обновлён (добавлена колонка Статус): [docs/features/index.md](../features/index.md)
-- Мокапы сохранены: `.superpowers/brainstorm/15374-1778755449/content/`
-
-### План реализации написан
-
-Файл: `C:\Users\Master\.claude\plans\composed-zooming-sutton.md`
-
-6 задач:
-1. Новые типы (`ConditionLeaf`, `ConditionLogic`, `ConditionProperty`) в `types.ts`
-2. Перепись `interpreter.ts` — `evaluateLeaf` + `evaluateConditions`
-3. Обновление тестов `interpreter.test.ts`
-4. Новый компонент `ConditionEditor.tsx`
-5. Обновление `InstructionBlock.tsx` (чипы + ✏️ + рендер ConditionEditor)
-6. Обновление `instructionUtils.tsx` + финальная проверка
-
-### Предложено улучшение workflow
-
-В `docs/features/index.md` добавлена колонка **Статус** — теперь видно planned/in-progress прямо из индекса без открытия отдельных файлов.
-
-## Что не сделано
-
-Реализация кода — запланирована, но в этой сессии не выполнялась.
+Все 122 теста зелёные. Сборка проходит. Фича проверена вручную в браузере.
