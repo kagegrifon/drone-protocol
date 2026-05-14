@@ -17,6 +17,7 @@ docs/features/
 | Файл | Название |
 |---|---|
 | [congestion-metric.md](planned/congestion-metric.md) | Метрика Congestion (затор дронов) |
+| [personal-programs.md](planned/personal-programs.md) | Персональные программы дронов |
 
 
 ### done
