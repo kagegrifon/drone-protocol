@@ -15,7 +15,7 @@ describe('gameEvents', () => {
     const fn = vi.fn();
     gameEvents.on('ore:dropped', fn);
     gameEvents.off('ore:dropped', fn);
-    gameEvents.emit('ore:dropped', { droneId: 1 });
+    gameEvents.emit('ore:dropped', { droneId: 1, amount: 0 });
     expect(fn).not.toHaveBeenCalled();
   });
 

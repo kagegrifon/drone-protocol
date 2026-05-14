@@ -15,7 +15,7 @@ export function makeDefaultInstruction(type: Instruction['type'], entities: Enti
     case 'WAIT': return { type: 'WAIT', ticks: 1 };
     case 'LOOP': return { type: 'LOOP', body: [] };
     case 'REPEAT': return { type: 'REPEAT', count: 3, body: [] };
-    case 'IF': return { type: 'IF', condition: { type: 'INVENTORY_FULL' }, then: [], else: [] };
+    case 'IF': return { type: 'IF', conditions: [], operators: [], then: [], else: [] };
     case 'RUN_PROGRAM': return { type: 'RUN_PROGRAM', programId: programIds[0] ?? '' };
   }
 }

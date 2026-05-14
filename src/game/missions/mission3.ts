@@ -48,7 +48,8 @@ export const mission3: MissionDef = {
             { type: 'DROP' },
             {
               type: 'IF',
-              condition: { type: 'ENERGY_LOW', threshold: 30 },
+              conditions: [{ property: { kind: 'ENERGY', unit: '%' }, operator: '<=', value: 30 }],
+              operators: [],
               then: [
                 { type: 'MOVE_TO', targetEntityId: charger1Id },
                 { type: 'CHARGE' },

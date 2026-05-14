@@ -3,7 +3,7 @@ import type { EntityId } from '../types/index.js';
 import type { GameStatus } from '../../game/types.js';
 import type { World } from '../../game/simulation/world/World.js';
 import type { Grid } from '../../game/simulation/world/Grid.js';
-import type { ProgramRegistry, ProgramDef, Instruction, Condition } from '../../game/programs/types.js';
+import type { ProgramRegistry, ProgramDef, Instruction } from '../../game/programs/types.js';
 import type { ProgramState, CallFrame } from '../../game/simulation/components/Program.js';
 import { CollisionSystem } from '../../game/simulation/systems/CollisionSystem.js';
 import { ProgramExecutionSystem } from '../../game/simulation/systems/ProgramExecutionSystem.js';
@@ -99,16 +99,6 @@ interface GameStore {
   restartProgram(droneId: EntityId): void;
 }
 
-function describeCondition(c: Condition): string {
-  switch (c.type) {
-    case 'INVENTORY_FULL': return 'INV_FULL';
-    case 'INVENTORY_EMPTY': return 'INV_EMPTY';
-    case 'ENERGY_LOW': return `ENERGY<${c.threshold}`;
-    case 'ENERGY_FULL': return 'ENERGY_FULL';
-    case 'DEPOSIT_EMPTY': return 'DEPOSIT_EMPTY';
-  }
-}
-
 function describeInstruction(instr: Instruction): string {
   switch (instr.type) {
     case 'MOVE_TO': return `MOVE → #${instr.targetEntityId}`;
@@ -119,7 +109,7 @@ function describeInstruction(instr: Instruction): string {
     case 'LOOP': return 'LOOP ∞';
     case 'REPEAT': return `REPEAT ×${instr.count}`;
     case 'RUN_PROGRAM': return `RUN ${instr.programId}`;
-    case 'IF': return `IF ${describeCondition(instr.condition)}`;
+    case 'IF': return `IF (${instr.conditions.length} condition${instr.conditions.length !== 1 ? 's' : ''})`;
   }
 }
 
