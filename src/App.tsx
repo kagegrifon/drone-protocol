@@ -1,22 +1,23 @@
-import { useEffect, useRef, useState } from 'react';
-import { GameController } from './game/GameController.js';
-import { ALL_MISSIONS } from './game/missions/index.js';
-import { useGameStore } from './shared/store/gameStore.js';
-import { useAudioStore } from './shared/store/audioStore.js';
-import { SimControls } from './ui/controls/SimControls.js';
-import { DroneList } from './ui/panels/DroneList.js';
-import { DroneInspector } from './ui/panels/DroneInspector/index.js';
-import { ProgramEditor } from './ui/editor/ProgramEditor/index.js';
-import { StatsPanel } from './ui/panels/StatsPanel/index.js';
-import { MissionGoalPanel } from './ui/panels/MissionGoalPanel.js';
-import { GameStatusOverlay } from './ui/overlays/GameStatusOverlay.js';
-import { StartScreen } from './ui/screens/StartScreen.js';
-import { LoadingScreen } from './ui/screens/LoadingScreen.js';
-import { AudioSettingsModal } from './ui/modals/AudioSettingsModal.js';
-import type { EntityMeta } from './game/missions/types.js';
-import type { AudioManager } from './renderer/audio/AudioManager.js';
-
-type GamePhase = 'start' | 'loading' | 'game';
+import { useEffect, useRef, useState } from "react";
+import { GameController } from "./game/GameController.js";
+import { ALL_MISSIONS } from "./game/missions/index.js";
+import { useGameStore } from "./shared/store/gameStore.js";
+import { useAudioStore } from "./shared/store/audioStore.js";
+import { SimControls } from "./ui/controls/SimControls.js";
+import { DroneList } from "./ui/panels/DroneList.js";
+import { DroneInspector } from "./ui/panels/DroneInspector/index.js";
+import { ProgramEditor } from "./ui/editor/ProgramEditor/index.js";
+import { StatsPanel } from "./ui/panels/StatsPanel/index.js";
+import { MissionGoalPanel } from "./ui/panels/MissionGoalPanel.js";
+import { GameStatusOverlay } from "./ui/overlays/GameStatusOverlay.js";
+import { IntroScreen } from "./ui/screens/IntroScreen.js";
+import { StartScreen } from "./ui/screens/StartScreen.js";
+import { LoadingScreen } from "./ui/screens/LoadingScreen.js";
+import { AudioSettingsModal } from "./ui/modals/AudioSettingsModal.js";
+import type { EntityMeta } from "./game/missions/types.js";
+import type { AudioManager } from "./renderer/audio/AudioManager.js";
+import "./global.css";
+type GamePhase = "intro" | "start" | "loading" | "game";
 
 export default function App() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -25,7 +26,7 @@ export default function App() {
   const wasRunningRef = useRef<boolean>(false);
   const selectDrone = useGameStore((s) => s.selectDrone);
 
-  const [gamePhase, setGamePhase] = useState<GamePhase>('start');
+  const [gamePhase, setGamePhase] = useState<GamePhase>("intro");
   const [missionIndex, setMissionIndex] = useState<number>(0);
   const [audioManager, setAudioManager] = useState<AudioManager | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -34,7 +35,7 @@ export default function App() {
   const isLastMission = missionIndex === ALL_MISSIONS.length - 1;
 
   const openSettings = () => {
-    if (gamePhase === 'game') {
+    if (gamePhase === "game") {
       const { isRunning } = useGameStore.getState();
       wasRunningRef.current = isRunning;
       if (isRunning) controllerRef.current?.pause();
@@ -44,14 +45,14 @@ export default function App() {
 
   const closeSettings = () => {
     setIsSettingsOpen(false);
-    if (gamePhase === 'game' && wasRunningRef.current) {
+    if (gamePhase === "game" && wasRunningRef.current) {
       controllerRef.current?.start();
     }
   };
 
   const handleStart = (index: number) => {
     setMissionIndex(index);
-    setGamePhase('loading');
+    setGamePhase("loading");
   };
 
   const handleBackToMissions = () => {
@@ -59,18 +60,18 @@ export default function App() {
     controllerRef.current?.destroy();
     controllerRef.current = null;
     setAudioManager(null);
-    setGamePhase('start');
+    setGamePhase("start");
   };
 
   useEffect(() => {
-    if (gamePhase !== 'loading') return;
+    if (gamePhase !== "loading") return;
     if (!containerRef.current) return;
 
     controllerRef.current?.destroy();
     const ctrl = new GameController(ALL_MISSIONS[missionIndex]);
     ctrl.setup(containerRef.current, {
       onDroneClick: (id) => selectDrone(id),
-      onReady: () => setGamePhase('game'),
+      onReady: () => setGamePhase("game"),
       onAudioReady: (am) => {
         const { musicVol, sfxVol } = useAudioStore.getState();
         am.setMusicVolume(musicVol / 100);
@@ -80,21 +81,21 @@ export default function App() {
     });
     entityMetasRef.current = ctrl.entities;
     controllerRef.current = ctrl;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gamePhase, missionIndex]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
+      if (e.key !== "Escape") return;
       if (isSettingsOpen) {
         closeSettings();
-      } else if (gamePhase === 'game') {
+      } else if (gamePhase === "game") {
         openSettings();
       }
     };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSettingsOpen, gamePhase]);
 
   useEffect(() => {
@@ -102,17 +103,36 @@ export default function App() {
   }, []);
 
   return (
-    <div style={{ display: 'flex', background: '#050810', minHeight: '100vh', color: '#c0cfe0' }}>
+    <div
+      style={{
+        display: "flex",
+        background: "#050810",
+        minHeight: "100vh",
+        color: "#c0cfe0",
+      }}
+    >
       {/* Phaser canvas — always mounted so containerRef is available */}
-      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '16px', position: 'relative' }}>
+      <div
+        style={{
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "center",
+          padding: "16px",
+          position: "relative",
+        }}
+      >
         <div ref={containerRef} />
-        {gamePhase === 'game' && (
+        {gamePhase === "game" && (
           <GameStatusOverlay
             onReset={() => controllerRef.current?.reset()}
             onNextMission={() => {
-              const next = missionIndex < ALL_MISSIONS.length - 1 ? missionIndex + 1 : missionIndex;
+              const next =
+                missionIndex < ALL_MISSIONS.length - 1
+                  ? missionIndex + 1
+                  : missionIndex;
               setMissionIndex(next);
-              setGamePhase('loading');
+              setGamePhase("loading");
             }}
             isLastMission={isLastMission}
           />
@@ -120,8 +140,19 @@ export default function App() {
       </div>
 
       {/* Sidebar — visible only in game phase */}
-      {gamePhase === 'game' && (
-        <div style={{ width: '340px', minWidth: '340px', background: '#0a0e1a', borderLeft: '1px solid #1e3a5f', display: 'flex', flexDirection: 'column', height: '100vh', overflowY: 'auto' }}>
+      {gamePhase === "game" && (
+        <div
+          style={{
+            width: "340px",
+            minWidth: "340px",
+            background: "#0a0e1a",
+            borderLeft: "1px solid #1e3a5f",
+            display: "flex",
+            flexDirection: "column",
+            height: "100vh",
+            overflowY: "auto",
+          }}
+        >
           <SimControls
             onPlay={() => controllerRef.current?.start()}
             onPause={() => controllerRef.current?.pause()}
@@ -135,13 +166,32 @@ export default function App() {
           <SectionLabel label="INSPECTOR" />
           <DroneInspector />
           <SectionLabel label="PROGRAM" />
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '200px' }}>
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              minHeight: "200px",
+            }}
+          >
             <ProgramEditor entities={entityMetasRef.current} />
           </div>
           <SectionLabel label="STATS" />
           <StatsPanel />
-          <div style={{ padding: '6px 12px', borderTop: '1px solid #0a1a2a', textAlign: 'center' }}>
-            <span style={{ fontFamily: 'monospace', fontSize: '10px', color: '#1a2a3a' }}>
+          <div
+            style={{
+              padding: "6px 12px",
+              borderTop: "1px solid #0a1a2a",
+              textAlign: "center",
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "monospace",
+                fontSize: "10px",
+                color: "#1a2a3a",
+              }}
+            >
               Drone Loop v1.0 · 2026
             </span>
           </div>
@@ -149,10 +199,17 @@ export default function App() {
       )}
 
       {/* Overlays */}
-      {gamePhase === 'start' && (
-        <StartScreen missions={ALL_MISSIONS} onStart={handleStart} onOpenSettings={openSettings} />
+      {gamePhase === "intro" && (
+        <IntroScreen onStart={() => setGamePhase("start")} />
       )}
-      {gamePhase === 'loading' && <LoadingScreen />}
+      {gamePhase === "start" && (
+        <StartScreen
+          missions={ALL_MISSIONS}
+          onStart={handleStart}
+          onOpenSettings={openSettings}
+        />
+      )}
+      {gamePhase === "loading" && <LoadingScreen />}
 
       <AudioSettingsModal
         isOpen={isSettingsOpen}
@@ -165,8 +222,20 @@ export default function App() {
 
 function SectionLabel({ label }: { label: string }) {
   return (
-    <div style={{ background: '#060d1a', borderTop: '1px solid #1e3a5f', borderBottom: '1px solid #1e3a5f', padding: '3px 12px', color: '#2a4a6a', fontFamily: 'monospace', fontSize: '10px', letterSpacing: '2px' }}>
+    <div
+      style={{
+        background: "#060d1a",
+        borderTop: "1px solid #1e3a5f",
+        borderBottom: "1px solid #1e3a5f",
+        padding: "3px 12px",
+        color: "#2a4a6a",
+        fontFamily: "monospace",
+        fontSize: "10px",
+        letterSpacing: "2px",
+      }}
+    >
       {label}
     </div>
   );
 }
+
