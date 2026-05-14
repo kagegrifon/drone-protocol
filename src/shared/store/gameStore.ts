@@ -95,6 +95,7 @@ interface GameStore {
   updateInstruction(programId: string, path: number[], updated: Instruction): void;
   createProgram(name: string): void;
   assignProgram(droneId: EntityId, programId: string): void;
+  unassignProgram(droneId: EntityId): void;
   restartProgram(droneId: EntityId): void;
 }
 
@@ -217,7 +218,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const statistics = new StatisticsSystem(world);
 
     const systems: Systems = { collision, programExecution, movement, mining, energy, statistics };
-    const programs = Array.from(registry.values());
+    const programs = Array.from(registry.values()).filter(p => !p.personal);
     const drones = snapshotDrones(world, registry);
 
     set({
@@ -283,7 +284,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const list = getInstructionList(prog.instructions, parentPath);
     list.push(instruction);
 
-    set({ programs: Array.from(registry.values()) });
+    set({ programs: Array.from(registry.values()).filter(p => !p.personal) });
   },
 
   removeInstruction(programId, path) {
@@ -296,7 +297,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const list = getInstructionList(prog.instructions, parentPath);
     list.splice(idx, 1);
 
-    set({ programs: Array.from(registry.values()) });
+    set({ programs: Array.from(registry.values()).filter(p => !p.personal) });
   },
 
   updateInstruction(programId, path, updated) {
@@ -307,7 +308,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const idx = path[path.length - 1];
     const list = getInstructionList(prog.instructions, parentPath);
     list[idx] = updated;
-    set({ programs: Array.from(registry.values()) });
+    set({ programs: Array.from(registry.values()).filter(p => !p.personal) });
   },
 
   createProgram(name) {
@@ -315,7 +316,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const id = `program_${_programIdCounter++}`;
     const prog: ProgramDef = { id, name, instructions: [] };
     registry.set(id, prog);
-    set({ programs: Array.from(registry.values()) });
+    set({ programs: Array.from(registry.values()).filter(p => !p.personal) });
   },
 
   assignProgram(droneId, programId) {
@@ -324,12 +325,34 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const program = world.getComponent(droneId, 'Program');
     if (!program) return;
 
+    program.assignedProgramId = programId;
     program.currentProgramId = programId;
     program.callStack = [{ programId, instructionIndex: 0 }];
     program.state = 'running';
     program.waitingFor = undefined;
 
     set({ drones: snapshotDrones(world, get().registry) });
+  },
+
+  unassignProgram(droneId) {
+    const { world, registry } = get();
+    if (!world) return;
+    const program = world.getComponent(droneId, 'Program');
+    if (!program) return;
+
+    program.assignedProgramId = undefined;
+    program.currentProgramId = program.personalProgramId;
+    program.callStack = [{ programId: program.personalProgramId, instructionIndex: 0 }];
+    program.state = 'running';
+    program.waitingFor = undefined;
+
+    const movement = world.getComponent(droneId, 'Movement');
+    if (movement) {
+      movement.path = [];
+      movement.progress = 0;
+    }
+
+    set({ drones: snapshotDrones(world, registry) });
   },
 
   restartProgram(droneId) {
