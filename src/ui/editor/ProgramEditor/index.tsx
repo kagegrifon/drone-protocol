@@ -38,7 +38,7 @@ const RADIO_STYLE = (checked: boolean): React.CSSProperties => ({
 export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
   const [tab, setTab] = useState<'drone' | 'library'>('drone');
   const [newProgramName, setNewProgramName] = useState('');
-  const [personalExpanded, setPersonalExpanded] = useState(false);
+  const [personalExpanded, setPersonalExpanded] = useState(true);
   const [highlightedProgramId, setHighlightedProgramId] = useState<string | null>(null);
 
   const selectedId = useGameStore((s) => s.selectedDroneId);
