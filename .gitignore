@@ -5,3 +5,5 @@ dist/
 .env.*.local
 *.local
 test-results
+
+.superpowers
