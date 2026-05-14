@@ -16,6 +16,7 @@ docs/features/
 
 | Файл | Название |
 |---|---|
+| [congestion-metric.md](planned/congestion-metric.md) | Метрика Congestion (затор дронов) |
 
 
 ### done
