@@ -420,7 +420,7 @@ describe('stepProgram — IF conditions', () => {
     // Add a depleted deposit at drone position (0,0)
     const depId = world.createEntity();
     world.addComponent(depId, 'Position', { x: 0, y: 0 });
-    world.addComponent(depId, 'Deposit', { oreRemaining: 0, maxOre: 10 });
+    world.addComponent(depId, 'Deposit', { oreRemaining: 0, mineRate: 1 });
 
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
@@ -439,7 +439,7 @@ describe('stepProgram — IF conditions', () => {
     ]);
     const depId = world.createEntity();
     world.addComponent(depId, 'Position', { x: 0, y: 0 });
-    world.addComponent(depId, 'Deposit', { oreRemaining: 5, maxOre: 10 });
+    world.addComponent(depId, 'Deposit', { oreRemaining: 5, mineRate: 1 });
 
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
