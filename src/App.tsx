@@ -157,7 +157,6 @@ export default function App() {
             onPlay={() => controllerRef.current?.start()}
             onPause={() => controllerRef.current?.pause()}
             onStep={() => controllerRef.current?.step()}
-            onBackToMissions={handleBackToMissions}
             onOpenSettings={openSettings}
           />
           <MissionGoalPanel mission={currentMission} />
@@ -215,6 +214,7 @@ export default function App() {
         isOpen={isSettingsOpen}
         onClose={closeSettings}
         audioManager={audioManager}
+        onBackToMissions={gamePhase === 'game' ? () => { setIsSettingsOpen(false); handleBackToMissions(); } : undefined}
       />
     </div>
   );

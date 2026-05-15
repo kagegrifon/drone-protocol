@@ -5,6 +5,7 @@ interface AudioSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   audioManager: AudioManager | null;
+  onBackToMissions?: () => void;
 }
 
 const OVERLAY: React.CSSProperties = {
@@ -82,7 +83,7 @@ const CLOSE_BTN: React.CSSProperties = {
   borderRadius: '3px',
 };
 
-export function AudioSettingsModal({ isOpen, onClose, audioManager }: AudioSettingsModalProps) {
+export function AudioSettingsModal({ isOpen, onClose, audioManager, onBackToMissions }: AudioSettingsModalProps) {
   const { musicVol, sfxVol, setMusicVol, setSfxVol } = useAudioStore();
 
   if (!isOpen) return null;
@@ -120,6 +121,14 @@ export function AudioSettingsModal({ isOpen, onClose, audioManager }: AudioSetti
           />
           <span style={VAL}>{sfxVol}%</span>
         </div>
+        {onBackToMissions && (
+          <button
+            style={{ ...CLOSE_BTN, marginTop: '12px', color: '#00d4ff', borderColor: '#1a4a6a' }}
+            onClick={onBackToMissions}
+          >
+            ← ВЫБОР МИССИЙ
+          </button>
+        )}
         <button style={CLOSE_BTN} onClick={onClose}>✕ ЗАКРЫТЬ</button>
       </div>
     </div>

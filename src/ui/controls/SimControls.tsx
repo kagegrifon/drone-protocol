@@ -4,7 +4,6 @@ interface SimControlsProps {
   onPlay: () => void;
   onPause: () => void;
   onStep: () => void;
-  onBackToMissions: () => void;
   onOpenSettings: () => void;
 }
 
@@ -32,7 +31,7 @@ const BTN_DISABLED: React.CSSProperties = {
   cursor: 'default',
 };
 
-export function SimControls({ onPlay, onPause, onStep, onBackToMissions, onOpenSettings }: SimControlsProps) {
+export function SimControls({ onPlay, onPause, onStep, onOpenSettings }: SimControlsProps) {
   const isRunning = useGameStore((s) => s.isRunning);
   const gameStatus = useGameStore((s) => s.gameStatus);
   const tick = useGameStore((s) => s.stats.tick);
@@ -58,9 +57,6 @@ export function SimControls({ onPlay, onPause, onStep, onBackToMissions, onOpenS
       <span style={{ color: '#4488ff', fontFamily: 'monospace', fontSize: '12px', marginLeft: '8px', flex: 1 }}>
         Tick: {tick}
       </span>
-      <button style={{ ...BTN, fontSize: '11px', padding: '4px 10px', color: '#4a6a8a' }} onClick={onBackToMissions}>
-        ← Миссии
-      </button>
       <button style={{ ...BTN, fontSize: '13px', padding: '4px 8px', color: '#4a8aaa' }} onClick={onOpenSettings} title="Настройки">
         ⚙
       </button>
