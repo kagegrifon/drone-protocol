@@ -1,25 +1,28 @@
-import type { WinCondition, FailCondition } from './types.js';
-import type { StatsState } from '../shared/store/gameStore.js';
-import type { EntityId } from '../shared/types/index.js';
-import type { World as WorldType } from './simulation/world/World.js';
-import type { MissionDef, EntityMeta, EntityType } from './missions/types.js';
-import type { AudioManager } from '../renderer/audio/AudioManager.js';
-import { GameLoop } from './GameLoop.js';
-import { useGameStore } from '../shared/store/gameStore.js';
-import { GameRenderer } from '../renderer/GameRenderer.js';
-import { gameEvents } from '../shared/events/gameEvents.js';
+import type { WinCondition, FailCondition } from "./types.js";
+import type { StatsState } from "../shared/store/gameStore.js";
+import type { EntityId } from "../shared/types/index.js";
+import type { World as WorldType } from "./simulation/world/World.js";
+import type { MissionDef, EntityMeta, EntityType } from "./missions/types.js";
+import type { AudioManager } from "../renderer/audio/AudioManager.js";
+import { GameLoop } from "./GameLoop.js";
+import { useGameStore } from "../shared/store/gameStore.js";
+import { GameRenderer } from "../renderer/GameRenderer.js";
+import { gameEvents } from "../shared/events/gameEvents.js";
+
+const ENTITY_LABEL: Record<EntityType, string> = {
+  mine: "Mine",
+  charger: "Charger",
+  base: "Base",
+};
 
 function buildEntityMetas(
-  entities: Array<{ id: EntityId; type: EntityType }>
+  entities: Array<{ id: EntityId; type: EntityType }>,
 ): EntityMeta[] {
   const counts: Partial<Record<EntityType, number>> = {};
   return entities.map(({ id, type }) => {
     counts[type] = (counts[type] ?? 0) + 1;
     const n = counts[type]!;
-    const label =
-      type === 'mine' ? `Mine ${n}` :
-      type === 'charger' ? `Charger ${n}` :
-      n === 1 ? 'Base' : `Base ${n}`;
+    const label = `${ENTITY_LABEL[type]} ${n}`;
     return { id, type, label };
   });
 }
@@ -31,22 +34,22 @@ export function checkWin(
   stats: StatsState,
 ): boolean {
   switch (win.type) {
-    case 'ore_mined': {
-      const inv = world.getComponent(baseId, 'Inventory');
+    case "ore_mined": {
+      const inv = world.getComponent(baseId, "Inventory");
       return inv !== undefined && inv.ore >= win.target;
     }
-    case 'efficiency':
+    case "efficiency":
       return stats.efficiency >= win.target;
-    case 'ore_per_min':
+    case "ore_per_min":
       return stats.orePerMin >= win.target;
   }
 }
 
 export function checkFail(fail: FailCondition, stats: StatsState): boolean {
   switch (fail.type) {
-    case 'time_limit':
+    case "time_limit":
       return stats.tick >= fail.maxTicks;
-    case 'low_throughput':
+    case "low_throughput":
       if (stats.tick < fail.gracePeriodTicks) return false;
       return stats.orePerMin < fail.minOrePerMin;
   }
@@ -81,24 +84,24 @@ export class GameController {
 
   start(): void {
     const { gameStatus } = useGameStore.getState();
-    if (gameStatus === 'won' || gameStatus === 'failed') return;
+    if (gameStatus === "won" || gameStatus === "failed") return;
     this.loop.start(() => this.onTick());
     useGameStore.getState().setRunning(true);
-    useGameStore.getState().setGameStatus('running');
+    useGameStore.getState().setGameStatus("running");
   }
 
   pause(): void {
     this.loop.stop();
     useGameStore.getState().setRunning(false);
     const { gameStatus } = useGameStore.getState();
-    if (gameStatus === 'running') {
-      useGameStore.getState().setGameStatus('paused');
+    if (gameStatus === "running") {
+      useGameStore.getState().setGameStatus("paused");
     }
   }
 
   step(): void {
     const { gameStatus } = useGameStore.getState();
-    if (gameStatus === 'won' || gameStatus === 'failed') return;
+    if (gameStatus === "won" || gameStatus === "failed") return;
     useGameStore.getState().tick();
     this.checkConditions();
   }
@@ -123,20 +126,15 @@ export class GameController {
 
     this.renderer?.destroy();
     gameEvents.clearAll();
-    this.renderer = new GameRenderer(
-      scene.world,
-      scene.grid,
-      this.container!,
-      {
-        onDroneClick: this._setupOptions?.onDroneClick,
-        onReady: this._setupOptions?.onReady,
-        onAudioReady: this._setupOptions?.onAudioReady,
-      },
-    );
+    this.renderer = new GameRenderer(scene.world, scene.grid, this.container!, {
+      onDroneClick: this._setupOptions?.onDroneClick,
+      onReady: this._setupOptions?.onReady,
+      onAudioReady: this._setupOptions?.onAudioReady,
+    });
 
     const store = useGameStore.getState();
     store.init(scene.world, scene.grid, scene.registry);
-    store.setGameStatus('idle');
+    store.setGameStatus("idle");
   }
 
   private onTick(): void {
@@ -146,27 +144,35 @@ export class GameController {
 
   private checkConditions(): void {
     const store = useGameStore.getState();
-    if (store.gameStatus !== 'running') return;
+    if (store.gameStatus !== "running") return;
     if (!this.world || this.baseId === null) return;
 
-    if (checkWin(this.mission.config.win, this.world, this.baseId, store.stats)) {
+    if (
+      checkWin(this.mission.config.win, this.world, this.baseId, store.stats)
+    ) {
       this.loop.stop();
       store.setRunning(false);
-      store.setGameStatus('won', 'Цель достигнута!');
-      gameEvents.emit('mission:complete', undefined);
-    } else if (checkFail(this.mission.config.fail, store.stats)) {
+      store.setGameStatus("won", "Цель достигнута!");
+      gameEvents.emit("mission:complete", undefined);
+    } else if (
+      this.mission.config.fail &&
+      checkFail(this.mission.config.fail, store.stats)
+    ) {
       this.loop.stop();
       store.setRunning(false);
-      store.setGameStatus('failed', this.getFailMessage());
+      store.setGameStatus("failed", this.getFailMessage());
     }
   }
 
   private getFailMessage(): string {
+    if (!this.mission.config.fail) throw new Error("Нет условия для проигрыша");
+
     switch (this.mission.config.fail.type) {
-      case 'time_limit':
+      case "time_limit":
         return `Время истекло (${this.mission.config.fail.maxTicks} тиков)`;
-      case 'low_throughput':
+      case "low_throughput":
         return `Производительность слишком низкая`;
     }
   }
 }
+
