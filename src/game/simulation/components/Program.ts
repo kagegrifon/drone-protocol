@@ -18,4 +18,7 @@ export interface ProgramComponent {
   waitingFor?: WaitingFor;
   personalProgramId: string;      // всегда заполнено, равно droneEntityId
   assignedProgramId?: string;     // id библиотечной программы если назначена
+  mineElapsed?: number;           // секунды с начала текущей mine-операции
+  chargeElapsed?: number;         // секунды с начала текущей charge-операции
+  dropElapsed?: number;           // секунды с начала текущей drop-операции
 }
