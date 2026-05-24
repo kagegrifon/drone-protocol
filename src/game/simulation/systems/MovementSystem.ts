@@ -14,6 +14,8 @@ export class MovementSystem {
       const energy = this.world.getComponent(id, 'Energy')!;
       const program = this.world.getComponent(id, 'Program')!;
 
+      if (program.localPaused) continue;
+
       movement.progress += DT * movement.speed;
 
       while (movement.progress >= 1 - EPSILON && movement.path.length > 0) {

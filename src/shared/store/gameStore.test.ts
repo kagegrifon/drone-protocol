@@ -94,6 +94,57 @@ function makeWorldWithDrone(programId: string, prog: ProgramDef): { world: World
   return { world, registry, droneId };
 }
 
+// ─── pauseDrone / startDrone / resetDrone ────────────────────────────────────
+
+describe('store.pauseDrone / startDrone / resetDrone', () => {
+  function setup() {
+    const prog: ProgramDef = { id: 'p1', name: 'Test', instructions: [{ type: 'MINE' }] };
+    const { world, registry, droneId } = makeWorldWithDrone('p1', prog);
+    useGameStore.getState().init(world, new Grid(), registry);
+    return { world, registry, droneId };
+  }
+
+  it('pauseDrone устанавливает localPaused=true', () => {
+    const { droneId } = setup();
+    useGameStore.getState().pauseDrone(droneId);
+    const droneState = useGameStore.getState().drones.find(d => d.id === droneId);
+    expect(droneState?.localPaused).toBe(true);
+  });
+
+  it('startDrone сбрасывает localPaused в false', () => {
+    const { world, droneId } = setup();
+    world.getComponent(droneId, 'Program')!.localPaused = true;
+    useGameStore.getState().startDrone(droneId);
+    const droneState = useGameStore.getState().drones.find(d => d.id === droneId);
+    expect(droneState?.localPaused).toBe(false);
+  });
+
+  it('resetDrone сбрасывает программу и снимает localPaused', () => {
+    const { world, droneId } = setup();
+    const program = world.getComponent(droneId, 'Program')!;
+    program.localPaused = true;
+    program.mineElapsed = 1.5;
+    program.callStack = [];
+    program.state = 'idle';
+
+    useGameStore.getState().resetDrone(droneId);
+
+    expect(program.localPaused).toBe(false);
+    expect(program.mineElapsed).toBeUndefined();
+    expect(program.state).toBe('running');
+    expect(program.callStack).toHaveLength(1);
+  });
+
+  it('resetDrone обновляет снапшот drones', () => {
+    const { world, droneId } = setup();
+    world.getComponent(droneId, 'Program')!.localPaused = true;
+    useGameStore.getState().resetDrone(droneId);
+    const droneState = useGameStore.getState().drones.find(d => d.id === droneId);
+    expect(droneState?.localPaused).toBe(false);
+    expect(droneState?.programState).toBe('running');
+  });
+});
+
 describe('store.restartProgram()', () => {
   it('сбрасывает callStack и переводит дрона в state=running', () => {
     const prog: ProgramDef = { id: 'p1', name: 'Test', instructions: [{ type: 'MINE' }] };

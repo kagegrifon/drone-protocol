@@ -17,6 +17,8 @@ export class EnergySystem {
       const position = this.world.getComponent(id, 'Position')!;
       const program = this.world.getComponent(id, 'Program')!;
 
+      if (program.localPaused) continue;
+
       const chargerId = this.findChargerAt(position.x, position.y);
       if (chargerId === null) continue;
 

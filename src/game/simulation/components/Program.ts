@@ -21,4 +21,5 @@ export interface ProgramComponent {
   mineElapsed?: number;           // секунды с начала текущей mine-операции
   chargeElapsed?: number;         // секунды с начала текущей charge-операции
   dropElapsed?: number;           // секунды с начала текущей drop-операции
+  localPaused?: boolean;          // per-drone пауза, независимая от глобальной
 }

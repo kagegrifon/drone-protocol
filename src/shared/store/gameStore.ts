@@ -24,6 +24,7 @@ export interface DroneState {
   waitingFor: string | null;
   personalProgramId: string;
   assignedProgramId?: string;
+  localPaused: boolean;
 }
 
 export function computeActivePath(
@@ -97,6 +98,9 @@ interface GameStore {
   assignProgram(droneId: EntityId, programId: string): void;
   unassignProgram(droneId: EntityId): void;
   restartProgram(droneId: EntityId): void;
+  startDrone(droneId: EntityId): void;
+  pauseDrone(droneId: EntityId): void;
+  resetDrone(droneId: EntityId): void;
 }
 
 function describeInstruction(instr: Instruction): string {
@@ -135,6 +139,9 @@ function resetDroneProgram(world: World, droneId: EntityId): void {
   program.callStack = [{ programId: program.currentProgramId, instructionIndex: 0 }];
   program.state = 'running';
   program.waitingFor = undefined;
+  program.mineElapsed = undefined;
+  program.chargeElapsed = undefined;
+  program.dropElapsed = undefined;
   const movement = world.getComponent(droneId, 'Movement');
   if (movement) {
     movement.path = [];
@@ -178,6 +185,7 @@ function snapshotDrones(world: World, registry: ProgramRegistry): DroneState[] {
       waitingFor: program.waitingFor ?? null,
       personalProgramId: program.personalProgramId,
       assignedProgramId: program.assignedProgramId,
+      localPaused: program.localPaused ?? false,
     };
   });
 }
@@ -349,6 +357,33 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { world, registry } = get();
     if (!world) return;
     resetDroneProgram(world, droneId);
+    set({ drones: snapshotDrones(world, registry) });
+  },
+
+  startDrone(droneId) {
+    const { world, registry } = get();
+    if (!world) return;
+    const program = world.getComponent(droneId, 'Program');
+    if (!program) return;
+    program.localPaused = false;
+    set({ drones: snapshotDrones(world, registry) });
+  },
+
+  pauseDrone(droneId) {
+    const { world, registry } = get();
+    if (!world) return;
+    const program = world.getComponent(droneId, 'Program');
+    if (!program) return;
+    program.localPaused = true;
+    set({ drones: snapshotDrones(world, registry) });
+  },
+
+  resetDrone(droneId) {
+    const { world, registry } = get();
+    if (!world) return;
+    resetDroneProgram(world, droneId);
+    const program = world.getComponent(droneId, 'Program');
+    if (program) program.localPaused = false;
     set({ drones: snapshotDrones(world, registry) });
   },
 }));

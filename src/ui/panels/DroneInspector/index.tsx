@@ -20,9 +20,24 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
+const BTN: React.CSSProperties = {
+  background: '#0a1628',
+  border: '1px solid #1e3a5f',
+  color: '#aabbcc',
+  fontFamily: 'monospace',
+  fontSize: '13px',
+  padding: '4px 10px',
+  borderRadius: '3px',
+  cursor: 'pointer',
+  lineHeight: 1,
+};
+
 export function DroneInspector() {
   const selectedId = useGameStore((s) => s.selectedDroneId);
   const drones = useGameStore((s) => s.drones);
+  const startDrone = useGameStore((s) => s.startDrone);
+  const pauseDrone = useGameStore((s) => s.pauseDrone);
+  const resetDrone = useGameStore((s) => s.resetDrone);
   const drone = drones.find((d) => d.id === selectedId);
 
   if (!drone) {
@@ -38,11 +53,35 @@ export function DroneInspector() {
 
   return (
     <div style={{ padding: '12px' }}>
-      <div style={{ color: '#c0cfe0', fontFamily: 'monospace', fontSize: '13px', marginBottom: '12px', borderBottom: '1px solid #1e3a5f', paddingBottom: '8px' }}>
-        Drone #{drone.id}
-        <span style={{ color: stateColor, marginLeft: '10px', fontSize: '11px', letterSpacing: '1px' }}>
+      <div style={{ color: '#c0cfe0', fontFamily: 'monospace', fontSize: '13px', marginBottom: '12px', borderBottom: '1px solid #1e3a5f', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <span>Drone #{drone.id}</span>
+        <span style={{ color: stateColor, fontSize: '11px', letterSpacing: '1px' }}>
           {drone.programState.toUpperCase()}
         </span>
+        {drone.localPaused && (
+          <span data-testid="local-paused-badge" style={{ color: '#ff8844', fontSize: '11px', letterSpacing: '1px' }}>
+            [LOCAL PAUSED]
+          </span>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
+        <button
+          data-testid="drone-play-pause"
+          style={BTN}
+          onClick={() => drone.localPaused ? startDrone(drone.id) : pauseDrone(drone.id)}
+          title={drone.localPaused ? 'Resume drone' : 'Pause drone'}
+        >
+          {drone.localPaused ? '▶' : '⏸'}
+        </button>
+        <button
+          data-testid="drone-reset"
+          style={BTN}
+          onClick={() => resetDrone(drone.id)}
+          title="Reset drone program"
+        >
+          ↺
+        </button>
       </div>
 
       <Row label="ENERGY">

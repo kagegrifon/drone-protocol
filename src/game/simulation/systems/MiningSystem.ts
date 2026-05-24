@@ -16,6 +16,7 @@ export class MiningSystem {
     const drones = this.world.query('Position', 'Inventory', 'Energy', 'Program');
     for (const id of drones) {
       const program = this.world.getComponent(id, 'Program')!;
+      if (program.localPaused) continue;
       if (program.state !== 'waiting' || program.waitingFor !== 'mine') continue;
 
       const position = this.world.getComponent(id, 'Position')!;
@@ -62,6 +63,7 @@ export class MiningSystem {
     const drones = this.world.query('Position', 'Inventory', 'Program');
     for (const id of drones) {
       const program = this.world.getComponent(id, 'Program')!;
+      if (program.localPaused) continue;
       if (program.state !== 'waiting' || program.waitingFor !== 'drop') continue;
 
       const position = this.world.getComponent(id, 'Position')!;

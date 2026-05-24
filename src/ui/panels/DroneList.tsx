@@ -17,10 +17,29 @@ function statusLabel(state: DroneState['programState']): string {
   }
 }
 
+const ICON_BTN: React.CSSProperties = {
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  padding: '0 3px',
+  lineHeight: 1,
+  fontSize: '13px',
+  width: '20px',
+  height: '20px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: '2px',
+  flexShrink: 0,
+};
+
 export function DroneList() {
   const drones = useGameStore((s) => s.drones);
   const selectedId = useGameStore((s) => s.selectedDroneId);
   const selectDrone = useGameStore((s) => s.selectDrone);
+  const startDrone = useGameStore((s) => s.startDrone);
+  const pauseDrone = useGameStore((s) => s.pauseDrone);
+  const resetDrone = useGameStore((s) => s.resetDrone);
 
   return (
     <div style={{ padding: '8px 0' }}>
@@ -30,6 +49,7 @@ export function DroneList() {
       {drones.map((d) => {
         const isSelected = d.id === selectedId;
         const color = statusColor(d.programState);
+        const pauseColor = d.localPaused ? '#ff8844' : '#445566';
         return (
           <div
             key={d.id}
@@ -46,13 +66,35 @@ export function DroneList() {
               transition: 'background 0.1s',
             }}
           >
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0 }} />
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: d.localPaused ? '#ff8844' : color, display: 'inline-block', flexShrink: 0 }} />
             <span style={{ color: '#c0cfe0', fontFamily: 'monospace', fontSize: '13px', flex: 1 }}>
               Drone #{d.id}
             </span>
             <span style={{ color, fontFamily: 'monospace', fontSize: '10px', letterSpacing: '0.5px' }}>
               {statusLabel(d.programState)}
             </span>
+            <button
+              data-testid={`drone-play-pause-${d.id}`}
+              style={{ ...ICON_BTN, color: pauseColor }}
+              title={d.localPaused ? 'Resume' : 'Pause'}
+              onClick={(e) => {
+                e.stopPropagation();
+                d.localPaused ? startDrone(d.id) : pauseDrone(d.id);
+              }}
+            >
+              {d.localPaused ? '▶' : '⏸'}
+            </button>
+            <button
+              data-testid={`drone-reset-${d.id}`}
+              style={{ ...ICON_BTN, color: '#445566' }}
+              title="Reset"
+              onClick={(e) => {
+                e.stopPropagation();
+                resetDrone(d.id);
+              }}
+            >
+              ↺
+            </button>
           </div>
         );
       })}
