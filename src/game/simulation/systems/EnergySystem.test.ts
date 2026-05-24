@@ -2,6 +2,9 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { World } from '../world/World.js';
 import { EnergySystem } from './EnergySystem.js';
 
+// BASE_CHARGE_DURATION_PER_UNIT=0.5s, DT=0.1 → 5 ticks per +1 energy unit
+const TICKS_PER_UNIT = 5;
+
 function makeWorld() {
   return new World();
 }
@@ -37,56 +40,79 @@ describe('EnergySystem', () => {
     system = new EnergySystem(world);
   });
 
-  it('charges drone by chargeRate per tick when on charger', () => {
+  it('charges +1 energy per 5 ticks (BASE_CHARGE_DURATION=0.5s)', () => {
     const drone = addDrone(world, 3, 3, 50);
-    addCharger(world, 3, 3, 10);
-    system.update();
-    expect(world.getComponent(drone, 'Energy')!.current).toBe(60);
+    addCharger(world, 3, 3);
+    for (let i = 0; i < TICKS_PER_UNIT; i++) system.update();
+    expect(world.getComponent(drone, 'Energy')!.current).toBe(51);
+  });
+
+  it('does not charge before 5 ticks', () => {
+    const drone = addDrone(world, 3, 3, 50);
+    addCharger(world, 3, 3);
+    for (let i = 0; i < TICKS_PER_UNIT - 1; i++) system.update();
+    expect(world.getComponent(drone, 'Energy')!.current).toBe(50);
+  });
+
+  it('accumulates chargeElapsed without adding energy before threshold', () => {
+    const drone = addDrone(world, 3, 3, 50);
+    addCharger(world, 3, 3);
+    for (let i = 0; i < 3; i++) system.update();
+    expect(world.getComponent(drone, 'Program')!.chargeElapsed).toBeCloseTo(0.3);
+    expect(world.getComponent(drone, 'Energy')!.current).toBe(50);
+  });
+
+  it('charges +2 energy after 10 ticks', () => {
+    const drone = addDrone(world, 3, 3, 50);
+    addCharger(world, 3, 3);
+    for (let i = 0; i < TICKS_PER_UNIT * 2; i++) system.update();
+    expect(world.getComponent(drone, 'Energy')!.current).toBe(52);
   });
 
   it('does not exceed max energy', () => {
-    const drone = addDrone(world, 3, 3, 95);
-    addCharger(world, 3, 3, 10);
-    system.update();
+    const drone = addDrone(world, 3, 3, 99);
+    addCharger(world, 3, 3);
+    for (let i = 0; i < TICKS_PER_UNIT * 3; i++) system.update(); // would add 3, but capped at 1
     expect(world.getComponent(drone, 'Energy')!.current).toBe(100);
   });
 
   it('does not charge drone not on charger', () => {
     const drone = addDrone(world, 3, 3, 50);
-    addCharger(world, 5, 5, 10); // different position
-    system.update();
+    addCharger(world, 5, 5); // different position
+    for (let i = 0; i < TICKS_PER_UNIT; i++) system.update();
     expect(world.getComponent(drone, 'Energy')!.current).toBe(50);
   });
 
-  it('resumes program when energy is full and waitingFor=charge', () => {
-    const drone = addDrone(world, 3, 3, 95);
-    addCharger(world, 3, 3, 10);
-    system.update();
+  it('resumes program when energy reaches max', () => {
+    const drone = addDrone(world, 3, 3, 99);
+    addCharger(world, 3, 3);
+    for (let i = 0; i < TICKS_PER_UNIT; i++) system.update();
     const program = world.getComponent(drone, 'Program')!;
     expect(program.state).toBe('running');
     expect(program.waitingFor).toBeUndefined();
+    expect(program.chargeElapsed).toBeUndefined();
   });
 
   it('does not resume program if not yet full', () => {
     const drone = addDrone(world, 3, 3, 50);
-    addCharger(world, 3, 3, 10);
-    system.update();
+    addCharger(world, 3, 3);
+    for (let i = 0; i < TICKS_PER_UNIT; i++) system.update();
     const program = world.getComponent(drone, 'Program')!;
     expect(program.state).toBe('waiting');
   });
 
-  it('charges drone even when program is not waiting for charge (passive charging)', () => {
+  it('charges drone even without waitingFor=charge (passive charging)', () => {
     const drone = addDrone(world, 3, 3, 50, 100, undefined);
     world.getComponent(drone, 'Program')!.state = 'running';
     world.getComponent(drone, 'Program')!.waitingFor = undefined;
-    addCharger(world, 3, 3, 10);
-    system.update();
-    expect(world.getComponent(drone, 'Energy')!.current).toBe(60);
+    addCharger(world, 3, 3);
+    for (let i = 0; i < TICKS_PER_UNIT; i++) system.update();
+    expect(world.getComponent(drone, 'Energy')!.current).toBe(51);
   });
 
-  it('resumes program immediately when arriving at charger already full', () => {
+  it('resumes program immediately when already at max energy', () => {
     const drone = addDrone(world, 3, 3, 100);
-    addCharger(world, 3, 3, 10);
+    addCharger(world, 3, 3);
     system.update();
     expect(world.getComponent(drone, 'Energy')!.current).toBe(100);
     const program = world.getComponent(drone, 'Program')!;

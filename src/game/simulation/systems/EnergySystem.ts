@@ -1,6 +1,7 @@
 import type { EntityId } from '../../../shared/types/index.js';
 import type { World } from '../world/World.js';
 import { gameEvents } from '../../../shared/events/gameEvents.js';
+import { DT, EPSILON, BASE_CHARGE_DURATION_PER_UNIT } from '../constants.js';
 
 export class EnergySystem {
   private _charging = new Set<EntityId>();
@@ -20,20 +21,23 @@ export class EnergySystem {
       if (chargerId === null) continue;
 
       if (energy.current < energy.max) {
-        const charger = this.world.getComponent(chargerId, 'ChargerStation')!;
-        energy.current = Math.min(energy.max, energy.current + charger.chargeRate);
+        program.chargeElapsed = (program.chargeElapsed ?? 0) + DT;
+        while (program.chargeElapsed >= BASE_CHARGE_DURATION_PER_UNIT - EPSILON && energy.current < energy.max) {
+          energy.current = Math.min(energy.max, energy.current + 1);
+          program.chargeElapsed -= BASE_CHARGE_DURATION_PER_UNIT;
+        }
       }
 
       if (program.state === 'waiting' && program.waitingFor === 'charge') {
         nowCharging.add(id);
         if (energy.current >= energy.max) {
+          program.chargeElapsed = undefined;
           program.state = 'running';
           program.waitingFor = undefined;
         }
       }
     }
 
-    // Emit charge:started / charge:completed transitions
     for (const id of nowCharging) {
       if (!this._charging.has(id)) gameEvents.emit('charge:started', { droneId: id });
     }
