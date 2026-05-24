@@ -105,7 +105,7 @@ function describeInstruction(instr: Instruction): string {
     case 'MINE': return 'MINE';
     case 'DROP': return 'DROP';
     case 'CHARGE': return 'CHARGE';
-    case 'WAIT': return `WAIT ${instr.ticks}t`;
+    case 'WAIT': return `WAIT ${instr.seconds}s`;
     case 'LOOP': return 'LOOP ∞';
     case 'REPEAT': return `REPEAT ×${instr.count}`;
     case 'RUN_PROGRAM': return `RUN ${instr.programId}`;

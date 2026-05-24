@@ -1,5 +1,6 @@
 import type { EntityId } from '../../shared/types/index.js';
 import type { World } from '../simulation/world/World.js';
+import { DT, EPSILON } from '../simulation/constants.js';
 import type { Grid } from '../simulation/world/Grid.js';
 import type { Instruction, ProgramRegistry, ConditionLeaf, ConditionLogic } from './types.js';
 import { astar } from '../pathfinding/astar.js';
@@ -21,8 +22,8 @@ export function stepProgram(
 
   const frame = program.callStack[program.callStack.length - 1];
 
-  if (frame.waitRemaining !== undefined && frame.waitRemaining > 0) {
-    frame.waitRemaining--;
+  if (frame.waitRemaining !== undefined && frame.waitRemaining > EPSILON) {
+    frame.waitRemaining -= DT;
     return;
   }
 
@@ -89,7 +90,7 @@ export function stepProgram(
       break;
 
     case 'WAIT':
-      frame.waitRemaining = instruction.ticks;
+      frame.waitRemaining = instruction.seconds;
       frame.instructionIndex++;
       break;
 

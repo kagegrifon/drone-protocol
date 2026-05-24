@@ -108,27 +108,28 @@ describe('stepProgram — WAIT', () => {
   beforeEach(() => { world = makeWorld(); });
 
   it('sets waitRemaining and advances instructionIndex on first call', () => {
-    const { id, registry } = addDrone(world, 'running', [{ type: 'WAIT', ticks: 3 }]);
+    const { id, registry } = addDrone(world, 'running', [{ type: 'WAIT', seconds: 0.3 }]);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     const prog = world.getComponent(id, 'Program')!;
-    expect(prog.callStack[0].waitRemaining).toBe(3);
+    expect(prog.callStack[0].waitRemaining).toBeCloseTo(0.3);
     expect(prog.callStack[0].instructionIndex).toBe(1);
     expect(prog.state).toBe('running');
   });
 
-  it('decrements waitRemaining on each tick', () => {
-    const { id, registry } = addDrone(world, 'running', [{ type: 'WAIT', ticks: 3 }, { type: 'DROP' }]);
-    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // sets waitRemaining=3
-    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // 3→2
-    expect(world.getComponent(id, 'Program')!.callStack[0].waitRemaining).toBe(2);
+  it('decrements waitRemaining by DT on each tick', () => {
+    const { id, registry } = addDrone(world, 'running', [{ type: 'WAIT', seconds: 0.3 }, { type: 'DROP' }]);
+    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // sets waitRemaining=0.3
+    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // 0.3→0.2
+    expect(world.getComponent(id, 'Program')!.callStack[0].waitRemaining).toBeCloseTo(0.2);
   });
 
   it('proceeds to next instruction after wait expires', () => {
-    const { id, registry } = addDrone(world, 'running', [{ type: 'WAIT', ticks: 2 }, { type: 'DROP' }]);
-    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // sets waitRemaining=2
-    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // 2→1
-    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // 1→0
-    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // 0 → execute DROP
+    // seconds=0.2 → 2 ticks of DT=0.1 to drain, then next tick executes DROP
+    const { id, registry } = addDrone(world, 'running', [{ type: 'WAIT', seconds: 0.2 }, { type: 'DROP' }]);
+    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // sets waitRemaining=0.2
+    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // 0.2→0.1
+    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // 0.1→0.0
+    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // 0 ≤ EPSILON → execute DROP
     const prog = world.getComponent(id, 'Program')!;
     expect(prog.state).toBe('waiting');
     expect(prog.waitingFor).toBe('drop');

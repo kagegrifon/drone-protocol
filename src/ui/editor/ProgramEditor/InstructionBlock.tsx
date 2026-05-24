@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { Instruction, ActionBlock, FlowBlock, ConditionBlock, ConditionLeaf, ConditionLogic } from '../../../game/programs/types.js';
+import type { Instruction, FlowBlock, ConditionBlock, ConditionLeaf, ConditionLogic } from '../../../game/programs/types.js';
 import type { EntityMeta } from '../../../game/missions/types.js';
 import { useGameStore } from '../../../shared/store/gameStore.js';
 import { makeDefaultInstruction, AddInstructionMenu } from './instructionUtils.js';
@@ -261,7 +261,7 @@ function InstructionParams({
   if (instruction.type === 'WAIT') {
     return (
       <span style={{ color: '#778899', fontSize: '11px' }}>
-        {(instruction as ActionBlock & { type: 'WAIT' }).ticks}t
+        {instruction.seconds}s
       </span>
     );
   }

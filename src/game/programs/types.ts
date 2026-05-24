@@ -20,7 +20,7 @@ export type ActionBlock =
   | { type: 'MINE' }
   | { type: 'DROP' }
   | { type: 'CHARGE' }
-  | { type: 'WAIT'; ticks: number };
+  | { type: 'WAIT'; seconds: number };
 
 export type FlowBlock =
   | { type: 'LOOP'; body: Instruction[] }

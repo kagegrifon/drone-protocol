@@ -12,7 +12,7 @@ export function makeDefaultInstruction(type: Instruction['type'], entities: Enti
     case 'MINE': return { type: 'MINE' };
     case 'DROP': return { type: 'DROP' };
     case 'CHARGE': return { type: 'CHARGE' };
-    case 'WAIT': return { type: 'WAIT', ticks: 1 };
+    case 'WAIT': return { type: 'WAIT', seconds: 1 };
     case 'LOOP': return { type: 'LOOP', body: [] };
     case 'REPEAT': return { type: 'REPEAT', count: 3, body: [] };
     case 'IF': return { type: 'IF', conditions: [], operators: [], then: [], else: [] };
