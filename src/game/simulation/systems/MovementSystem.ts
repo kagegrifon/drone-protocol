@@ -1,4 +1,5 @@
 import type { World } from '../world/World.js';
+import { DT, EPSILON } from '../constants.js';
 
 export class MovementSystem {
   constructor(private readonly world: World) {}
@@ -13,9 +14,9 @@ export class MovementSystem {
       const energy = this.world.getComponent(id, 'Energy')!;
       const program = this.world.getComponent(id, 'Program')!;
 
-      movement.progress += movement.speed;
+      movement.progress += DT * movement.speed;
 
-      while (movement.progress >= 1 && movement.path.length > 0) {
+      while (movement.progress >= 1 - EPSILON && movement.path.length > 0) {
         const next = movement.path.shift()!;
         position.x = next.x;
         position.y = next.y;

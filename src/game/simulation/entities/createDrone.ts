@@ -1,5 +1,6 @@
 import type { EntityId } from '../../../shared/types/index.js';
 import type { World } from '../world/World.js';
+import { DEFAULT_DRONE_SPEED } from '../constants.js';
 
 export function createDrone(world: World, x: number, y: number): EntityId {
   const id = world.createEntity();
@@ -23,7 +24,7 @@ export function createDrone(world: World, x: number, y: number): EntityId {
     targetY: y,
     path: [],
     progress: 0,
-    speed: 1,
+    speed: DEFAULT_DRONE_SPEED,
   });
   world.addComponent(id, 'Renderable', {
     spriteType: 'drone',

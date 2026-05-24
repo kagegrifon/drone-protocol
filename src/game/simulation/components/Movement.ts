@@ -5,5 +5,5 @@ export interface MovementComponent {
   targetY: number;
   path: Position[];
   progress: number;
-  speed: number;
+  speed: number; // клеток в секунду
 }
