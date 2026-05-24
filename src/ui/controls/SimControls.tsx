@@ -1,4 +1,5 @@
 import { useGameStore } from '../../shared/store/gameStore.js';
+import { DT } from '../../game/simulation/constants.js';
 
 interface SimControlsProps {
   onPlay: () => void;
@@ -55,7 +56,7 @@ export function SimControls({ onPlay, onPause, onStep, onOpenSettings }: SimCont
         {'→| '}Step
       </button>
       <span style={{ color: '#4488ff', fontFamily: 'monospace', fontSize: '12px', marginLeft: '8px', flex: 1 }}>
-        Tick: {tick}
+        Tick: {tick} ({(tick * DT).toFixed(1)}s)
       </span>
       <button style={{ ...BTN, fontSize: '13px', padding: '4px 8px', color: '#4a8aaa' }} onClick={onOpenSettings} title="Настройки">
         ⚙

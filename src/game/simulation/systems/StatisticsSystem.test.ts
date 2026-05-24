@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { World } from '../world/World.js';
 import { StatisticsSystem } from './StatisticsSystem.js';
+import { DT } from '../constants.js';
+
+const WINDOW_TICKS = Math.round(60 / DT);
 
 function makeWorld() {
   return new World();
@@ -80,13 +83,13 @@ describe('StatisticsSystem', () => {
     expect(system.stats.orePerMinute).toBeGreaterThan(0);
   });
 
-  it('orePerMinute stabilizes to correct value over 600 ticks', () => {
-    // Mine 10 ore/tick consistently for 600 ticks
-    for (let i = 0; i < 600; i++) {
+  it('orePerMinute stabilizes to correct value over a full 60-second window', () => {
+    // Mine 10 ore/tick consistently for WINDOW_TICKS (= 60s / DT)
+    for (let i = 0; i < WINDOW_TICKS; i++) {
       system.recordOreMined(10);
       system.update();
     }
-    // After 600 ticks (60 full seconds), orePerMinute should be 10 * 600 / 60s = 6000/min
+    // After full window: sum = 10 * WINDOW_TICKS, elapsedSeconds = 60s → orePerMinute = 6000
     expect(system.stats.orePerMinute).toBeCloseTo(6000, 0);
   });
 

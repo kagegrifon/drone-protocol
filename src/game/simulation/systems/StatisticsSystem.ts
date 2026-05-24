@@ -1,5 +1,6 @@
 import type { World } from '../world/World.js';
 import { gameEvents, type GameEventMap } from '../../../shared/events/gameEvents.js';
+import { DT } from '../constants.js';
 
 export interface StatisticsState {
   oreMined: number;
@@ -10,8 +11,7 @@ export interface StatisticsState {
   congestionEvents: number;
 }
 
-const TICKS_PER_SECOND = 10;
-const WINDOW_TICKS = TICKS_PER_SECOND * 60; // 60-second rolling window
+const WINDOW_TICKS = Math.round(60 / DT); // 60-second rolling window
 
 export class StatisticsSystem {
   readonly stats: StatisticsState = {
@@ -55,7 +55,7 @@ export class StatisticsSystem {
     }
 
     const totalOreInWindow = this.oreHistory.reduce((a, b) => a + b, 0);
-    const elapsedSeconds = this.oreHistory.length / TICKS_PER_SECOND;
+    const elapsedSeconds = this.oreHistory.length * DT;
     this.stats.orePerMinute = elapsedSeconds > 0 ? (totalOreInWindow / elapsedSeconds) * 60 : 0;
 
     const drones = this.world.query('Position', 'Program');
