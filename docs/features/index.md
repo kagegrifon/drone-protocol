@@ -25,3 +25,4 @@ docs/features/
 |---|---|
 | [personal-programs.md](done/personal-programs.md) | Персональные программы дронов + вкладка PROGRAM |
 | [if-condition-editor.md](done/if-condition-editor.md) | Редактор условий IF-блока |
+| [time-in-seconds-and-per-drone-controls.md](done/time-in-seconds-and-per-drone-controls.md) | Время в секундах и per-drone управление |
