@@ -56,7 +56,7 @@ export class EnergySystem {
         }
       }
 
-      if (isActiveCharge && program.waitingFor === 'charge') {
+      if (program.state === 'waiting' && program.waitingFor === 'charge') {
         nowCharging.add(id);
       }
     }
