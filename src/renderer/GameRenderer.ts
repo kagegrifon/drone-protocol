@@ -5,7 +5,7 @@ import type { EntityId } from '../shared/types/index.js';
 import type { AudioManager } from './audio/AudioManager.js';
 import { BootScene } from './scenes/BootScene.js';
 import { GameScene } from './scenes/GameScene.js';
-import { CANVAS_W, CANVAS_H, COLORS } from './config.js';
+import { COLORS } from './config.js';
 
 export interface GameRendererOptions {
   onDroneClick?: (id: EntityId) => void;
@@ -19,10 +19,13 @@ export class GameRenderer {
   constructor(world: World, grid: Grid, parent: HTMLElement, options: GameRendererOptions = {}) {
     this._game = new Phaser.Game({
       type: Phaser.AUTO,
-      width: CANVAS_W,
-      height: CANVAS_H,
       backgroundColor: `#${COLORS.BG.toString(16).padStart(6, '0')}`,
       parent,
+      scale: {
+        mode: Phaser.Scale.RESIZE,
+        width: '100%',
+        height: '100%',
+      },
       scene: [BootScene, GameScene],
       callbacks: {
         preBoot: (game: Phaser.Game) => {

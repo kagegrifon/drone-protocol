@@ -265,11 +265,38 @@ export class GameScene extends Phaser.Scene {
     const cam = this.cameras.main;
     const worldW = CANVAS_W;
     const worldH = CANVAS_H;
-    const minZoom = Math.max(CANVAS_W / worldW, CANVAS_H / worldH);
     const maxZoom = 2.0;
 
     cam.setBounds(0, 0, worldW, worldH);
     cam.setBackgroundColor(COLORS.BG);
+
+    const computeMinZoom = (): number => {
+      const vw = this.scale.gameSize.width;
+      const vh = this.scale.gameSize.height;
+      if (vw === 0 || vh === 0) return 0.1;
+      // cover: zoom такой, что мир покрывает viewport (без пустых полей по краям)
+      return Math.max(vw / worldW, vh / worldH);
+    };
+
+    let userZoomed = false;
+
+    const fitCamera = (): void => {
+      const minZoom = computeMinZoom();
+      cam.setZoom(Math.min(maxZoom, minZoom));
+      cam.centerOn(worldW / 2, worldH / 2);
+    };
+
+    fitCamera();
+    // After Phaser applies its first scale.RESIZE (parent measured), refit.
+    this.time.delayedCall(0, fitCamera);
+
+    this.scale.on('resize', () => {
+      if (!userZoomed) fitCamera();
+      else {
+        const minZoom = computeMinZoom();
+        if (cam.zoom < minZoom) cam.setZoom(minZoom);
+      }
+    });
 
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (pointer.isDown) {
@@ -281,7 +308,9 @@ export class GameScene extends Phaser.Scene {
     this.sys.game.canvas.addEventListener('wheel', (e: WheelEvent) => {
       e.preventDefault();
       if (!e.ctrlKey) return;
+      const minZoom = computeMinZoom();
       cam.setZoom(Phaser.Math.Clamp(cam.zoom - e.deltaY * 0.001, minZoom, maxZoom));
+      userZoomed = true;
     }, { passive: false });
   }
 }

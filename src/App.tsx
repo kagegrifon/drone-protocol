@@ -8,8 +8,10 @@ import { DroneList } from "./ui/panels/DroneList.js";
 import { DroneInspector } from "./ui/panels/DroneInspector/index.js";
 import { ProgramEditor } from "./ui/editor/ProgramEditor/index.js";
 import { StatsPanel } from "./ui/panels/StatsPanel/index.js";
-import { MissionGoalPanel } from "./ui/panels/MissionGoalPanel.js";
+import { OreHud } from "./ui/overlays/OreHud.js";
+import { MissionGoalButton } from "./ui/overlays/MissionGoalButton.js";
 import { GameStatusOverlay } from "./ui/overlays/GameStatusOverlay.js";
+import { BottomPanel } from "./ui/layout/BottomPanel.js";
 import { IntroScreen } from "./ui/screens/IntroScreen.js";
 import { StartScreen } from "./ui/screens/StartScreen.js";
 import { LoadingScreen } from "./ui/screens/LoadingScreen.js";
@@ -17,7 +19,10 @@ import { AudioSettingsModal } from "./ui/modals/AudioSettingsModal.js";
 import type { EntityMeta } from "./game/missions/types.js";
 import type { AudioManager } from "./renderer/audio/AudioManager.js";
 import "./global.css";
+
 type GamePhase = "intro" | "start" | "loading" | "game";
+
+const SIDEBAR_WIDTH = 280;
 
 export default function App() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -105,80 +110,43 @@ export default function App() {
   return (
     <div
       style={{
+        height: "100vh",
+        width: "100vw",
+        overflow: "hidden",
         display: "flex",
         background: "#050810",
-        minHeight: "100vh",
         color: "#c0cfe0",
+        minWidth: 1024,
       }}
     >
-      {/* Phaser canvas — always mounted so containerRef is available */}
-      <div
-        style={{
-          flexShrink: 0,
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "center",
-          padding: "16px",
-          position: "relative",
-        }}
-      >
-        <div ref={containerRef} />
-        {gamePhase === "game" && (
-          <GameStatusOverlay
-            onReset={() => controllerRef.current?.reset()}
-            onNextMission={() => {
-              const next =
-                missionIndex < ALL_MISSIONS.length - 1
-                  ? missionIndex + 1
-                  : missionIndex;
-              setMissionIndex(next);
-              setGamePhase("loading");
-            }}
-            isLastMission={isLastMission}
-          />
-        )}
-      </div>
-
       {/* Sidebar — visible only in game phase */}
       {gamePhase === "game" && (
-        <div
+        <aside
           style={{
-            width: "340px",
-            minWidth: "340px",
+            width: SIDEBAR_WIDTH,
+            minWidth: SIDEBAR_WIDTH,
             background: "#0a0e1a",
-            borderLeft: "1px solid #1e3a5f",
+            borderRight: "1px solid #1e3a5f",
             display: "flex",
             flexDirection: "column",
-            height: "100vh",
+            height: "100%",
             overflowY: "auto",
           }}
         >
           <SimControls
             onPlay={() => controllerRef.current?.start()}
             onPause={() => controllerRef.current?.pause()}
-            onStep={() => controllerRef.current?.step()}
             onOpenSettings={openSettings}
           />
-          <MissionGoalPanel mission={currentMission} />
           <SectionLabel label="DRONES" />
           <DroneList />
           <SectionLabel label="INSPECTOR" />
           <DroneInspector />
-          <SectionLabel label="PROGRAM" />
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              minHeight: "200px",
-            }}
-          >
-            <ProgramEditor entities={entityMetasRef.current} />
-          </div>
           <SectionLabel label="STATS" />
           <StatsPanel />
           <div
             style={{
+              marginTop: "auto",
               padding: "6px 12px",
               borderTop: "1px solid #0a1a2a",
               textAlign: "center",
@@ -194,8 +162,58 @@ export default function App() {
               Drone Loop v1.0 · 2026
             </span>
           </div>
-        </div>
+        </aside>
       )}
+
+      {/* Main area — canvas on top, bottom panel on bottom */}
+      <main
+        style={{
+          flex: 1,
+          minWidth: 0,
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            position: "relative",
+            background: "#050810",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            ref={containerRef}
+            style={{ position: "absolute", inset: 0 }}
+          />
+          {gamePhase === "game" && (
+            <>
+              <OreHud />
+              <MissionGoalButton mission={currentMission} />
+              <GameStatusOverlay
+                onReset={() => controllerRef.current?.reset()}
+                onNextMission={() => {
+                  const next =
+                    missionIndex < ALL_MISSIONS.length - 1
+                      ? missionIndex + 1
+                      : missionIndex;
+                  setMissionIndex(next);
+                  setGamePhase("loading");
+                }}
+                isLastMission={isLastMission}
+              />
+            </>
+          )}
+        </div>
+
+        {gamePhase === "game" && (
+          <BottomPanel>
+            <ProgramEditor entities={entityMetasRef.current} />
+          </BottomPanel>
+        )}
+      </main>
 
       {/* Overlays */}
       {gamePhase === "intro" && (
@@ -214,7 +232,14 @@ export default function App() {
         isOpen={isSettingsOpen}
         onClose={closeSettings}
         audioManager={audioManager}
-        onBackToMissions={gamePhase === 'game' ? () => { setIsSettingsOpen(false); handleBackToMissions(); } : undefined}
+        onBackToMissions={
+          gamePhase === "game"
+            ? () => {
+                setIsSettingsOpen(false);
+                handleBackToMissions();
+              }
+            : undefined
+        }
       />
     </div>
   );
@@ -238,4 +263,3 @@ function SectionLabel({ label }: { label: string }) {
     </div>
   );
 }
-
