@@ -183,4 +183,14 @@ describe('MiningSystem — DROP', () => {
     const program = world.getComponent(drone, 'Program')!;
     expect(program.state).toBe('running');
   });
+
+  it('resumes immediately if drone has no ore (empty inventory)', () => {
+    const drone = addDrone(world, 5, 5, 0, 10, 'drop');
+    addBase(world, 5, 5);
+    for (let i = 0; i < TICKS_PER_ORE_DROP; i++) system.update();
+    const program = world.getComponent(drone, 'Program')!;
+    expect(program.state).toBe('running');
+    expect(program.waitingFor).toBeUndefined();
+    expect(world.getComponent(drone, 'Inventory')!.ore).toBe(0); // not -1
+  });
 });

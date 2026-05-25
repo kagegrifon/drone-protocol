@@ -74,6 +74,13 @@ export class MiningSystem {
 
       const baseInventory = this.world.getComponent(baseId, 'Inventory')!;
 
+      if (droneInventory.ore <= 0) {
+        program.dropElapsed = undefined;
+        program.state = 'running';
+        program.waitingFor = undefined;
+        continue;
+      }
+
       program.dropElapsed = (program.dropElapsed ?? 0) + DT;
 
       if (program.dropElapsed >= BASE_DROP_DURATION_PER_ORE - EPSILON) {
