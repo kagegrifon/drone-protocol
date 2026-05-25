@@ -1,6 +1,6 @@
 # Свойства объектов мира в условиях IF
 
-**Статус:** planned
+**Статус:** done
 
 ## Зачем
 
@@ -109,29 +109,29 @@ code-style, без пробелов внутри вызова функции: `D
 
 ## Критерии готовности
 
-- [ ] Тип `ConditionLeaf` переписан на `{ left: FunctionCall; operator; right: Operand }`,
+- [x] Тип `ConditionLeaf` переписан на `{ left: FunctionCall; operator; right: Operand }`,
   старые `ConditionProperty` и `value: number` удалены.
-- [ ] `ObjectRef` (`{ kind: 'self' }` | `{ kind: 'entity'; id }`) добавлен в типы.
-- [ ] Реестр `FUNCTIONS: Record<FunctionName, FunctionSpec>` создан в
+- [x] `ObjectRef` (`{ kind: 'self' }` | `{ kind: 'entity'; id }`) добавлен в типы.
+- [x] Реестр `FUNCTIONS: Record<FunctionName, FunctionSpec>` создан в
   `src/game/programs/functions.ts`, содержит 6 функций MVP.
-- [ ] `interpreter.ts → evaluateLeaf` переписан: резолв `Self → droneId`,
+- [x] `interpreter.ts → evaluateLeaf` переписан: резолв `Self → droneId`,
   вызов `spec.evaluate`, сравнение оператором. `null` от `evaluate`
   даёт `false` в leaf'е.
-- [ ] `ConditionEditor.tsx` переписан под новый UI с дропдаунами функции
+- [x] `ConditionEditor.tsx` переписан под новый UI с дропдаунами функции
   и аргументов, переключателем «число / функция» для RHS.
-- [ ] Переиспользуемые компоненты `ObjectSelect.tsx` и
+- [x] Переиспользуемые компоненты `ObjectSelect.tsx` и
   `FunctionCallEditor.tsx` вынесены.
-- [ ] Препросмотр и свёрнутый чип IF-блока выводятся в code-style.
-- [ ] `mission3.ts` обновлён: leaf `Energy% < 30` (unit `'%'`) → семантически
+- [x] Препросмотр и свёрнутый чип IF-блока выводятся в code-style.
+- [x] `mission3.ts` обновлён: leaf `Energy% < 30` (unit `'%'`) → семантически
   эквивалентный `Energy(Self) < <порог-в-абсолюте>`. Порог подбирается так,
   чтобы поведение демонстрационной программы миссии 3 не изменилось.
-- [ ] Unit-тесты `functions.test.ts` покрывают каждую функцию
+- [x] Unit-тесты `functions.test.ts` покрывают каждую функцию
   (корректное значение, `null` для несовместимого объекта, резолв `Self`).
-- [ ] Unit-тесты `interpreter.test.ts` обновлены под новый формат,
+- [x] Unit-тесты `interpreter.test.ts` обновлены под новый формат,
   добавлены кейсы с функцией в RHS и `Distance = 0`.
-- [ ] E2E-тест проходит миссию 3 с новым редактором.
-- [ ] `npm run type-check`, `npm test`, `npm run test:e2e` зелёные.
-- [ ] Запись в `DECISIONS.md`: «Условие IF строится из вызовов функций
+- [x] E2E-тест проходит миссию 3 с новым редактором.
+- [x] `npm run type-check`, `npm test`, `npm run test:e2e` зелёные.
+- [x] Запись в `DECISIONS.md`: «Условие IF строится из вызовов функций
   реестра, не из захардкоженных kind».
 
 ## Технические заметки
