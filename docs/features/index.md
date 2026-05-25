@@ -17,13 +17,13 @@ docs/features/
 | Файл | Название | Статус |
 |---|---|---|
 | [congestion-metric.md](planned/congestion-metric.md) | Метрика Congestion (затор дронов) | planned |
-| [atomic-actions.md](planned/atomic-actions.md) | Атомарные игровые действия | planned |
 
 
 ### done
 
 | Файл | Название |
 |---|---|
+| [atomic-actions.md](done/atomic-actions.md) | Атомарные игровые действия |
 | [personal-programs.md](done/personal-programs.md) | Персональные программы дронов + вкладка PROGRAM |
 | [if-condition-editor.md](done/if-condition-editor.md) | Редактор условий IF-блока |
 | [time-in-seconds-and-per-drone-controls.md](done/time-in-seconds-and-per-drone-controls.md) | Время в секундах и per-drone управление |
