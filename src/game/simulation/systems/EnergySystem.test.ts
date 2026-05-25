@@ -62,17 +62,24 @@ describe('EnergySystem', () => {
     expect(world.getComponent(drone, 'Energy')!.current).toBe(50);
   });
 
-  it('charges +2 energy after 10 ticks', () => {
+  it('active CHARGE completes after +1 and passive charging continues (atomic CHARGE)', () => {
     const drone = addDrone(world, 3, 3, 50);
     addCharger(world, 3, 3);
-    for (let i = 0; i < TICKS_PER_UNIT * 2; i++) system.update();
+    for (let i = 0; i < TICKS_PER_UNIT; i++) system.update();
+    // CHARGE command fires once → +1, state back to running
+    expect(world.getComponent(drone, 'Program')!.state).toBe('running');
+    expect(world.getComponent(drone, 'Energy')!.current).toBe(51);
+    // Further ticks: passive charging applies (station property)
+    for (let i = 0; i < TICKS_PER_UNIT; i++) system.update();
     expect(world.getComponent(drone, 'Energy')!.current).toBe(52);
   });
 
-  it('does not exceed max energy', () => {
-    const drone = addDrone(world, 3, 3, 99);
+  it('passive charging does not exceed max energy', () => {
+    const drone = addDrone(world, 3, 3, 99, 100, undefined);
+    world.getComponent(drone, 'Program')!.state = 'running';
+    world.getComponent(drone, 'Program')!.waitingFor = undefined;
     addCharger(world, 3, 3);
-    for (let i = 0; i < TICKS_PER_UNIT * 3; i++) system.update(); // would add 3, but capped at 1
+    for (let i = 0; i < TICKS_PER_UNIT * 3; i++) system.update();
     expect(world.getComponent(drone, 'Energy')!.current).toBe(100);
   });
 
@@ -93,12 +100,14 @@ describe('EnergySystem', () => {
     expect(program.chargeElapsed).toBeUndefined();
   });
 
-  it('does not resume program if not yet full', () => {
+  it('resumes program after charging +1 unit even if not full (atomic CHARGE)', () => {
     const drone = addDrone(world, 3, 3, 50);
     addCharger(world, 3, 3);
     for (let i = 0; i < TICKS_PER_UNIT; i++) system.update();
     const program = world.getComponent(drone, 'Program')!;
-    expect(program.state).toBe('waiting');
+    expect(program.state).toBe('running');
+    expect(program.waitingFor).toBeUndefined();
+    expect(world.getComponent(drone, 'Energy')!.current).toBe(51);
   });
 
   it('charges drone even without waitingFor=charge (passive charging)', () => {
@@ -108,6 +117,25 @@ describe('EnergySystem', () => {
     addCharger(world, 3, 3);
     for (let i = 0; i < TICKS_PER_UNIT; i++) system.update();
     expect(world.getComponent(drone, 'Energy')!.current).toBe(51);
+  });
+
+  it('passive charging adds multiple units over time (not atomic)', () => {
+    const drone = addDrone(world, 3, 3, 50, 100, undefined);
+    world.getComponent(drone, 'Program')!.state = 'running';
+    world.getComponent(drone, 'Program')!.waitingFor = undefined;
+    addCharger(world, 3, 3);
+    for (let i = 0; i < TICKS_PER_UNIT * 3; i++) system.update();
+    expect(world.getComponent(drone, 'Energy')!.current).toBe(53);
+  });
+
+  it('active CHARGE completes immediately when drone is not on a charger', () => {
+    const drone = addDrone(world, 3, 3, 50);
+    addCharger(world, 5, 5);
+    system.update();
+    const program = world.getComponent(drone, 'Program')!;
+    expect(program.state).toBe('running');
+    expect(program.waitingFor).toBeUndefined();
+    expect(world.getComponent(drone, 'Energy')!.current).toBe(50);
   });
 
   it('resumes program immediately when already at max energy', () => {

@@ -19,24 +19,45 @@ export class EnergySystem {
 
       if (program.localPaused) continue;
 
+      const isActiveCharge = program.state === 'waiting' && program.waitingFor === 'charge';
+
       const chargerId = this.findChargerAt(position.x, position.y);
-      if (chargerId === null) continue;
-
-      if (energy.current < energy.max) {
-        program.chargeElapsed = (program.chargeElapsed ?? 0) + DT;
-        while (program.chargeElapsed >= BASE_CHARGE_DURATION_PER_UNIT - EPSILON && energy.current < energy.max) {
-          energy.current = Math.min(energy.max, energy.current + 1);
-          program.chargeElapsed -= BASE_CHARGE_DURATION_PER_UNIT;
-        }
-      }
-
-      if (program.state === 'waiting' && program.waitingFor === 'charge') {
-        nowCharging.add(id);
-        if (energy.current >= energy.max) {
+      if (chargerId === null) {
+        // Не на станции: активная CHARGE завершается сразу, ничего больше не делаем.
+        if (isActiveCharge) {
           program.chargeElapsed = undefined;
           program.state = 'running';
           program.waitingFor = undefined;
         }
+        continue;
+      }
+
+      // На станции и уже полная энергия — активная CHARGE завершается сразу.
+      if (isActiveCharge && energy.current >= energy.max) {
+        program.chargeElapsed = undefined;
+        program.state = 'running';
+        program.waitingFor = undefined;
+        continue;
+      }
+
+      if (energy.current < energy.max) {
+        program.chargeElapsed = (program.chargeElapsed ?? 0) + DT;
+        // Пассивная зарядка: while-цикл сохранён, чтобы поведение станции не менялось.
+        while (program.chargeElapsed >= BASE_CHARGE_DURATION_PER_UNIT - EPSILON && energy.current < energy.max) {
+          energy.current = Math.min(energy.max, energy.current + 1);
+          program.chargeElapsed -= BASE_CHARGE_DURATION_PER_UNIT;
+          // Активная CHARGE: после первой выданной единицы — выход.
+          if (isActiveCharge) {
+            program.chargeElapsed = undefined;
+            program.state = 'running';
+            program.waitingFor = undefined;
+            break;
+          }
+        }
+      }
+
+      if (isActiveCharge && program.waitingFor === 'charge') {
+        nowCharging.add(id);
       }
     }
 
