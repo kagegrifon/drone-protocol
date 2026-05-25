@@ -17,6 +17,7 @@ docs/features/
 | Файл | Название | Статус |
 |---|---|---|
 | [congestion-metric.md](planned/congestion-metric.md) | Метрика Congestion (затор дронов) | planned |
+| [atomic-actions.md](planned/atomic-actions.md) | Атомарные игровые действия | planned |
 
 
 ### done
