@@ -4,6 +4,7 @@ import { DT, EPSILON } from '../simulation/constants.js';
 import type { Grid } from '../simulation/world/Grid.js';
 import type { Instruction, ProgramRegistry, ConditionLeaf, ConditionLogic } from './types.js';
 import { astar } from '../pathfinding/astar.js';
+import { evaluateFunctionCall } from './functions.js';
 
 export function stepProgram(
   droneId: EntityId,
@@ -143,54 +144,17 @@ export function stepProgram(
 }
 
 function evaluateLeaf(leaf: ConditionLeaf, droneId: EntityId, world: World): boolean {
-  const { property, operator, value } = leaf;
-  let actual: number;
-
-  switch (property.kind) {
-    case 'ENERGY': {
-      const energy = world.getComponent(droneId, 'Energy');
-      if (!energy) return false;
-      actual = property.unit === '%'
-        ? (energy.current / energy.max) * 100
-        : energy.current;
-      break;
-    }
-    case 'INVENTORY': {
-      const inv = world.getComponent(droneId, 'Inventory');
-      if (!inv) return false;
-      actual = property.unit === '%'
-        ? (inv.ore / inv.capacity) * 100
-        : inv.ore;
-      break;
-    }
-    case 'DEPOSIT': {
-      const pos = world.getComponent(droneId, 'Position');
-      if (!pos) return false;
-      actual = 0;
-      for (const depId of world.query('Position', 'Deposit')) {
-        const depPos = world.getComponent(depId, 'Position')!;
-        if (depPos.x === pos.x && depPos.y === pos.y) {
-          actual = world.getComponent(depId, 'Deposit')!.oreRemaining;
-          break;
-        }
-      }
-      break;
-    }
-    case 'DISTANCE': {
-      const dronePos = world.getComponent(droneId, 'Position');
-      const targetPos = world.getComponent(property.targetEntityId, 'Position');
-      if (!dronePos || !targetPos) return false;
-      actual = Math.abs(dronePos.x - targetPos.x) + Math.abs(dronePos.y - targetPos.y);
-      break;
-    }
-  }
-
-  switch (operator) {
-    case '<':  return actual < value;
-    case '<=': return actual <= value;
-    case '=':  return actual === value;
-    case '>=': return actual >= value;
-    case '>':  return actual > value;
+  const left = evaluateFunctionCall(leaf.left, droneId, world);
+  const right = leaf.right.kind === 'number'
+    ? leaf.right.value
+    : evaluateFunctionCall(leaf.right.call, droneId, world);
+  if (left === null || right === null) return false;
+  switch (leaf.operator) {
+    case '<':  return left < right;
+    case '<=': return left <= right;
+    case '=':  return left === right;
+    case '>=': return left >= right;
+    case '>':  return left > right;
   }
 }
 
