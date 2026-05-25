@@ -44,12 +44,16 @@ describe('MovementSystem', () => {
     expect(movement.progress).toBeCloseTo(0.1);
   });
 
-  it('moves drone one cell after 10 ticks at speed=1', () => {
+  it('moves drone exactly one cell after 10 ticks at speed=1, then stops', () => {
     const id = addDrone(world, 0, 0, [{ x: 1, y: 0 }, { x: 2, y: 0 }], 1);
     for (let i = 0; i < 10; i++) system.update();
     const pos = world.getComponent(id, 'Position')!;
     expect(pos.x).toBe(1);
     expect(pos.y).toBe(0);
+    // Дополнительные тики не сдвинут дрон — путь зачищен.
+    for (let i = 0; i < 10; i++) system.update();
+    const pos2 = world.getComponent(id, 'Position')!;
+    expect(pos2.x).toBe(1);
   });
 
   // speed=10 (клеток/сек): progress += DT*10 = 1.0 за тик → 1 тик = 1 шаг
@@ -68,20 +72,20 @@ describe('MovementSystem', () => {
     expect(energy.current).toBe(95); // 100 - 5
   });
 
-  // speed=20: progress += 2.0 за тик → 2 шага за тик
-  it('advances multiple steps when speed=20 (2 cells/tick)', () => {
+  // speed=20: progress += 2.0 за тик → новая семантика: всё равно 1 шаг за команду
+  it('advances exactly one cell per command even when speed=20', () => {
     const id = addDrone(world, 0, 0, [{ x: 1, y: 0 }, { x: 2, y: 0 }], 20);
     system.update();
     const pos = world.getComponent(id, 'Position')!;
-    expect(pos.x).toBe(2);
+    expect(pos.x).toBe(1);
     expect(pos.y).toBe(0);
   });
 
-  it('drains energy for each step when multiple steps in one tick', () => {
+  it('drains energy only once per atomic step even at speed=20', () => {
     const id = addDrone(world, 0, 0, [{ x: 1, y: 0 }, { x: 2, y: 0 }], 20);
     system.update();
     const energy = world.getComponent(id, 'Energy')!;
-    expect(energy.current).toBe(90); // 100 - 5*2
+    expect(energy.current).toBe(95); // 100 - 5*1 (атомарный шаг)
   });
 
   it('resumes program on arrival (waitingFor=move)', () => {
@@ -121,5 +125,13 @@ describe('MovementSystem', () => {
     const movement = world.getComponent(id, 'Movement')!;
     expect(movement.progress).toBe(0);
     expect(movement.path.length).toBe(0);
+  });
+
+  it('clears the remaining path after one atomic step', () => {
+    const id = addDrone(world, 0, 0, [{ x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }], 10);
+    system.update();
+    const movement = world.getComponent(id, 'Movement')!;
+    expect(movement.path).toEqual([]);
+    expect(movement.progress).toBe(0);
   });
 });
