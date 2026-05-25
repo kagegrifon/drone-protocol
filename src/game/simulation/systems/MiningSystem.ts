@@ -42,16 +42,11 @@ export class MiningSystem {
 
       program.mineElapsed = (program.mineElapsed ?? 0) + DT;
 
-      while (program.mineElapsed >= BASE_MINE_DURATION_PER_ORE - EPSILON) {
-        if (deposit.oreRemaining <= 0 || inventory.ore >= inventory.capacity) break;
+      if (program.mineElapsed >= BASE_MINE_DURATION_PER_ORE - EPSILON) {
         deposit.oreRemaining -= 1;
         inventory.ore += 1;
         energy.current = Math.max(0, energy.current - energy.drainPerMine);
         gameEvents.emit('ore:mined', { droneId: id, x: position.x, y: position.y });
-        program.mineElapsed -= BASE_MINE_DURATION_PER_ORE;
-      }
-
-      if (deposit.oreRemaining <= 0 || inventory.ore >= inventory.capacity) {
         program.mineElapsed = undefined;
         program.state = 'running';
         program.waitingFor = undefined;
@@ -81,14 +76,10 @@ export class MiningSystem {
 
       program.dropElapsed = (program.dropElapsed ?? 0) + DT;
 
-      while (program.dropElapsed >= BASE_DROP_DURATION_PER_ORE - EPSILON && droneInventory.ore > 0) {
+      if (program.dropElapsed >= BASE_DROP_DURATION_PER_ORE - EPSILON) {
         baseInventory.ore += 1;
         droneInventory.ore -= 1;
         gameEvents.emit('ore:dropped', { droneId: id, amount: 1 });
-        program.dropElapsed -= BASE_DROP_DURATION_PER_ORE;
-      }
-
-      if (droneInventory.ore === 0) {
         program.dropElapsed = undefined;
         program.state = 'running';
         program.waitingFor = undefined;
