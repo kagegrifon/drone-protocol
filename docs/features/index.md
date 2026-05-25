@@ -16,8 +16,10 @@ docs/features/
 
 | Файл | Название | Статус |
 |---|---|---|
+| [missions-atomic-migration.md](planned/missions-atomic-migration.md) | Миграция миссий под атомарную семантику | planned |
 | [congestion-metric.md](planned/congestion-metric.md) | Метрика Congestion (затор дронов) | planned |
 | [world-properties.md](planned/world-properties.md) | Свойства объектов мира в условиях IF | planned |
+| [drone-modifiers.md](planned/drone-modifiers.md) | Система модификаторов дрона | planned |
 
 
 ### done
