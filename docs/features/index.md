@@ -17,6 +17,7 @@ docs/features/
 | Файл | Название | Статус |
 |---|---|---|
 | [congestion-metric.md](planned/congestion-metric.md) | Метрика Congestion (затор дронов) | planned |
+| [world-properties.md](planned/world-properties.md) | Свойства объектов мира в условиях IF | planned |
 
 
 ### done
