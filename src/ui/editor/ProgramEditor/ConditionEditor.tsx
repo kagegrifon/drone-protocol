@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import type { ConditionLeaf, ConditionLogic, ConditionOperator, ConditionProperty } from '../../../game/programs/types.js';
+import type { ConditionLeaf, ConditionLogic, ConditionOperator, FunctionCall, Operand } from '../../../game/programs/types.js';
 import type { EntityMeta } from '../../../game/missions/types.js';
+import { FunctionCallEditor } from './FunctionCallEditor.js';
+import { formatConditions } from './conditionFormat.js';
 
 interface Props {
   conditions: ConditionLeaf[];
@@ -13,48 +15,11 @@ interface Props {
 const OPERATORS: ConditionOperator[] = ['<', '<=', '=', '>=', '>'];
 
 function defaultLeaf(): ConditionLeaf {
-  return { property: { kind: 'ENERGY', unit: '%' }, operator: '<', value: 50 };
-}
-
-function propertyHasUnit(p: ConditionProperty): p is { kind: 'ENERGY'; unit: '%' | 'abs' } | { kind: 'INVENTORY'; unit: '%' | 'abs' } {
-  return p.kind === 'ENERGY' || p.kind === 'INVENTORY';
-}
-
-function propertyIsDistance(p: ConditionProperty): p is { kind: 'DISTANCE'; targetEntityId: number } {
-  return p.kind === 'DISTANCE';
-}
-
-function valueSuffix(leaf: ConditionLeaf): string {
-  if (leaf.property.kind === 'DISTANCE') return ' кл.';
-  if (leaf.property.kind === 'DEPOSIT') return ' ед.';
-  if (propertyHasUnit(leaf.property)) return leaf.property.unit === '%' ? '%' : ' ед.';
-  return '';
-}
-
-function formatChip(leaf: ConditionLeaf, entities: EntityMeta[]): string {
-  const op = leaf.operator;
-  const v = leaf.value;
-  const suffix = valueSuffix(leaf);
-  switch (leaf.property.kind) {
-    case 'ENERGY':    return `⚡ ${op} ${v}${suffix}`;
-    case 'INVENTORY': return `📦 ${op} ${v}${suffix}`;
-    case 'DEPOSIT':   return `⛏️ ${op} ${v}${suffix}`;
-    case 'DISTANCE': {
-      const targetId = (leaf.property as { kind: 'DISTANCE'; targetEntityId: number }).targetEntityId;
-      const label = entities.find(e => e.id === targetId)?.label ?? `#${targetId}`;
-      return `📍${label} ${op} ${v}${suffix}`;
-    }
-  }
-}
-
-function buildPreview(conditions: ConditionLeaf[], operators: ConditionLogic[], entities: EntityMeta[]): string {
-  if (conditions.length === 0) return '(нет условий)';
-  return conditions
-    .map((c, i) => {
-      const chip = formatChip(c, entities);
-      return i === 0 ? chip : `${operators[i - 1]} ${chip}`;
-    })
-    .join(' ');
+  return {
+    left: { fn: 'Energy', args: [{ kind: 'self' }] },
+    operator: '<',
+    right: { kind: 'number', value: 50 },
+  };
 }
 
 const selectStyle: React.CSSProperties = {
@@ -69,7 +34,7 @@ const selectStyle: React.CSSProperties = {
 
 const inputStyle: React.CSSProperties = {
   ...selectStyle,
-  width: '36px',
+  width: '52px',
 };
 
 export function ConditionEditor({ conditions: initConditions, operators: initOperators, entities, onSave, onCancel }: Props) {
@@ -77,12 +42,12 @@ export function ConditionEditor({ conditions: initConditions, operators: initOpe
   const [operators, setOperators] = useState<ConditionLogic[]>(initOperators);
 
   function updateCondition(index: number, updated: ConditionLeaf) {
-    setConditions(prev => prev.map((c, i) => i === index ? updated : c));
+    setConditions((prev) => prev.map((c, i) => (i === index ? updated : c)));
   }
 
   function removeCondition(index: number) {
-    setConditions(prev => prev.filter((_, i) => i !== index));
-    setOperators(prev => {
+    setConditions((prev) => prev.filter((_, i) => i !== index));
+    setOperators((prev) => {
       const next = [...prev];
       next.splice(index === 0 ? 0 : index - 1, 1);
       return next;
@@ -90,12 +55,12 @@ export function ConditionEditor({ conditions: initConditions, operators: initOpe
   }
 
   function addCondition() {
-    setConditions(prev => [...prev, defaultLeaf()]);
-    setOperators(prev => [...prev, 'AND']);
+    setConditions((prev) => [...prev, defaultLeaf()]);
+    setOperators((prev) => [...prev, 'AND']);
   }
 
   function toggleOperator(index: number) {
-    setOperators(prev => prev.map((op, i) => i === index ? (op === 'AND' ? 'OR' : 'AND') : op));
+    setOperators((prev) => prev.map((op, i) => (i === index ? (op === 'AND' ? 'OR' : 'AND') : op)));
   }
 
   return (
@@ -117,16 +82,7 @@ export function ConditionEditor({ conditions: initConditions, operators: initOpe
               <div style={{ flex: 1, height: '1px', background: '#1e3a5f' }} />
               <button
                 onClick={() => toggleOperator(index)}
-                style={{
-                  background: '#0a1628',
-                  border: '1px solid #1e3a5f',
-                  color: '#00d4ff',
-                  fontFamily: 'monospace',
-                  fontSize: '10px',
-                  padding: '1px 8px',
-                  borderRadius: '2px',
-                  cursor: 'pointer',
-                }}
+                style={{ background: '#0a1628', border: '1px solid #1e3a5f', color: '#00d4ff', fontFamily: 'monospace', fontSize: '10px', padding: '1px 8px', borderRadius: '2px', cursor: 'pointer' }}
               >
                 {operators[index]}
               </button>
@@ -138,25 +94,13 @@ export function ConditionEditor({ conditions: initConditions, operators: initOpe
 
       <button
         onClick={addCondition}
-        style={{
-          background: 'none',
-          border: '1px dashed #1e3a5f',
-          color: '#445566',
-          fontFamily: 'monospace',
-          fontSize: '11px',
-          padding: '3px 10px',
-          borderRadius: '3px',
-          cursor: 'pointer',
-          width: '100%',
-          marginTop: '6px',
-          marginBottom: '8px',
-        }}
+        style={{ background: 'none', border: '1px dashed #1e3a5f', color: '#445566', fontFamily: 'monospace', fontSize: '11px', padding: '3px 10px', borderRadius: '3px', cursor: 'pointer', width: '100%', marginTop: '6px', marginBottom: '8px' }}
       >
         + добавить условие
       </button>
 
       <div style={{ fontFamily: 'monospace', fontSize: '10px', color: '#4488ff', background: '#0a1628', border: '1px solid #1e3a5f', borderRadius: '2px', padding: '4px 8px', marginBottom: '8px' }}>
-        👁 {buildPreview(conditions, operators, entities)}
+        👁 {formatConditions(conditions, operators, entities)}
       </div>
 
       <div style={{ display: 'flex', gap: '6px' }}>
@@ -188,84 +132,60 @@ function ConditionRow({
   onChange: (updated: ConditionLeaf) => void;
   onRemove: () => void;
 }) {
-  function setKind(kind: ConditionProperty['kind']) {
-    let property: ConditionProperty;
-    switch (kind) {
-      case 'ENERGY':    property = { kind, unit: '%' }; break;
-      case 'INVENTORY': property = { kind, unit: '%' }; break;
-      case 'DEPOSIT':   property = { kind }; break;
-      case 'DISTANCE':  property = { kind, targetEntityId: entities[0]?.id ?? 1 }; break;
-    }
-    onChange({ ...leaf, property });
+  function setLeft(left: FunctionCall) {
+    onChange({ ...leaf, left });
   }
-
-  const prop = leaf.property;
+  function setRight(right: Operand) {
+    onChange({ ...leaf, right });
+  }
+  function setOperator(operator: ConditionOperator) {
+    onChange({ ...leaf, operator });
+  }
+  function setRightKind(kind: 'number' | 'function') {
+    if (kind === leaf.right.kind) return;
+    if (kind === 'number') setRight({ kind: 'number', value: 0 });
+    else setRight({ kind: 'function', call: { fn: 'Energy', args: [{ kind: 'self' }] } });
+  }
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px', flexWrap: 'wrap' }}>
-      {/* Property select */}
-      <select
-        style={selectStyle}
-        value={prop.kind}
-        onChange={(e) => setKind(e.target.value as ConditionProperty['kind'])}
-      >
-        <option value="ENERGY">⚡ Энергия</option>
-        <option value="INVENTORY">📦 Загрузка рудой</option>
-        <option value="DEPOSIT">⛏️ Депозит</option>
-        <option value="DISTANCE">📍 Расстояние</option>
-      </select>
+      <FunctionCallEditor value={leaf.left} entities={entities} onChange={setLeft} />
 
-      {/* Unit select — only for ENERGY / INVENTORY */}
-      {propertyHasUnit(prop) && (
-        <select
-          style={selectStyle}
-          value={prop.unit}
-          onChange={(e) => onChange({ ...leaf, property: { ...prop, unit: e.target.value as '%' | 'abs' } })}
-        >
-          <option value="%">%</option>
-          <option value="abs">ед.</option>
-        </select>
-      )}
-
-      {/* Object select — only for DISTANCE */}
-      {propertyIsDistance(prop) && (
-        <select
-          style={selectStyle}
-          value={prop.targetEntityId}
-          onChange={(e) => onChange({ ...leaf, property: { kind: 'DISTANCE', targetEntityId: Number(e.target.value) } })}
-        >
-          {entities.map(({ id, label }) => (
-            <option key={id} value={id}>{label}</option>
-          ))}
-        </select>
-      )}
-
-      {/* Operator */}
       <select
         style={{ ...selectStyle, width: '40px' }}
         value={leaf.operator}
-        onChange={(e) => onChange({ ...leaf, operator: e.target.value as ConditionOperator })}
+        onChange={(e) => setOperator(e.target.value as ConditionOperator)}
       >
-        {OPERATORS.map(op => <option key={op} value={op}>{op}</option>)}
+        {OPERATORS.map((op) => <option key={op} value={op}>{op}</option>)}
       </select>
 
-      {/* Value */}
-      <input
-        type="number"
-        style={inputStyle}
-        value={leaf.value}
-        onChange={(e) => onChange({ ...leaf, value: Number(e.target.value) })}
-      />
+      <select
+        style={selectStyle}
+        value={leaf.right.kind}
+        onChange={(e) => setRightKind(e.target.value as 'number' | 'function')}
+      >
+        <option value="number">число</option>
+        <option value="function">функция</option>
+      </select>
 
-      {/* Suffix label */}
-      <span style={{ color: '#445566', fontFamily: 'monospace', fontSize: '10px', width: '22px' }}>
-        {valueSuffix(leaf)}
-      </span>
+      {leaf.right.kind === 'number' ? (
+        <input
+          type="number"
+          style={inputStyle}
+          value={leaf.right.value}
+          onChange={(e) => setRight({ kind: 'number', value: Number(e.target.value) })}
+        />
+      ) : (
+        <FunctionCallEditor
+          value={leaf.right.call}
+          entities={entities}
+          onChange={(call) => setRight({ kind: 'function', call })}
+        />
+      )}
 
-      {/* Remove */}
       <button
         onClick={onRemove}
-        style={{ background: 'none', border: 'none', color: '#445566', cursor: 'pointer', fontSize: '14px', padding: '0 2px', lineHeight: 1 }}
+        style={{ background: 'none', border: 'none', color: '#445566', cursor: 'pointer', fontSize: '14px', padding: '0 2px', lineHeight: 1, marginLeft: 'auto' }}
         title="Удалить"
       >
         ×

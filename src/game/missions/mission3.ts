@@ -51,9 +51,9 @@ export const mission3: MissionDef = {
               type: "IF",
               conditions: [
                 {
-                  property: { kind: "ENERGY", unit: "%" },
+                  left: { fn: "Energy", args: [{ kind: "self" }] },
                   operator: "<=",
-                  value: 30,
+                  right: { kind: "number", value: 30 },
                 },
               ],
               operators: [],
