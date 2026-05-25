@@ -7,6 +7,7 @@ import type { MovementComponent } from '../components/Movement.js';
 import type { RenderableComponent } from '../components/Renderable.js';
 import type { DepositComponent } from '../components/Deposit.js';
 import type { ChargerStationComponent } from '../components/ChargerStation.js';
+import type { ModifiersComponent } from '../components/Modifiers.js';
 
 export interface ComponentMap {
   Position: PositionComponent;
@@ -17,6 +18,7 @@ export interface ComponentMap {
   Renderable: RenderableComponent;
   Deposit: DepositComponent;
   ChargerStation: ChargerStationComponent;
+  Modifiers: ModifiersComponent;
 }
 
 export type ComponentName = keyof ComponentMap;

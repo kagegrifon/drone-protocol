@@ -22,6 +22,10 @@ export function getDropDuration(_world: World, _droneId: EntityId): number {
   return BASE_DROP_DURATION_PER_ORE;
 }
 
-export function getMoveSpeed(_world: World, _droneId: EntityId): number {
-  return DEFAULT_DRONE_SPEED;
-}
+export const DRAINED_SPEED_MUL = 0.5;
+export const DRAINED_EXIT_RATIO = 0.05; // 5% of max energy
+export const OVERLOAD_THRESHOLDS = [
+  { minRatio: 0.30, mul: 0.9, id: 'overloaded:light' as const },
+  { minRatio: 0.50, mul: 0.8, id: 'overloaded:medium' as const },
+  { minRatio: 0.70, mul: 0.7, id: 'overloaded:heavy' as const },
+] as const;
