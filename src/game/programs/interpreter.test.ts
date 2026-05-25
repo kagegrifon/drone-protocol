@@ -326,18 +326,22 @@ describe('stepProgram — RUN_PROGRAM', () => {
 
 // ─── IF ──────────────────────────────────────────────────────────────────
 
+
 describe('stepProgram — IF conditions', () => {
   let world: World;
 
   beforeEach(() => { world = makeWorld(); });
 
-  // ── ENERGY ─────────────────────────────────────────────────────────────
+  const numOp = (v: number): import('./types.js').Operand => ({ kind: 'number', value: v });
+  const fnOp = (call: import('./types.js').FunctionCall): import('./types.js').Operand => ({ kind: 'function', call });
+  const self = { kind: 'self' as const };
 
-  it('ENERGY % < 30 is true when energy=20, max=100', () => {
+  // ── Energy ─────────────────────────────────────────────────────────────
+  it('Energy(Self) < 30 is true when energy=20', () => {
     const { id, registry } = addDrone(world, 'running', [
       {
         type: 'IF',
-        conditions: [{ property: { kind: 'ENERGY', unit: '%' }, operator: '<', value: 30 }],
+        conditions: [{ left: { fn: 'Energy', args: [self] }, operator: '<', right: numOp(30) }],
         operators: [],
         then: [{ type: 'CHARGE' }],
       },
@@ -347,114 +351,89 @@ describe('stepProgram — IF conditions', () => {
     expect(world.getComponent(id, 'Program')!.waitingFor).toBe('charge');
   });
 
-  it('ENERGY % < 30 is false when energy=80, max=100', () => {
+  it('Energy(Self) < 30 is false when energy=80', () => {
     const { id, registry } = addDrone(world, 'running', [
       {
         type: 'IF',
-        conditions: [{ property: { kind: 'ENERGY', unit: '%' }, operator: '<', value: 30 }],
+        conditions: [{ left: { fn: 'Energy', args: [self] }, operator: '<', right: numOp(30) }],
         operators: [],
         then: [{ type: 'CHARGE' }],
       },
       { type: 'DROP' },
     ], { energy: 80, energyMax: 100 });
-    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // IF false → skip
-    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // DROP
+    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
+    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     expect(world.getComponent(id, 'Program')!.waitingFor).toBe('drop');
   });
 
-  it('ENERGY abs >= 50 is true when energy=50', () => {
+  // ── Inventory < InventoryMax (RHS-функция) ─────────────────────────────
+  it('Inventory(Self) < InventoryMax(Self) is true when ore=3, capacity=10', () => {
     const { id, registry } = addDrone(world, 'running', [
       {
         type: 'IF',
-        conditions: [{ property: { kind: 'ENERGY', unit: 'abs' }, operator: '>=', value: 50 }],
+        conditions: [{
+          left: { fn: 'Inventory', args: [self] },
+          operator: '<',
+          right: fnOp({ fn: 'InventoryMax', args: [self] }),
+        }],
         operators: [],
         then: [{ type: 'MINE' }],
       },
-    ], { energy: 50, energyMax: 100 });
-    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
-    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
-    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('mine');
-  });
-
-  // ── INVENTORY ───────────────────────────────────────────────────────────
-
-  it('INVENTORY % = 100 is true when ore=10, capacity=10', () => {
-    const { id, registry } = addDrone(world, 'running', [
-      {
-        type: 'IF',
-        conditions: [{ property: { kind: 'INVENTORY', unit: '%' }, operator: '=', value: 100 }],
-        operators: [],
-        then: [{ type: 'DROP' }],
-      },
-    ], { ore: 10, capacity: 10 });
-    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
-    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
-    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('drop');
-  });
-
-  it('INVENTORY abs >= 5 is false when ore=3', () => {
-    const { id, registry } = addDrone(world, 'running', [
-      {
-        type: 'IF',
-        conditions: [{ property: { kind: 'INVENTORY', unit: 'abs' }, operator: '>=', value: 5 }],
-        operators: [],
-        then: [{ type: 'DROP' }],
-      },
-      { type: 'MINE' },
     ], { ore: 3, capacity: 10 });
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     expect(world.getComponent(id, 'Program')!.waitingFor).toBe('mine');
   });
 
-  // ── DEPOSIT ─────────────────────────────────────────────────────────────
-
-  it('DEPOSIT = 0 is true when deposit at drone position is empty', () => {
+  it('Inventory(Self) < InventoryMax(Self) is false when ore=capacity', () => {
     const { id, registry } = addDrone(world, 'running', [
       {
         type: 'IF',
-        conditions: [{ property: { kind: 'DEPOSIT' }, operator: '=', value: 0 }],
+        conditions: [{
+          left: { fn: 'Inventory', args: [self] },
+          operator: '<',
+          right: fnOp({ fn: 'InventoryMax', args: [self] }),
+        }],
         operators: [],
-        then: [{ type: 'DROP' }],
+        then: [{ type: 'MINE' }],
       },
-    ]);
-    // Add a depleted deposit at drone position (0,0)
-    const depId = world.createEntity();
-    world.addComponent(depId, 'Position', { x: 0, y: 0 });
-    world.addComponent(depId, 'Deposit', { oreRemaining: 0, mineRate: 1 });
-
+      { type: 'DROP' },
+    ], { ore: 10, capacity: 10 });
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     expect(world.getComponent(id, 'Program')!.waitingFor).toBe('drop');
   });
 
-  it('DEPOSIT = 0 is false when deposit has ore remaining', () => {
+  // ── Deposit(entity) ─────────────────────────────────────────────────────
+  it('Deposit(mine) = 0 is true when mine is empty', () => {
+    const depId = world.createEntity();
+    world.addComponent(depId, 'Position', { x: 0, y: 0 });
+    world.addComponent(depId, 'Deposit', { oreRemaining: 0, mineRate: 1 });
+
     const { id, registry } = addDrone(world, 'running', [
       {
         type: 'IF',
-        conditions: [{ property: { kind: 'DEPOSIT' }, operator: '=', value: 0 }],
+        conditions: [{ left: { fn: 'Deposit', args: [{ kind: 'entity', id: depId }] }, operator: '=', right: numOp(0) }],
         operators: [],
         then: [{ type: 'DROP' }],
       },
-      { type: 'MINE' },
     ]);
-    const depId = world.createEntity();
-    world.addComponent(depId, 'Position', { x: 0, y: 0 });
-    world.addComponent(depId, 'Deposit', { oreRemaining: 5, mineRate: 1 });
-
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
-    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('mine');
+    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('drop');
   });
 
-  // ── DISTANCE ────────────────────────────────────────────────────────────
-
-  it('DISTANCE <= 3 is true when target is 2 cells away (Manhattan)', () => {
+  // ── Distance ────────────────────────────────────────────────────────────
+  it('Distance(Self, target) <= 3 is true when target is 2 cells away', () => {
     const targetId = addTarget(world, 2, 0);
     const { id, registry } = addDrone(world, 'running', [
       {
         type: 'IF',
-        conditions: [{ property: { kind: 'DISTANCE', targetEntityId: targetId }, operator: '<=', value: 3 }],
+        conditions: [{
+          left: { fn: 'Distance', args: [self, { kind: 'entity', id: targetId }] },
+          operator: '<=',
+          right: numOp(3),
+        }],
         operators: [],
         then: [{ type: 'MINE' }],
       },
@@ -464,12 +443,36 @@ describe('stepProgram — IF conditions', () => {
     expect(world.getComponent(id, 'Program')!.waitingFor).toBe('mine');
   });
 
-  it('DISTANCE <= 3 is false when target is 5 cells away', () => {
-    const targetId = addTarget(world, 5, 0);
+  it('Distance(Self, target) = 0 is true when drone is on target tile', () => {
+    const targetId = addTarget(world, 0, 0);  // drone at 0,0 by default
     const { id, registry } = addDrone(world, 'running', [
       {
         type: 'IF',
-        conditions: [{ property: { kind: 'DISTANCE', targetEntityId: targetId }, operator: '<=', value: 3 }],
+        conditions: [{
+          left: { fn: 'Distance', args: [self, { kind: 'entity', id: targetId }] },
+          operator: '=',
+          right: numOp(0),
+        }],
+        operators: [],
+        then: [{ type: 'MINE' }],
+      },
+    ]);
+    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
+    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
+    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('mine');
+  });
+
+  // ── null-side gives false ───────────────────────────────────────────────
+  it('Energy(non-energy-entity) gives false leaf', () => {
+    const ghost = addTarget(world, 0, 0); // only Position, no Energy
+    const { id, registry } = addDrone(world, 'running', [
+      {
+        type: 'IF',
+        conditions: [{
+          left: { fn: 'Energy', args: [{ kind: 'entity', id: ghost }] },
+          operator: '>=',
+          right: numOp(0),
+        }],
         operators: [],
         then: [{ type: 'MINE' }],
       },
@@ -481,14 +484,13 @@ describe('stepProgram — IF conditions', () => {
   });
 
   // ── AND / OR ────────────────────────────────────────────────────────────
-
-  it('AND: true when both conditions met', () => {
+  it('AND: true when both met', () => {
     const { id, registry } = addDrone(world, 'running', [
       {
         type: 'IF',
         conditions: [
-          { property: { kind: 'ENERGY', unit: '%' }, operator: '<', value: 50 },
-          { property: { kind: 'INVENTORY', unit: '%' }, operator: '=', value: 100 },
+          { left: { fn: 'Energy', args: [self] }, operator: '<', right: numOp(50) },
+          { left: { fn: 'Inventory', args: [self] }, operator: '=', right: fnOp({ fn: 'InventoryMax', args: [self] }) },
         ],
         operators: ['AND'],
         then: [{ type: 'CHARGE' }],
@@ -499,31 +501,13 @@ describe('stepProgram — IF conditions', () => {
     expect(world.getComponent(id, 'Program')!.waitingFor).toBe('charge');
   });
 
-  it('AND: false when only one condition met', () => {
+  it('OR: true when only second met', () => {
     const { id, registry } = addDrone(world, 'running', [
       {
         type: 'IF',
         conditions: [
-          { property: { kind: 'ENERGY', unit: '%' }, operator: '<', value: 50 },
-          { property: { kind: 'INVENTORY', unit: '%' }, operator: '=', value: 100 },
-        ],
-        operators: ['AND'],
-        then: [{ type: 'CHARGE' }],
-      },
-      { type: 'DROP' },
-    ], { energy: 20, energyMax: 100, ore: 3, capacity: 10 }); // inventory not full
-    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
-    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
-    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('drop');
-  });
-
-  it('OR: true when only second condition met', () => {
-    const { id, registry } = addDrone(world, 'running', [
-      {
-        type: 'IF',
-        conditions: [
-          { property: { kind: 'ENERGY', unit: '%' }, operator: '<', value: 10 }, // false
-          { property: { kind: 'INVENTORY', unit: '%' }, operator: '=', value: 100 }, // true
+          { left: { fn: 'Energy', args: [self] }, operator: '<', right: numOp(10) },
+          { left: { fn: 'Inventory', args: [self] }, operator: '=', right: fnOp({ fn: 'InventoryMax', args: [self] }) },
         ],
         operators: ['OR'],
         then: [{ type: 'DROP' }],
@@ -536,12 +520,7 @@ describe('stepProgram — IF conditions', () => {
 
   it('empty conditions list evaluates to false', () => {
     const { id, registry } = addDrone(world, 'running', [
-      {
-        type: 'IF',
-        conditions: [],
-        operators: [],
-        then: [{ type: 'DROP' }],
-      },
+      { type: 'IF', conditions: [], operators: [], then: [{ type: 'DROP' }] },
       { type: 'MINE' },
     ]);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
@@ -553,12 +532,16 @@ describe('stepProgram — IF conditions', () => {
     const { id, registry } = addDrone(world, 'running', [
       {
         type: 'IF',
-        conditions: [{ property: { kind: 'INVENTORY', unit: '%' }, operator: '=', value: 100 }],
+        conditions: [{
+          left: { fn: 'Inventory', args: [self] },
+          operator: '=',
+          right: fnOp({ fn: 'InventoryMax', args: [self] }),
+        }],
         operators: [],
         then: [{ type: 'DROP' }],
         else: [{ type: 'MINE' }],
       },
-    ], { ore: 3, capacity: 10 }); // not full
+    ], { ore: 3, capacity: 10 });
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     expect(world.getComponent(id, 'Program')!.waitingFor).toBe('mine');
