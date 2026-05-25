@@ -17,8 +17,14 @@ const selectStyle: React.CSSProperties = {
 
 function defaultCallForFn(fn: FunctionName): FunctionCall {
   const self: ObjectRef = { kind: 'self' };
-  if (fn === 'Distance') return { fn: 'Distance', args: [self, self] };
-  return { fn, args: [self] } as FunctionCall;
+  switch (fn) {
+    case 'Energy':       return { fn: 'Energy',       args: [self] };
+    case 'EnergyMax':    return { fn: 'EnergyMax',    args: [self] };
+    case 'Inventory':    return { fn: 'Inventory',    args: [self] };
+    case 'InventoryMax': return { fn: 'InventoryMax', args: [self] };
+    case 'Deposit':      return { fn: 'Deposit',      args: [self] };
+    case 'Distance':     return { fn: 'Distance',     args: [self, self] };
+  }
 }
 
 interface Props {
@@ -35,9 +41,13 @@ export function FunctionCallEditor({ value, entities, onChange }: Props) {
   }
 
   function setArg(index: number, ref: ObjectRef) {
-    const args = [...value.args] as ObjectRef[];
-    args[index] = ref;
-    onChange({ ...value, args } as FunctionCall);
+    if (value.fn === 'Distance') {
+      const args: [ObjectRef, ObjectRef] = [value.args[0], value.args[1]];
+      args[index] = ref;
+      onChange({ fn: 'Distance', args });
+      return;
+    }
+    onChange({ fn: value.fn, args: [ref] });
   }
 
   // Статический UI-фильтр опций аргумента по типу EntityMeta (argFilter из спеки
@@ -52,6 +62,7 @@ export function FunctionCallEditor({ value, entities, onChange }: Props) {
       case 'Deposit':
         return (e) => e.type === 'mine';
       case 'Distance':
+        // every EntityMeta sees objects with Position; no UI filter needed
         return undefined;
     }
   })();
