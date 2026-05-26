@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from './gameStore.js';
 import { World } from '../../game/simulation/world/World.js';
 import { Grid } from '../../game/simulation/world/Grid.js';
-import type { ProgramRegistry, ProgramDef } from '../../game/programs/types.js';
+import type { ProgramRegistry, ProgramDef, Instruction } from '../../game/programs/types.js';
 
 function makeWorld(): World {
   return new World();
@@ -198,5 +198,80 @@ describe('store.restartProgram()', () => {
 
     const droneState = useGameStore.getState().drones.find(d => d.id === droneId);
     expect(droneState?.programState).toBe('running');
+  });
+});
+
+// ─── moveInstruction ─────────────────────────────────────────────────────────
+
+describe('store.moveInstruction()', () => {
+  function setup(instructions: Instruction[]) {
+    const prog: ProgramDef = { id: 'p1', name: 'Test', instructions };
+    const registry: ProgramRegistry = new Map([['p1', prog]]);
+    useGameStore.getState().init(makeWorld(), makeGrid(), registry);
+    return 'p1';
+  }
+
+  it('перемещает блок в том же списке: root[2] → позиция 0', () => {
+    const id = setup([{ type: 'MINE' }, { type: 'DROP' }, { type: 'CHARGE' }]);
+    useGameStore.getState().moveInstruction(id, [2], [], 0);
+    const prog = useGameStore.getState().programs.find(p => p.id === id)!;
+    expect(prog.instructions.map(i => i.type)).toEqual(['CHARGE', 'MINE', 'DROP']);
+  });
+
+  it('перемещает блок в том же списке: root[0] → позиция 2', () => {
+    const id = setup([{ type: 'MINE' }, { type: 'DROP' }, { type: 'CHARGE' }]);
+    useGameStore.getState().moveInstruction(id, [0], [], 2);
+    const prog = useGameStore.getState().programs.find(p => p.id === id)!;
+    expect(prog.instructions.map(i => i.type)).toEqual(['DROP', 'CHARGE', 'MINE']);
+  });
+
+  it('перемещает блок из корня внутрь LOOP', () => {
+    const id = setup([
+      { type: 'LOOP', body: [{ type: 'DROP' }] },
+      { type: 'MINE' },
+    ]);
+    useGameStore.getState().moveInstruction(id, [1], [0], 0);
+    const prog = useGameStore.getState().programs.find(p => p.id === id)!;
+    expect(prog.instructions).toHaveLength(1);
+    const loop = prog.instructions[0] as Extract<Instruction, { type: 'LOOP' }>;
+    expect(loop.body.map(i => i.type)).toEqual(['MINE', 'DROP']);
+  });
+
+  it('перемещает блок из LOOP в корень', () => {
+    const id = setup([
+      { type: 'LOOP', body: [{ type: 'DROP' }, { type: 'MINE' }] },
+      { type: 'CHARGE' },
+    ]);
+    useGameStore.getState().moveInstruction(id, [0, 0], [], 1);
+    const prog = useGameStore.getState().programs.find(p => p.id === id)!;
+    expect(prog.instructions.map(i => i.type)).toEqual(['LOOP', 'DROP', 'CHARGE']);
+    const loop = prog.instructions[0] as Extract<Instruction, { type: 'LOOP' }>;
+    expect(loop.body.map(i => i.type)).toEqual(['MINE']);
+  });
+
+  it('перемещение между двумя разными контейнерами', () => {
+    const id = setup([
+      { type: 'LOOP', body: [{ type: 'CHARGE' }] },
+      { type: 'REPEAT', count: 2, body: [{ type: 'DROP' }] },
+    ]);
+    useGameStore.getState().moveInstruction(id, [1, 0], [0], 0);
+    const prog = useGameStore.getState().programs.find(p => p.id === id)!;
+    const loop = prog.instructions[0] as Extract<Instruction, { type: 'LOOP' }>;
+    const repeat = prog.instructions[1] as Extract<Instruction, { type: 'REPEAT' }>;
+    expect(loop.body.map(i => i.type)).toEqual(['DROP', 'CHARGE']);
+    expect(repeat.body).toHaveLength(0);
+  });
+
+  it('перемещение из корня внутрь контейнера с корректировкой пути', () => {
+    const id = setup([
+      { type: 'MINE' },
+      { type: 'LOOP', body: [{ type: 'CHARGE' }] },
+    ]);
+    // Move root[0] (MINE) inside root[1].body (LOOP) — after removal root[1] becomes root[0]
+    useGameStore.getState().moveInstruction(id, [0], [1], 0);
+    const prog = useGameStore.getState().programs.find(p => p.id === id)!;
+    expect(prog.instructions).toHaveLength(1);
+    const loop = prog.instructions[0] as Extract<Instruction, { type: 'LOOP' }>;
+    expect(loop.body.map(i => i.type)).toEqual(['MINE', 'CHARGE']);
   });
 });

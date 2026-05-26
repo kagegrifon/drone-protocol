@@ -94,6 +94,7 @@ interface GameStore {
   addInstruction(programId: string, instruction: Instruction, parentPath?: number[]): void;
   removeInstruction(programId: string, path: number[]): void;
   updateInstruction(programId: string, path: number[], updated: Instruction): void;
+  moveInstruction(programId: string, fromPath: number[], toContainerPath: number[], toIndex: number): void;
   createProgram(name: string): void;
   assignProgram(droneId: EntityId, programId: string): void;
   unassignProgram(droneId: EntityId): void;
@@ -306,6 +307,35 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const idx = path[path.length - 1];
     const list = getInstructionList(prog.instructions, parentPath);
     list[idx] = updated;
+    set({ programs: Array.from(registry.values()).filter(p => !p.personal) });
+  },
+
+  moveInstruction(programId, fromPath, toContainerPath, toIndex) {
+    const { registry } = get();
+    const prog = registry.get(programId);
+    if (!prog || fromPath.length === 0) return;
+
+    const fromContainerPath = fromPath.slice(0, -1);
+    const fromIndex = fromPath[fromPath.length - 1];
+
+    // Если удаление fromPath сдвигает сегмент в toContainerPath — скорректировать
+    const adjustedToContainerPath = toContainerPath.slice();
+    if (
+      adjustedToContainerPath.length > fromContainerPath.length &&
+      fromContainerPath.every((v, i) => v === adjustedToContainerPath[i]) &&
+      adjustedToContainerPath[fromContainerPath.length] > fromIndex
+    ) {
+      adjustedToContainerPath[fromContainerPath.length]--;
+    }
+
+    const fromList = getInstructionList(prog.instructions, fromContainerPath);
+    const instr = fromList[fromIndex];
+    if (!instr) return;
+
+    fromList.splice(fromIndex, 1);
+    const toList = getInstructionList(prog.instructions, adjustedToContainerPath);
+    toList.splice(toIndex, 0, instr);
+
     set({ programs: Array.from(registry.values()).filter(p => !p.personal) });
   },
 
