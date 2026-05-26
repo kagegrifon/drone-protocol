@@ -79,14 +79,12 @@ export function ConditionEditor({ conditions: initConditions, operators: initOpe
           />
           {index < operators.length && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '4px 0' }}>
-              <div style={{ flex: 1, height: '1px', background: '#1e3a5f' }} />
               <button
                 onClick={() => toggleOperator(index)}
                 style={{ background: '#0a1628', border: '1px solid #1e3a5f', color: '#00d4ff', fontFamily: 'monospace', fontSize: '10px', padding: '1px 8px', borderRadius: '2px', cursor: 'pointer' }}
               >
                 {operators[index]}
               </button>
-              <div style={{ flex: 1, height: '1px', background: '#1e3a5f' }} />
             </div>
           )}
         </div>

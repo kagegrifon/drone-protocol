@@ -33,14 +33,8 @@ export function InstructionBlock({ instruction, programId, path, entities, progr
       path.length === activeInstructionPath.length &&
       path.every((v, i) => v === activeInstructionPath[i]);
 
-    const isAncestor =
-      activeInstructionPath !== null &&
-      path.length < activeInstructionPath.length &&
-      path.every((v, i) => v === activeInstructionPath[i]);
-
     return {
       background: isActive ? '#00ff8812' : '#060f1e',
-      border: `1px solid ${isActive ? '#00ff88' : isAncestor ? '#00ff8840' : '#1e3a5f'}`,
       borderRadius: '4px',
       padding: '6px 8px',
       marginBottom: '4px',
@@ -191,7 +185,7 @@ export function InstructionBlock({ instruction, programId, path, entities, progr
       )}
 
       {isContainer && (
-        <div style={{ marginTop: '6px', paddingLeft: '12px', borderLeft: '1px solid #1e3a5f' }}>
+        <div style={{ marginTop: '6px', paddingLeft: '12px', borderLeft: '2px solid #1e3a5f' }}>
           {children.map((child, i) => (
             <InstructionBlock
               key={i}
