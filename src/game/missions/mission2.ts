@@ -11,7 +11,7 @@ export const mission2: MissionDef = {
   id: "mission2",
   title: "Миссия 2: Управление энергией",
   description:
-    "Дрон тратит энергию. Добавь в программу: IF ENERGY_LOW → CHARGE. Иначе дрон остановится.",
+    "Дрон тратит энергию при движении и добыче (1 ед./шаг, 2 ед./руда). Добавь два условия: при низкой энергии и пустом трюме — MOVE_TO(charger); у зарядки — CHARGE. Иначе дрон остановится.",
   goalText: "Добыть 80 руды",
   config: {
     win: { type: "ore_mined", target: 80 },

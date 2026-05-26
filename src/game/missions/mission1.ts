@@ -10,7 +10,7 @@ export const mission1: MissionDef = {
   id: "mission1",
   title: "Миссия 1: Первые шаги",
   description:
-    "Один дрон ждёт команд. Создай программу: MOVE_TO(mine) → MINE → MOVE_TO(base) → DROP → LOOP.",
+    "Каждый тик LOOP дрон проверяет условия. Построй программу из четырёх блоков: у шахты и трюм пуст — MINE; есть руда — MOVE_TO(base); у базы и есть руда — DROP; трюм пуст — MOVE_TO(mine).",
   goalText: "Добыть 50 руды",
   config: {
     win: { type: "ore_mined", target: 50 },
