@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import type { Instruction, FlowBlock, ConditionLeaf, ConditionLogic } from '../../../game/programs/types.js';
 import type { EntityMeta } from '../../../game/missions/types.js';
 import { useGameStore } from '../../../shared/store/gameStore.js';
@@ -6,7 +7,12 @@ import { makeDefaultInstruction, AddInstructionMenu } from './instructionUtils.j
 import { ConditionEditor } from './ConditionEditor.js';
 import { formatConditions } from './conditionFormat.js';
 
-const ICONS: Record<string, string> = {
+export type DragItemData = {
+  programId: string;
+  path: number[];
+};
+
+export const ICONS: Record<string, string> = {
   MOVE_TO: '→', MINE: '⛏', DROP: '↓', CHARGE: '⚡', WAIT: '⏱',
   LOOP: '🔄', REPEAT: '↩', IF: '?', RUN_PROGRAM: '▶',
 };
@@ -26,6 +32,21 @@ export function InstructionBlock({ instruction, programId, path, entities, progr
   const removeInstruction = useGameStore((s) => s.removeInstruction);
   const addInstruction = useGameStore((s) => s.addInstruction);
   const updateInstruction = useGameStore((s) => s.updateInstruction);
+
+  const [hovered, setHovered] = useState(false);
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+    isOver,
+  } = useSortable({
+    id: path.join('-'),
+    data: { programId, path } as DragItemData,
+  });
 
   const cardStyle = useMemo<React.CSSProperties>(() => {
     const isActive =
@@ -52,9 +73,44 @@ export function InstructionBlock({ instruction, programId, path, entities, progr
       : [];
 
   return (
-    <div style={cardStyle}>
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      style={{
+        ...cardStyle,
+        transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+        transition,
+        opacity: isDragging ? 0.3 : 1,
+      }}
+    >
+      {isOver && (
+        <div style={{
+          height: '2px',
+          background: '#00d4ff',
+          boxShadow: '0 0 6px #00d4ff',
+          marginBottom: '4px',
+          borderRadius: '1px',
+        }} />
+      )}
       {/* Header row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+      <div
+        style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        <span
+          {...listeners}
+          style={{
+            color: '#4488ff',
+            cursor: 'grab',
+            fontSize: '14px',
+            visibility: hovered ? 'visible' : 'hidden',
+            userSelect: 'none',
+            flexShrink: 0,
+          }}
+        >
+          ⠿
+        </span>
         <span style={{ color: '#4488ff', fontSize: '14px' }}>{ICONS[instruction.type] ?? '•'}</span>
         <span style={{ color: '#00d4ff' }}>{instruction.type}</span>
 
@@ -186,17 +242,22 @@ export function InstructionBlock({ instruction, programId, path, entities, progr
 
       {isContainer && (
         <div style={{ marginTop: '6px', paddingLeft: '12px', borderLeft: '2px solid #1e3a5f' }}>
-          {children.map((child, i) => (
-            <InstructionBlock
-              key={i}
-              instruction={child}
-              programId={programId}
-              path={[...path, i]}
-              entities={entities}
-              programIds={programIds}
-              activeInstructionPath={activeInstructionPath}
-            />
-          ))}
+          <SortableContext
+            items={children.map((_, i) => [...path, i].join('-'))}
+            strategy={verticalListSortingStrategy}
+          >
+            {children.map((child, i) => (
+              <InstructionBlock
+                key={[...path, i].join('-')}
+                instruction={child}
+                programId={programId}
+                path={[...path, i]}
+                entities={entities}
+                programIds={programIds}
+                activeInstructionPath={activeInstructionPath}
+              />
+            ))}
+          </SortableContext>
           <AddInstructionMenu
             onAdd={(type) => {
               addInstruction(programId, makeDefaultInstruction(type, entities, programIds), path);
