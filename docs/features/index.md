@@ -19,6 +19,7 @@ docs/features/
 | [congestion-metric.md](planned/congestion-metric.md) | Метрика Congestion (затор дронов) | planned |
 | [drone-modifiers.md](planned/drone-modifiers.md) | Система модификаторов дрона | planned |
 | [work-slots-and-collisions.md](planned/work-slots-and-collisions.md) | Эксклюзивные слоты работы и физическая непроходимость дронов | planned |
+| [drag-drop-blocks.md](planned/drag-drop-blocks.md) | Drag & Drop блоков + визуальный рефактор редактора | planned |
 
 
 ### done
