@@ -43,24 +43,128 @@ export const mission3: MissionDef = {
         {
           type: "LOOP",
           body: [
-            { type: "MOVE_TO", targetEntityId: mine1Id },
-            { type: "MINE" },
-            { type: "MOVE_TO", targetEntityId: baseId },
-            { type: "DROP" },
+            // Priority 1: у зарядки И энергия не полная → CHARGE
+            {
+              type: "IF",
+              conditions: [
+                {
+                  left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: charger1Id }] },
+                  operator: "<=",
+                  right: { kind: "number", value: 0 },
+                },
+                {
+                  left: { fn: "Energy", args: [{ kind: "self" }] },
+                  operator: "<",
+                  right: { kind: "function", call: { fn: "EnergyMax", args: [{ kind: "self" }] } },
+                },
+              ],
+              operators: ["AND"],
+              then: [{ type: "CHARGE" }],
+            },
+            // Priority 2: энергия < 30 И не у зарядки И трюм пуст → MOVE_TO(charger1)
             {
               type: "IF",
               conditions: [
                 {
                   left: { fn: "Energy", args: [{ kind: "self" }] },
-                  operator: "<=",
+                  operator: "<",
                   right: { kind: "number", value: 30 },
                 },
+                {
+                  left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: charger1Id }] },
+                  operator: ">",
+                  right: { kind: "number", value: 0 },
+                },
+                {
+                  left: { fn: "Inventory", args: [{ kind: "self" }] },
+                  operator: "=",
+                  right: { kind: "number", value: 0 },
+                },
               ],
-              operators: [],
-              then: [
-                { type: "MOVE_TO", targetEntityId: charger1Id },
-                { type: "CHARGE" },
+              operators: ["AND", "AND"],
+              then: [{ type: "MOVE_TO", targetEntityId: charger1Id }],
+            },
+            // Priority 3: у базы И есть руда → DROP
+            {
+              type: "IF",
+              conditions: [
+                {
+                  left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: baseId }] },
+                  operator: "<=",
+                  right: { kind: "number", value: 0 },
+                },
+                {
+                  left: { fn: "Inventory", args: [{ kind: "self" }] },
+                  operator: ">",
+                  right: { kind: "number", value: 0 },
+                },
               ],
+              operators: ["AND"],
+              then: [{ type: "DROP" }],
+            },
+            // Priority 4: есть руда И не у базы → MOVE_TO(base)
+            {
+              type: "IF",
+              conditions: [
+                {
+                  left: { fn: "Inventory", args: [{ kind: "self" }] },
+                  operator: ">",
+                  right: { kind: "number", value: 0 },
+                },
+                {
+                  left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: baseId }] },
+                  operator: ">",
+                  right: { kind: "number", value: 0 },
+                },
+              ],
+              operators: ["AND"],
+              then: [{ type: "MOVE_TO", targetEntityId: baseId }],
+            },
+            // Priority 5: трюм пуст И энергия ≥ 30 И у шахты → MINE
+            {
+              type: "IF",
+              conditions: [
+                {
+                  left: { fn: "Inventory", args: [{ kind: "self" }] },
+                  operator: "=",
+                  right: { kind: "number", value: 0 },
+                },
+                {
+                  left: { fn: "Energy", args: [{ kind: "self" }] },
+                  operator: ">=",
+                  right: { kind: "number", value: 30 },
+                },
+                {
+                  left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: mine1Id }] },
+                  operator: "<=",
+                  right: { kind: "number", value: 0 },
+                },
+              ],
+              operators: ["AND", "AND"],
+              then: [{ type: "MINE" }],
+            },
+            // Priority 6: трюм пуст И энергия ≥ 30 И не у шахты → MOVE_TO(mine1)
+            {
+              type: "IF",
+              conditions: [
+                {
+                  left: { fn: "Inventory", args: [{ kind: "self" }] },
+                  operator: "=",
+                  right: { kind: "number", value: 0 },
+                },
+                {
+                  left: { fn: "Energy", args: [{ kind: "self" }] },
+                  operator: ">=",
+                  right: { kind: "number", value: 30 },
+                },
+                {
+                  left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: mine1Id }] },
+                  operator: ">",
+                  right: { kind: "number", value: 0 },
+                },
+              ],
+              operators: ["AND", "AND"],
+              then: [{ type: "MOVE_TO", targetEntityId: mine1Id }],
             },
           ],
         },
