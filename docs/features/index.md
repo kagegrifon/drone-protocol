@@ -16,7 +16,6 @@ docs/features/
 
 | Файл | Название | Статус |
 |---|---|---|
-| [missions-atomic-migration.md](planned/missions-atomic-migration.md) | Миграция миссий под атомарную семантику | planned |
 | [congestion-metric.md](planned/congestion-metric.md) | Метрика Congestion (затор дронов) | planned |
 | [drone-modifiers.md](planned/drone-modifiers.md) | Система модификаторов дрона | planned |
 
@@ -30,3 +29,4 @@ docs/features/
 | [if-condition-editor.md](done/if-condition-editor.md) | Редактор условий IF-блока |
 | [time-in-seconds-and-per-drone-controls.md](done/time-in-seconds-and-per-drone-controls.md) | Время в секундах и per-drone управление |
 | [world-properties.md](done/world-properties.md) | Свойства объектов мира в условиях IF |
+| [missions-atomic-migration.md](done/missions-atomic-migration.md) | Миграция миссий под атомарную семантику |
