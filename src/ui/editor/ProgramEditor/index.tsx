@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { DndContext, DragOverlay, type DragStartEvent, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useGameStore } from '../../../shared/store/gameStore.js';
-import { InstructionBlock } from './InstructionBlock.js';
+import { InstructionBlock, type DragItemData, ICONS } from './InstructionBlock.js';
 import { makeDefaultInstruction, AddInstructionMenu } from './instructionUtils.js';
-import type { Instruction } from '../../../game/programs/types.js';
+import type { Instruction, ProgramDef } from '../../../game/programs/types.js';
 import type { EntityMeta } from '../../../game/missions/types.js';
 
 const TAB_BTN = (active: boolean): React.CSSProperties => ({
@@ -35,6 +37,18 @@ const RADIO_STYLE = (checked: boolean): React.CSSProperties => ({
   flexShrink: 0,
 });
 
+function getInstructionByPath(prog: ProgramDef, path: number[]) {
+  let list = prog.instructions;
+  for (let i = 0; i < path.length - 1; i++) {
+    const node = list[path[i]];
+    if (!node) return null;
+    if (node.type === 'LOOP' || node.type === 'REPEAT') list = node.body;
+    else if (node.type === 'IF') list = node.then;
+    else return null;
+  }
+  return list[path[path.length - 1]] ?? null;
+}
+
 export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
   const [tab, setTab] = useState<'drone' | 'library' | 'program'>('drone');
   const [editingProgramId, setEditingProgramId] = useState<string | null>(null);
@@ -51,6 +65,8 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
   const assignProgram = useGameStore((s) => s.assignProgram);
   const unassignProgram = useGameStore((s) => s.unassignProgram);
   const selectDrone = useGameStore((s) => s.selectDrone);
+  const moveInstruction = useGameStore((s) => s.moveInstruction);
+  const [activeDragData, setActiveDragData] = useState<DragItemData | null>(null);
 
   const drone = drones.find((d) => d.id === selectedId);
   const programIds = programs.map((p) => p.id);
@@ -68,6 +84,53 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
   void highlightedProgramId;
 
   const editingProgram = editingProgramId ? (registry.get(editingProgramId) ?? null) : null;
+
+  function handleDragStart({ active }: DragStartEvent) {
+    setActiveDragData(active.data.current as DragItemData);
+  }
+
+  function handleDragEnd({ active, over }: DragEndEvent) {
+    setActiveDragData(null);
+    if (!over || active.id === over.id) return;
+
+    const { programId, path: fromPath } = active.data.current as DragItemData;
+    const { path: overPath } = over.data.current as DragItemData;
+    const toContainerPath = overPath.slice(0, -1);
+    const toIndex = overPath[overPath.length - 1];
+    const fromContainerPath = fromPath.slice(0, -1);
+    const fromIndex = fromPath[fromPath.length - 1];
+
+    if (toContainerPath.join() !== fromContainerPath.join() || toIndex !== fromIndex) {
+      moveInstruction(programId, fromPath, toContainerPath, toIndex);
+    }
+  }
+
+  function renderDragOverlay() {
+    if (!activeDragData) return null;
+    const prog = registry.get(activeDragData.programId);
+    if (!prog) return null;
+    const instr = getInstructionByPath(prog, activeDragData.path);
+    if (!instr) return null;
+    return (
+      <div style={{
+        background: '#060f1e',
+        border: '1px solid #00d4ff',
+        borderRadius: '4px',
+        padding: '6px 8px',
+        fontFamily: 'monospace',
+        fontSize: '12px',
+        color: '#00d4ff',
+        opacity: 0.85,
+        boxShadow: '0 0 8px #00d4ff44',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+      }}>
+        <span style={{ color: '#4488ff' }}>{ICONS[instr.type] ?? '•'}</span>
+        <span>{instr.type}</span>
+      </div>
+    );
+  }
 
   const handleAddToEditing = (type: Instruction['type']) => {
     if (!editingProgramId) return;
@@ -132,20 +195,26 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
                       </button>
                     </div>
                     {personalExpanded && (
-                      <>
-                        {personalProgram.instructions.map((instr, i) => (
-                          <InstructionBlock
-                            key={i}
-                            instruction={instr}
-                            programId={personalProgram.id}
-                            path={[i]}
-                            entities={entities}
-                            programIds={programIds}
-                            activeInstructionPath={!assignedProgram ? (drone.currentInstructionPath ?? null) : null}
-                          />
-                        ))}
+                      <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                        <SortableContext
+                          items={personalProgram.instructions.map((_, i) => String(i))}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          {personalProgram.instructions.map((instr, i) => (
+                            <InstructionBlock
+                              key={String(i)}
+                              instruction={instr}
+                              programId={personalProgram.id}
+                              path={[i]}
+                              entities={entities}
+                              programIds={programIds}
+                              activeInstructionPath={!assignedProgram ? (drone.currentInstructionPath ?? null) : null}
+                            />
+                          ))}
+                        </SortableContext>
                         <AddInstructionMenu onAdd={handleAddPersonal} />
-                      </>
+                        <DragOverlay dropAnimation={null}>{renderDragOverlay()}</DragOverlay>
+                      </DndContext>
                     )}
                   </div>
                 )}
@@ -287,18 +356,26 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
                   })()}
                 </div>
                 <div style={{ borderTop: '1px solid #1e3a5f', paddingTop: '8px' }}>
-                  {editingProgram.instructions.map((instr, i) => (
-                    <InstructionBlock
-                      key={i}
-                      instruction={instr}
-                      programId={editingProgramId!}
-                      path={[i]}
-                      entities={entities}
-                      programIds={programIds}
-                      activeInstructionPath={null}
-                    />
-                  ))}
-                  <AddInstructionMenu onAdd={handleAddToEditing} />
+                  <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                    <SortableContext
+                      items={editingProgram.instructions.map((_, i) => String(i))}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {editingProgram.instructions.map((instr, i) => (
+                        <InstructionBlock
+                          key={String(i)}
+                          instruction={instr}
+                          programId={editingProgramId!}
+                          path={[i]}
+                          entities={entities}
+                          programIds={programIds}
+                          activeInstructionPath={null}
+                        />
+                      ))}
+                    </SortableContext>
+                    <AddInstructionMenu onAdd={handleAddToEditing} />
+                    <DragOverlay dropAnimation={null}>{renderDragOverlay()}</DragOverlay>
+                  </DndContext>
                 </div>
               </>
             )}
