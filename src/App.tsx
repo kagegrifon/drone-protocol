@@ -142,7 +142,7 @@ export default function App() {
           <DroneList />
           <SectionLabel label="INSPECTOR" />
           <DroneInspector />
-          <SectionLabel label="STATS" />
+          <SectionLabel label="STATISTICS" />
           <StatsPanel />
           <div
             style={{
@@ -176,10 +176,7 @@ export default function App() {
           overflow: "hidden",
         }}
       >
-        <div
-          ref={containerRef}
-          style={{ position: "absolute", inset: 0 }}
-        />
+        <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />
         {gamePhase === "game" && (
           <>
             <OreHud />
@@ -251,3 +248,4 @@ function SectionLabel({ label }: { label: string }) {
     </div>
   );
 }
+
