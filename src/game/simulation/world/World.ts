@@ -8,6 +8,8 @@ import type { RenderableComponent } from '../components/Renderable.js';
 import type { DepositComponent } from '../components/Deposit.js';
 import type { ChargerStationComponent } from '../components/ChargerStation.js';
 import type { ModifiersComponent } from '../components/Modifiers.js';
+import type { WorkSlotsComponent } from '../components/WorkSlots.js';
+import { gameEvents } from '../../../shared/events/gameEvents.js';
 
 export interface ComponentMap {
   Position: PositionComponent;
@@ -19,6 +21,7 @@ export interface ComponentMap {
   Deposit: DepositComponent;
   ChargerStation: ChargerStationComponent;
   Modifiers: ModifiersComponent;
+  WorkSlots: WorkSlotsComponent;
 }
 
 export type ComponentName = keyof ComponentMap;
@@ -37,6 +40,15 @@ export class World {
   destroyEntity(entity: EntityId): void {
     const entityComponents = this.components.get(entity);
     if (!entityComponents) return;
+
+    // Emit before removal so subscribers can still read components
+    const pos = this.getComponent(entity, 'Position');
+    gameEvents.emit('entity:removed', {
+      entityId: entity,
+      lastX: pos?.x,
+      lastY: pos?.y,
+    });
+
     for (const name of entityComponents.keys()) {
       this.index.get(name)?.delete(entity);
     }
