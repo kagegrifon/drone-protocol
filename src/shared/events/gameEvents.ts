@@ -6,6 +6,9 @@ export type GameEventMap = {
   'charge:started':   { droneId: EntityId };
   'charge:completed': { droneId: EntityId };
   'mission:complete': undefined;
+  'drone:moved':      { droneId: EntityId; fromX: number; fromY: number; toX: number; toY: number };
+  'entity:removed':   { entityId: EntityId; lastX?: number; lastY?: number };
+  'drone:blocked':    { droneId: EntityId };
 };
 
 type Listener<T> = (data: T) => void;
