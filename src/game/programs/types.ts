@@ -43,6 +43,7 @@ export type ActionBlock =
 export type FlowBlock =
   | { type: 'LOOP'; body: Instruction[] }
   | { type: 'REPEAT'; count: number; body: Instruction[] }
+  | { type: 'WHILE'; conditions: ConditionLeaf[]; operators: ConditionLogic[]; body: Instruction[] }
   | { type: 'RUN_PROGRAM'; programId: string };
 
 export type ConditionBlock = {

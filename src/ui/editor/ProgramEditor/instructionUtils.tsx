@@ -3,7 +3,7 @@ import type { Instruction } from '../../../game/programs/types.js';
 import type { EntityMeta } from '../../../game/missions/types.js';
 
 export const NEW_INSTRUCTION_TYPES: Instruction['type'][] = [
-  'MOVE_TO', 'MINE', 'DROP', 'CHARGE', 'WAIT', 'LOOP', 'REPEAT', 'IF', 'RUN_PROGRAM',
+  'MOVE_TO', 'MINE', 'DROP', 'CHARGE', 'WAIT', 'LOOP', 'REPEAT', 'WHILE', 'IF', 'RUN_PROGRAM',
 ];
 
 export function makeDefaultInstruction(type: Instruction['type'], entities: EntityMeta[], programIds: string[]): Instruction {
@@ -15,6 +15,7 @@ export function makeDefaultInstruction(type: Instruction['type'], entities: Enti
     case 'WAIT': return { type: 'WAIT', seconds: 1 };
     case 'LOOP': return { type: 'LOOP', body: [] };
     case 'REPEAT': return { type: 'REPEAT', count: 3, body: [] };
+    case 'WHILE': return { type: 'WHILE', conditions: [], operators: [], body: [] };
     case 'IF': return { type: 'IF', conditions: [], operators: [], then: [], else: [] };
     case 'RUN_PROGRAM': return { type: 'RUN_PROGRAM', programId: programIds[0] ?? '' };
   }

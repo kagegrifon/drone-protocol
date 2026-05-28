@@ -595,3 +595,111 @@ describe('stepProgram — MOVE_TO', () => {
     expect(prog.waitingFor).toBe('move');
   });
 });
+
+// ─── WHILE ────────────────────────────────────────────────────────────────
+
+describe('stepProgram — WHILE', () => {
+  let world: World;
+
+  beforeEach(() => { world = makeWorld(); });
+
+  const self = { kind: 'self' as const };
+  const numOp = (v: number): import('./types.js').Operand => ({ kind: 'number', value: v });
+
+  it('skips body when condition is false at entry', () => {
+    // Energy(self) > 50, but drone has energy=20 → skip WHILE, go to CHARGE
+    const { id, registry } = addDrone(world, 'running', [
+      {
+        type: 'WHILE',
+        conditions: [{ left: { fn: 'Energy', args: [self] }, operator: '>', right: numOp(50) }],
+        operators: [],
+        body: [{ type: 'MINE' }],
+      },
+      { type: 'CHARGE' },
+    ], { energy: 20 });
+
+    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // evaluate WHILE → false → skip
+    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // CHARGE
+    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('charge');
+  });
+
+  it('executes body when condition is true at entry', () => {
+    // Energy(self) > 50, drone has energy=100 → enter body
+    const { id, registry } = addDrone(world, 'running', [
+      {
+        type: 'WHILE',
+        conditions: [{ left: { fn: 'Energy', args: [self] }, operator: '>', right: numOp(50) }],
+        operators: [],
+        body: [{ type: 'MINE' }],
+      },
+    ], { energy: 100 });
+
+    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // enter WHILE, push child frame
+    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // MINE → waiting
+    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('mine');
+  });
+
+  it('repeats body while condition stays true', () => {
+    // Inventory(self) < 10, ore=0 → mines multiple times
+    let mineCount = 0;
+    const { id, registry } = addDrone(world, 'running', [
+      {
+        type: 'WHILE',
+        conditions: [{ left: { fn: 'Inventory', args: [self] }, operator: '<', right: numOp(10) }],
+        operators: [],
+        body: [{ type: 'MINE' }],
+      },
+      { type: 'DROP' },
+    ], { ore: 0, capacity: 10 });
+
+    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // enter WHILE
+
+    for (let i = 0; i < 8; i++) {
+      const prog = world.getComponent(id, 'Program')!;
+      if (prog.state === 'waiting' && prog.waitingFor === 'mine') {
+        mineCount++;
+        prog.state = 'running';
+        prog.waitingFor = undefined;
+        continue;
+      }
+      stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
+    }
+
+    expect(mineCount).toBeGreaterThanOrEqual(2);
+  });
+
+  it('exits body and advances past WHILE when condition becomes false', () => {
+    // ore starts at 9, capacity=10 → one MINE iteration, then Inventory(9) < 10 still true
+    // Use ore=10 from start → condition false immediately, goes to DROP
+    const { id, registry } = addDrone(world, 'running', [
+      {
+        type: 'WHILE',
+        conditions: [{ left: { fn: 'Inventory', args: [self] }, operator: '<', right: numOp(5) }],
+        operators: [],
+        body: [{ type: 'MINE' }],
+      },
+      { type: 'DROP' },
+    ], { ore: 5, capacity: 10 });
+
+    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // WHILE: ore(5) < 5 → false → skip
+    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // DROP
+    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('drop');
+  });
+
+  it('stores whileConditions on the child frame', () => {
+    const { id, registry } = addDrone(world, 'running', [
+      {
+        type: 'WHILE',
+        conditions: [{ left: { fn: 'Energy', args: [self] }, operator: '>', right: numOp(50) }],
+        operators: [],
+        body: [{ type: 'MINE' }],
+      },
+    ], { energy: 100 });
+
+    stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // enter WHILE
+    const prog = world.getComponent(id, 'Program')!;
+    expect(prog.callStack.length).toBe(2);
+    expect(prog.callStack[1].whileConditions).toBeDefined();
+    expect(prog.callStack[1].whileConditions!.length).toBe(1);
+  });
+});

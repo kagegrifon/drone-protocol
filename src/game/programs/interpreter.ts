@@ -32,6 +32,13 @@ export function stepProgram(
     registry.get(frame.programId)?.instructions ?? [];
 
   if (frame.instructionIndex >= instructions.length) {
+    if (frame.whileConditions) {
+      const again = evaluateConditions(frame.whileConditions, frame.whileOperators ?? [], droneId, world);
+      if (again) {
+        frame.instructionIndex = 0;
+        return;
+      }
+    }
     if (frame.isLoop) {
       frame.instructionIndex = 0;
       return;
@@ -112,6 +119,22 @@ export function stepProgram(
         inlineInstructions: instruction.body,
       });
       break;
+
+    case 'WHILE': {
+      const met = evaluateConditions(instruction.conditions, instruction.operators, droneId, world);
+      if (met) {
+        program.callStack.push({
+          programId: '__inline__',
+          instructionIndex: 0,
+          whileConditions: instruction.conditions,
+          whileOperators: instruction.operators,
+          inlineInstructions: instruction.body,
+        });
+      } else {
+        frame.instructionIndex++;
+      }
+      break;
+    }
 
     case 'RUN_PROGRAM':
       program.callStack.push({

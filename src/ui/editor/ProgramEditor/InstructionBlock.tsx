@@ -15,7 +15,7 @@ export type DragItemData = {
 
 export const ICONS: Record<string, string> = {
   MOVE_TO: '→', MINE: '⛏', DROP: '↓', CHARGE: '⚡', WAIT: '⏱',
-  LOOP: '🔄', REPEAT: '↩', IF: '?', RUN_PROGRAM: '▶',
+  LOOP: '🔄', REPEAT: '↩', WHILE: '↺', IF: '?', RUN_PROGRAM: '▶',
 };
 
 interface Props {
@@ -65,9 +65,9 @@ export function InstructionBlock({ instruction, programId, path, entities, progr
     };
   }, [activeInstructionPath, path]);
 
-  const isContainer = instruction.type === 'LOOP' || instruction.type === 'REPEAT' || instruction.type === 'IF';
+  const isContainer = instruction.type === 'LOOP' || instruction.type === 'REPEAT' || instruction.type === 'WHILE' || instruction.type === 'IF';
   const children: Instruction[] =
-    instruction.type === 'LOOP' || instruction.type === 'REPEAT'
+    instruction.type === 'LOOP' || instruction.type === 'REPEAT' || instruction.type === 'WHILE'
       ? instruction.body
       : instruction.type === 'IF'
       ? instruction.then
@@ -129,7 +129,7 @@ export function InstructionBlock({ instruction, programId, path, entities, progr
           );
         })()}
 
-        {instruction.type === 'IF' && (() => {
+        {(instruction.type === 'IF' || instruction.type === 'WHILE') && (() => {
           const noConditions = instruction.conditions.length === 0;
           const label = noConditions
             ? null
@@ -174,20 +174,20 @@ export function InstructionBlock({ instruction, programId, path, entities, progr
           );
         })()}
 
-        {instruction.type !== 'MOVE_TO' && instruction.type !== 'IF' && (
+        {instruction.type !== 'MOVE_TO' && instruction.type !== 'IF' && instruction.type !== 'WHILE' && (
           <InstructionParams instruction={instruction} programIds={programIds} />
         )}
 
         <button
           onClick={() => removeInstruction(programId, path)}
-          style={{ background: 'none', border: 'none', color: '#445566', cursor: 'pointer', fontSize: '14px', padding: '0 2px', lineHeight: 1, marginLeft: instruction.type === 'IF' ? '0' : 'auto' }}
+          style={{ background: 'none', border: 'none', color: '#445566', cursor: 'pointer', fontSize: '14px', padding: '0 2px', lineHeight: 1, marginLeft: instruction.type === 'IF' || instruction.type === 'WHILE' ? '0' : 'auto' }}
           title="Remove"
         >
           ×
         </button>
       </div>
 
-      {instruction.type === 'IF' && editorOpen && (
+      {(instruction.type === 'IF' || instruction.type === 'WHILE') && editorOpen && (
         <ConditionEditor
           conditions={instruction.conditions}
           operators={instruction.operators}

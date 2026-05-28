@@ -113,6 +113,7 @@ function describeInstruction(instr: Instruction): string {
     case 'WAIT': return `WAIT ${instr.seconds}s`;
     case 'LOOP': return 'LOOP ∞';
     case 'REPEAT': return `REPEAT ×${instr.count}`;
+    case 'WHILE': return `WHILE (${instr.conditions.length} cond)`;
     case 'RUN_PROGRAM': return `RUN ${instr.programId}`;
     case 'IF': return `IF (${instr.conditions.length} condition${instr.conditions.length !== 1 ? 's' : ''})`;
   }
@@ -123,7 +124,7 @@ function getInstructionList(instructions: Instruction[], path: number[]): Instru
   for (const idx of path) {
     const node = current[idx];
     if (!node) return current;
-    if (node.type === 'LOOP' || node.type === 'REPEAT') {
+    if (node.type === 'LOOP' || node.type === 'REPEAT' || node.type === 'WHILE') {
       current = node.body;
     } else if (node.type === 'IF') {
       current = node.then;
