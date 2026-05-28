@@ -20,7 +20,7 @@ export const mission1: MissionDef = {
   },
   buildScene() {
     const world = new World();
-    const grid = new Grid();
+    const grid = new Grid(30, 30);
     const registry: ProgramRegistry = new Map();
 
     grid.setTile(1, 1, "base");
