@@ -1,15 +1,24 @@
 import type { CellType } from '../../../shared/constants/cellTypes.js';
 
-export const GRID_SIZE = 20;
+const GRID_MIN = 30;
 
 export class Grid {
+  private readonly _width: number;
+  private readonly _height: number;
   private cells: CellType[][];
 
-  constructor() {
-    this.cells = Array.from({ length: GRID_SIZE }, () =>
-      Array<CellType>(GRID_SIZE).fill('empty')
+  constructor(width = GRID_MIN, height = GRID_MIN) {
+    if (width < GRID_MIN || height < GRID_MIN)
+      throw new Error(`Grid size must be at least ${GRID_MIN}×${GRID_MIN}, got ${width}×${height}`);
+    this._width = width;
+    this._height = height;
+    this.cells = Array.from({ length: height }, () =>
+      Array<CellType>(width).fill('empty')
     );
   }
+
+  get width(): number { return this._width; }
+  get height(): number { return this._height; }
 
   getTile(x: number, y: number): CellType {
     if (!this.inBounds(x, y)) return 'wall';
@@ -43,6 +52,6 @@ export class Grid {
   }
 
   private inBounds(x: number, y: number): boolean {
-    return x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE;
+    return x >= 0 && x < this._width && y >= 0 && y < this._height;
   }
 }
