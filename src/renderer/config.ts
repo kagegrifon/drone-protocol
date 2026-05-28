@@ -1,9 +1,6 @@
 import type { CellType } from '../shared/constants/cellTypes.js';
 
 export const TILE_SIZE = 40;
-export const GRID_SIZE = 20;
-export const CANVAS_W = TILE_SIZE * GRID_SIZE; // 800
-export const CANVAS_H = TILE_SIZE * GRID_SIZE; // 800
 
 export const COLORS = {
   BG: 0x0a0e1a,

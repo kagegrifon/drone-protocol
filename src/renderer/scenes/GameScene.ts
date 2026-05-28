@@ -7,7 +7,7 @@ import type { EntityId } from '../../shared/types/index.js';
 import { DroneSprite } from '../sprites/DroneSprite.js';
 import { AudioManager } from '../audio/AudioManager.js';
 import { gameEvents } from '../../shared/events/gameEvents.js';
-import { TILE_SIZE, GRID_SIZE, CANVAS_W, CANVAS_H, COLORS, TILE_COLORS } from '../config.js';
+import { TILE_SIZE, COLORS, TILE_COLORS } from '../config.js';
 
 export class GameScene extends Phaser.Scene {
   private _world!: World;
@@ -59,10 +59,12 @@ export class GameScene extends Phaser.Scene {
     // Subscribe to game events
     this._setupEventListeners();
 
-    this.drawTileMap();
+    const worldW = this._grid.width * TILE_SIZE;
+    const worldH = this._grid.height * TILE_SIZE;
+    this.drawTileMap(worldW, worldH);
     this._trailGraphics = this.add.graphics().setDepth(8);
     this.setupEntitySprites();
-    this.setupCamera();
+    this.setupCamera(worldW, worldH);
 
     const onReady = this.registry.get('onReady') as (() => void) | undefined;
     onReady?.();
@@ -142,19 +144,21 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private drawTileMap(): void {
+  private drawTileMap(worldW: number, worldH: number): void {
     const g = this.add.graphics().setDepth(0);
-    for (let ty = 0; ty < GRID_SIZE; ty++) {
-      for (let tx = 0; tx < GRID_SIZE; tx++) {
+    for (let ty = 0; ty < this._grid.height; ty++) {
+      for (let tx = 0; tx < this._grid.width; tx++) {
         const cellType = this._grid.getTile(tx, ty);
         g.fillStyle(TILE_COLORS[cellType], 1);
         g.fillRect(tx * TILE_SIZE + 1, ty * TILE_SIZE + 1, TILE_SIZE - 2, TILE_SIZE - 2);
       }
     }
     g.lineStyle(1, COLORS.GRID_LINE, 0.25);
-    for (let i = 0; i <= GRID_SIZE; i++) {
-      g.beginPath(); g.moveTo(i * TILE_SIZE, 0); g.lineTo(i * TILE_SIZE, CANVAS_H); g.strokePath();
-      g.beginPath(); g.moveTo(0, i * TILE_SIZE); g.lineTo(CANVAS_W, i * TILE_SIZE); g.strokePath();
+    for (let i = 0; i <= this._grid.width; i++) {
+      g.beginPath(); g.moveTo(i * TILE_SIZE, 0); g.lineTo(i * TILE_SIZE, worldH); g.strokePath();
+    }
+    for (let i = 0; i <= this._grid.height; i++) {
+      g.beginPath(); g.moveTo(0, i * TILE_SIZE); g.lineTo(worldW, i * TILE_SIZE); g.strokePath();
     }
   }
 
@@ -261,10 +265,8 @@ export class GameScene extends Phaser.Scene {
     return { x: Phaser.Math.Linear(baseX, nextX, t), y: Phaser.Math.Linear(baseY, nextY, t) };
   }
 
-  private setupCamera(): void {
+  private setupCamera(worldW: number, worldH: number): void {
     const cam = this.cameras.main;
-    const worldW = CANVAS_W;
-    const worldH = CANVAS_H;
     const maxZoom = 2.0;
 
     cam.setBounds(0, 0, worldW, worldH);
@@ -274,28 +276,20 @@ export class GameScene extends Phaser.Scene {
       const vw = this.scale.gameSize.width;
       const vh = this.scale.gameSize.height;
       if (vw === 0 || vh === 0) return 0.1;
-      // cover: zoom такой, что мир покрывает viewport (без пустых полей по краям)
-      return Math.max(vw / worldW, vh / worldH);
+      return Math.min(vw / worldW, vh / worldH);
     };
 
-    let userZoomed = false;
+    cam.setZoom(1.0);
+    cam.centerOn(worldW / 2, worldH / 2);
 
-    const fitCamera = (): void => {
+    this.time.delayedCall(0, () => {
       const minZoom = computeMinZoom();
-      cam.setZoom(Math.min(maxZoom, minZoom));
-      cam.centerOn(worldW / 2, worldH / 2);
-    };
-
-    fitCamera();
-    // After Phaser applies its first scale.RESIZE (parent measured), refit.
-    this.time.delayedCall(0, fitCamera);
+      if (cam.zoom < minZoom) cam.setZoom(minZoom);
+    });
 
     this.scale.on('resize', () => {
-      if (!userZoomed) fitCamera();
-      else {
-        const minZoom = computeMinZoom();
-        if (cam.zoom < minZoom) cam.setZoom(minZoom);
-      }
+      const minZoom = computeMinZoom();
+      if (cam.zoom < minZoom) cam.setZoom(minZoom);
     });
 
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
@@ -310,7 +304,6 @@ export class GameScene extends Phaser.Scene {
       if (!e.ctrlKey) return;
       const minZoom = computeMinZoom();
       cam.setZoom(Phaser.Math.Clamp(cam.zoom - e.deltaY * 0.001, minZoom, maxZoom));
-      userZoomed = true;
     }, { passive: false });
   }
 }
