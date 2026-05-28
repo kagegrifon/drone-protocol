@@ -165,53 +165,41 @@ export default function App() {
         </aside>
       )}
 
-      {/* Main area — canvas on top, bottom panel on bottom */}
+      {/* Main area — canvas fills 100%, bottom panel overlays absolutely */}
       <main
         style={{
           flex: 1,
           minWidth: 0,
           height: "100%",
-          display: "flex",
-          flexDirection: "column",
+          position: "relative",
+          background: "#050810",
+          overflow: "hidden",
         }}
       >
         <div
-          style={{
-            flex: 1,
-            minHeight: 0,
-            position: "relative",
-            background: "#050810",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            ref={containerRef}
-            style={{ position: "absolute", inset: 0 }}
-          />
-          {gamePhase === "game" && (
-            <>
-              <OreHud />
-              <MissionGoalButton mission={currentMission} />
-              <GameStatusOverlay
-                onReset={() => controllerRef.current?.reset()}
-                onNextMission={() => {
-                  const next =
-                    missionIndex < ALL_MISSIONS.length - 1
-                      ? missionIndex + 1
-                      : missionIndex;
-                  setMissionIndex(next);
-                  setGamePhase("loading");
-                }}
-                isLastMission={isLastMission}
-              />
-            </>
-          )}
-        </div>
-
+          ref={containerRef}
+          style={{ position: "absolute", inset: 0 }}
+        />
         {gamePhase === "game" && (
-          <BottomPanel>
-            <ProgramEditor entities={entityMetasRef.current} />
-          </BottomPanel>
+          <>
+            <OreHud />
+            <MissionGoalButton mission={currentMission} />
+            <GameStatusOverlay
+              onReset={() => controllerRef.current?.reset()}
+              onNextMission={() => {
+                const next =
+                  missionIndex < ALL_MISSIONS.length - 1
+                    ? missionIndex + 1
+                    : missionIndex;
+                setMissionIndex(next);
+                setGamePhase("loading");
+              }}
+              isLastMission={isLastMission}
+            />
+            <BottomPanel>
+              <ProgramEditor entities={entityMetasRef.current} />
+            </BottomPanel>
+          </>
         )}
       </main>
 

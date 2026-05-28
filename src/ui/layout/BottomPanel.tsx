@@ -54,7 +54,7 @@ export function BottomPanel({ children }: { children: ReactNode }) {
       if (!st) return;
       const parent = containerRef.current?.parentElement;
       const parentH = parent?.clientHeight ?? window.innerHeight;
-      const max = Math.max(MIN_HEIGHT, parentH - 120);
+      const max = Math.max(MIN_HEIGHT, parentH - 60);
       const next = Math.max(MIN_HEIGHT, Math.min(max, st.startH + (st.startY - e.clientY)));
       setHeight(next);
     };
@@ -73,29 +73,30 @@ export function BottomPanel({ children }: { children: ReactNode }) {
 
   const onHandleDown = (e: React.MouseEvent) => {
     if (mode !== "normal") return;
+    e.stopPropagation();
     dragStateRef.current = { startY: e.clientY, startH: height };
     document.body.style.cursor = "row-resize";
     document.body.style.userSelect = "none";
   };
 
-  const computedHeight =
-    mode === "collapsed" ? COLLAPSED_HEIGHT : mode === "fullscreen" ? "100%" : `${height}px`;
-  const flexBasis = mode === "fullscreen" ? "100%" : undefined;
-
   const showHandle = mode === "normal";
+
+  const panelHeight = mode === "collapsed" ? COLLAPSED_HEIGHT : height;
 
   return (
     <div
       ref={containerRef}
       style={{
-        position: "relative",
-        height: computedHeight,
-        flex: flexBasis ? "1 1 100%" : "0 0 auto",
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        ...(mode === "fullscreen" ? { top: 0 } : { height: panelHeight }),
         display: "flex",
         flexDirection: "column",
         background: "#0a0e1a",
         borderTop: "1px solid #1e3a5f",
-        minHeight: 0,
+        zIndex: 10,
       }}
     >
       {showHandle && (
@@ -109,7 +110,7 @@ export function BottomPanel({ children }: { children: ReactNode }) {
             right: 0,
             height: 6,
             cursor: "row-resize",
-            zIndex: 5,
+            zIndex: 15,
           }}
         />
       )}
@@ -121,7 +122,7 @@ export function BottomPanel({ children }: { children: ReactNode }) {
           right: 6,
           display: "flex",
           gap: 4,
-          zIndex: 4,
+          zIndex: 14,
         }}
       >
         {mode === "fullscreen" ? (
