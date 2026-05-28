@@ -10,6 +10,9 @@ interface SlotRef {
 const worldIndex = new WeakMap<World, Map<string, SlotRef>>();
 
 export function initWorkSlotsIndex(world: World): void {
+  // Prevent double-registration for the same world instance
+  if (worldIndex.has(world)) return;
+
   const index = new Map<string, SlotRef>();
 
   // Scan all existing entities with WorkSlots
