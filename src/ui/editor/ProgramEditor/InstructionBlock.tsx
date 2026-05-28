@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import type { Instruction, FlowBlock, ConditionLeaf, ConditionLogic } from '../../../game/programs/types.js';
 import type { EntityMeta } from '../../../game/missions/types.js';
@@ -6,6 +6,7 @@ import { useGameStore } from '../../../shared/store/gameStore.js';
 import { makeDefaultInstruction, AddInstructionMenu } from './instructionUtils.js';
 import { ConditionEditor } from './ConditionEditor.js';
 import { formatConditions } from './conditionFormat.js';
+import { DropSlot } from './DropSlot.js';
 
 export type DragItemData = {
   programId: string;
@@ -24,9 +25,10 @@ interface Props {
   entities: EntityMeta[];
   programIds: string[];
   activeInstructionPath: number[] | null;
+  isDragging?: boolean;
 }
 
-export function InstructionBlock({ instruction, programId, path, entities, programIds, activeInstructionPath }: Props) {
+export function InstructionBlock({ instruction, programId, path, entities, programIds, activeInstructionPath, isDragging }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
   const removeInstruction = useGameStore((s) => s.removeInstruction);
@@ -41,8 +43,7 @@ export function InstructionBlock({ instruction, programId, path, entities, progr
     setNodeRef,
     transform,
     transition,
-    isDragging,
-    isOver,
+    isDragging: isSelfDragging,
   } = useSortable({
     id: path.join('-'),
     data: { programId, path } as DragItemData,
@@ -80,18 +81,9 @@ export function InstructionBlock({ instruction, programId, path, entities, progr
         ...cardStyle,
         transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
         transition,
-        opacity: isDragging ? 0.3 : 1,
+        opacity: isSelfDragging ? 0.3 : 1,
       }}
     >
-      {isOver && (
-        <div style={{
-          height: '2px',
-          background: '#00d4ff',
-          boxShadow: '0 0 6px #00d4ff',
-          marginBottom: '4px',
-          borderRadius: '1px',
-        }} />
-      )}
       {/* Header row */}
       <div
         style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}
@@ -242,22 +234,46 @@ export function InstructionBlock({ instruction, programId, path, entities, progr
 
       {isContainer && (
         <div style={{ marginTop: '6px', paddingLeft: '12px', borderLeft: '2px solid #1e3a5f' }}>
-          <SortableContext
-            items={children.map((_, i) => [...path, i].join('-'))}
-            strategy={verticalListSortingStrategy}
-          >
-            {children.map((child, i) => (
-              <InstructionBlock
-                key={[...path, i].join('-')}
-                instruction={child}
+          {children.length === 0 ? (
+            <DropSlot
+              programId={programId}
+              containerPath={path}
+              insertIndex={0}
+              isDragging={isDragging ?? false}
+              variant="empty"
+            />
+          ) : (
+            <SortableContext
+              items={children.map((_, i) => [...path, i].join('-'))}
+              strategy={verticalListSortingStrategy}
+            >
+              <DropSlot
                 programId={programId}
-                path={[...path, i]}
-                entities={entities}
-                programIds={programIds}
-                activeInstructionPath={activeInstructionPath}
+                containerPath={path}
+                insertIndex={0}
+                isDragging={isDragging ?? false}
               />
-            ))}
-          </SortableContext>
+              {children.map((child, i) => (
+                <React.Fragment key={[...path, i].join('-')}>
+                  <InstructionBlock
+                    instruction={child}
+                    programId={programId}
+                    path={[...path, i]}
+                    entities={entities}
+                    programIds={programIds}
+                    activeInstructionPath={activeInstructionPath}
+                    isDragging={isDragging}
+                  />
+                  <DropSlot
+                    programId={programId}
+                    containerPath={path}
+                    insertIndex={i + 1}
+                    isDragging={isDragging ?? false}
+                  />
+                </React.Fragment>
+              ))}
+            </SortableContext>
+          )}
           <AddInstructionMenu
             onAdd={(type) => {
               addInstruction(programId, makeDefaultInstruction(type, entities, programIds), path);
