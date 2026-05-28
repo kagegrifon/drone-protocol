@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { World } from '../world/World.js';
 import { MovementSystem } from './MovementSystem.js';
+import { gameEvents } from '../../../shared/events/gameEvents.js';
 
 function makeWorld() {
   return new World();
@@ -133,5 +134,96 @@ describe('MovementSystem', () => {
     const movement = world.getComponent(id, 'Movement')!;
     expect(movement.path).toEqual([]);
     expect(movement.progress).toBe(0);
+  });
+});
+
+describe('MovementSystem — drone:moved эмиссия', () => {
+  let world: World;
+  let system: MovementSystem;
+
+  beforeEach(() => {
+    world = makeWorld();
+    system = new MovementSystem(world);
+    gameEvents.clearAll();
+  });
+
+  it('эмитит drone:moved с корректными координатами при успешном шаге', () => {
+    const events: Array<{ droneId: number; fromX: number; fromY: number; toX: number; toY: number }> = [];
+    gameEvents.on('drone:moved', e => events.push(e));
+
+    const d = addDrone(world, 3, 5, [{ x: 4, y: 5 }], 10);
+    system.update();
+
+    expect(events).toEqual([{ droneId: d, fromX: 3, fromY: 5, toX: 4, toY: 5 }]);
+  });
+
+  it('не эмитит drone:moved если путь пуст', () => {
+    const events: unknown[] = [];
+    gameEvents.on('drone:moved', e => events.push(e));
+
+    addDrone(world, 0, 0, []);
+    system.update();
+
+    expect(events).toHaveLength(0);
+  });
+});
+
+describe('MovementSystem — фикс гонки (stepped-set)', () => {
+  let world: World;
+  let system: MovementSystem;
+
+  beforeEach(() => {
+    world = makeWorld();
+    system = new MovementSystem(world);
+    gameEvents.clearAll();
+  });
+
+  it('первый дрон шагает, второй с тем же целевым полем блокируется', () => {
+    const blocked: number[] = [];
+    gameEvents.on('drone:blocked', ({ droneId }) => blocked.push(droneId));
+
+    const d1 = addDrone(world, 0, 0, [{ x: 1, y: 0 }], 10); // создан первым → победит
+    const d2 = addDrone(world, 2, 0, [{ x: 1, y: 0 }], 10); // создан вторым → заблокирован
+
+    system.update();
+
+    expect(world.getComponent(d1, 'Position')).toMatchObject({ x: 1, y: 0 });
+    expect(world.getComponent(d2, 'Position')).toMatchObject({ x: 2, y: 0 });
+    expect(blocked).toEqual([d2]);
+  });
+
+  it('заблокированный дрон: путь очищен, программа resumeится', () => {
+    addDrone(world, 0, 0, [{ x: 1, y: 0 }], 10);
+    const d2 = addDrone(world, 2, 0, [{ x: 1, y: 0 }], 10);
+
+    system.update();
+
+    const mov2 = world.getComponent(d2, 'Movement')!;
+    const prog2 = world.getComponent(d2, 'Program')!;
+    expect(mov2.path).toEqual([]);
+    expect(mov2.progress).toBe(0);
+    expect(prog2.state).toBe('running');
+    expect(prog2.waitingFor).toBeUndefined();
+  });
+
+  it('два дрона движутся в разные клетки — оба проходят', () => {
+    const blocked: number[] = [];
+    gameEvents.on('drone:blocked', ({ droneId }) => blocked.push(droneId));
+
+    const d1 = addDrone(world, 0, 0, [{ x: 1, y: 0 }], 10);
+    const d2 = addDrone(world, 0, 1, [{ x: 1, y: 1 }], 10);
+
+    system.update();
+
+    expect(world.getComponent(d1, 'Position')).toMatchObject({ x: 1, y: 0 });
+    expect(world.getComponent(d2, 'Position')).toMatchObject({ x: 1, y: 1 });
+    expect(blocked).toHaveLength(0);
+  });
+
+  it('дрон шагает в свою же клетку (path[0] === position) — шаг разрешён', () => {
+    const d = addDrone(world, 1, 0, [{ x: 1, y: 0 }], 10); // цель = текущая позиция
+    system.update();
+    const mov = world.getComponent(d, 'Movement')!;
+    expect(mov.path).toEqual([]);
   });
 });
