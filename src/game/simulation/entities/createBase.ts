@@ -10,5 +10,6 @@ export function createBase(world: World, x: number, y: number): EntityId {
     visible: true,
     tint: 0xffffff,
   });
+  world.addComponent(id, 'WorkSlots', { slots: [{ x, y, occupiedBy: null }] });
   return id;
 }
