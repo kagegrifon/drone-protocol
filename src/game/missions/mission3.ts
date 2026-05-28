@@ -4,6 +4,8 @@ import { createBase } from "../simulation/entities/createBase.js";
 import { createMine } from "../simulation/entities/createMine.js";
 import { createCharger } from "../simulation/entities/createCharger.js";
 import { createDrone } from "../simulation/entities/createDrone.js";
+import { initWorkSlotsIndex } from "../simulation/world/workSlotsIndex.js";
+import { validateNoDroneOnSlot } from "../simulation/world/workSlots.js";
 import type { MissionDef } from "./types.js";
 import type { ProgramDef, ProgramRegistry } from "../programs/types.js";
 
@@ -191,6 +193,9 @@ export const mission3: MissionDef = {
       prog.personalProgramId = String(droneId);
       prog.assignedProgramId = sharedLoop.id;
     }
+
+    initWorkSlotsIndex(world);
+    validateNoDroneOnSlot(world);
 
     return {
       world,

@@ -4,6 +4,8 @@ import { createBase } from "../simulation/entities/createBase.js";
 import { createMine } from "../simulation/entities/createMine.js";
 import { createCharger } from "../simulation/entities/createCharger.js";
 import { createDrone } from "../simulation/entities/createDrone.js";
+import { initWorkSlotsIndex } from "../simulation/world/workSlotsIndex.js";
+import { validateNoDroneOnSlot } from "../simulation/world/workSlots.js";
 import type { MissionDef } from "./types.js";
 import type { ProgramDef, ProgramRegistry } from "../programs/types.js";
 
@@ -238,6 +240,9 @@ export const mission4: MissionDef = {
     const p2 = world.getComponent(drone2Id, "Program")!;
     p2.personalProgramId = String(drone2Id);
     p2.assignedProgramId = loop2.id;
+
+    initWorkSlotsIndex(world);
+    validateNoDroneOnSlot(world);
 
     return {
       world,
