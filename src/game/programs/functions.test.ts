@@ -109,3 +109,39 @@ describe('evaluateFunctionCall integrates Self resolution', () => {
     expect(evaluateFunctionCall({ fn: 'Energy', args: [{ kind: 'self' }] }, drone, world)).toBe(17);
   });
 });
+
+describe('FUNCTIONS — FreeSlots', () => {
+  let world: World;
+
+  beforeEach(() => { world = new World(); });
+
+  function makeStation(x: number, y: number) {
+    const id = world.createEntity();
+    world.addComponent(id, 'Position', { x, y });
+    world.addComponent(id, 'WorkSlots', { slots: [{ x, y, occupiedBy: null }] });
+    return id;
+  }
+
+  it('возвращает 1 для незанятого слота', () => {
+    const station = makeStation(5, 5);
+    expect(FUNCTIONS.FreeSlots.evaluate([station], 99 as any, world)).toBe(1);
+  });
+
+  it('возвращает 0 для занятого слота', () => {
+    const station = makeStation(5, 5);
+    world.getComponent(station, 'WorkSlots')!.slots[0].occupiedBy = 42 as any;
+    expect(FUNCTIONS.FreeSlots.evaluate([station], 99 as any, world)).toBe(0);
+  });
+
+  it('возвращает null для сущности без WorkSlots', () => {
+    const mine = makeMine(world, 1, 1, 5);
+    expect(FUNCTIONS.FreeSlots.evaluate([mine], 99 as any, world)).toBeNull();
+  });
+
+  it('argFilter принимает только сущности с WorkSlots', () => {
+    const station = makeStation(5, 5);
+    const mine = makeMine(world, 1, 1, 5);
+    expect(FUNCTIONS.FreeSlots.argFilter!(station, world)).toBe(true);
+    expect(FUNCTIONS.FreeSlots.argFilter!(mine, world)).toBe(false);
+  });
+});

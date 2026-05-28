@@ -3,7 +3,7 @@ import type { EntityMeta } from '../../../game/missions/types.js';
 import { FUNCTIONS } from '../../../game/programs/functions.js';
 import { ObjectSelect } from './ObjectSelect.js';
 
-const FUNCTION_ORDER: FunctionName[] = ['Energy', 'EnergyMax', 'Inventory', 'InventoryMax', 'Deposit', 'Distance'];
+const FUNCTION_ORDER: FunctionName[] = ['Energy', 'EnergyMax', 'Inventory', 'InventoryMax', 'Deposit', 'Distance', 'FreeSlots'];
 
 const selectStyle: React.CSSProperties = {
   background: '#0a1628',
@@ -24,6 +24,7 @@ function defaultCallForFn(fn: FunctionName): FunctionCall {
     case 'InventoryMax': return { fn: 'InventoryMax', args: [self] };
     case 'Deposit':      return { fn: 'Deposit',      args: [self] };
     case 'Distance':     return { fn: 'Distance',     args: [self, self] };
+    case 'FreeSlots':    return { fn: 'FreeSlots',    args: [self] };
   }
 }
 

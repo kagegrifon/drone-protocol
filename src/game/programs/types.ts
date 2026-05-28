@@ -11,7 +11,8 @@ export type FunctionName =
   | 'Energy' | 'EnergyMax'
   | 'Inventory' | 'InventoryMax'
   | 'Deposit'
-  | 'Distance';
+  | 'Distance'
+  | 'FreeSlots';
 
 export type FunctionCall =
   | { fn: 'Energy';       args: [ObjectRef] }
@@ -19,7 +20,8 @@ export type FunctionCall =
   | { fn: 'Inventory';    args: [ObjectRef] }
   | { fn: 'InventoryMax'; args: [ObjectRef] }
   | { fn: 'Deposit';      args: [ObjectRef] }
-  | { fn: 'Distance';     args: [ObjectRef, ObjectRef] };
+  | { fn: 'Distance';     args: [ObjectRef, ObjectRef] }
+  | { fn: 'FreeSlots';    args: [ObjectRef] };
 
 export type Operand =
   | { kind: 'number';   value: number }

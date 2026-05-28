@@ -1,6 +1,7 @@
 import type { EntityId } from '../../shared/types/index.js';
-import type { World } from '../simulation/world/World.js';
+import type { ComponentName, World } from '../simulation/world/World.js';
 import type { FunctionName, ObjectRef, FunctionCall } from './types.js';
+import { freeSlotsCount } from '../simulation/world/workSlots.js';
 
 export interface FunctionSpec {
   name: FunctionName;
@@ -22,9 +23,9 @@ export function evaluateFunctionCall(call: FunctionCall, droneId: EntityId, worl
   return spec.evaluate(resolved, droneId, world);
 }
 
-function isEntityType(types: string[]) {
+function isEntityType(types: ComponentName[]) {
   return (id: EntityId, world: World): boolean => {
-    return types.some((t) => world.getComponent(id, t as 'Energy' | 'Inventory' | 'Deposit' | 'Position') !== undefined);
+    return types.some((t) => world.getComponent(id, t) !== undefined);
   };
 }
 
@@ -68,6 +69,15 @@ export const FUNCTIONS: Record<FunctionName, FunctionSpec> = {
       const pb = world.getComponent(b, 'Position');
       if (!pa || !pb) return null;
       return Math.abs(pa.x - pb.x) + Math.abs(pa.y - pb.y);
+    },
+  },
+  FreeSlots: {
+    name: 'FreeSlots', label: 'FreeSlots', icon: '🅿️',
+    arity: 1, argLabels: [''],
+    argFilter: isEntityType(['WorkSlots']),
+    evaluate: ([id], _droneId, world) => {
+      if (!world.getComponent(id, 'WorkSlots')) return null;
+      return freeSlotsCount(world, id);
     },
   },
 };
