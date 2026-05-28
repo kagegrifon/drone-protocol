@@ -27,7 +27,7 @@ describe('Grid constructor', () => {
   });
 });
 
-describe('Grid.getTile / inBounds', () => {
+describe('Grid tile access', () => {
   it('возвращает wall за пределами поля', () => {
     const g = new Grid(30, 30);
     expect(g.getTile(-1, 0)).toBe('wall');
@@ -46,6 +46,27 @@ describe('Grid.getTile / inBounds', () => {
     const g = new Grid(30, 30);
     expect(g.getTile(0, 0)).toBe('empty');
     expect(g.getTile(15, 15)).toBe('empty');
+  });
+
+  it('isWalkable возвращает false для wall', () => {
+    const g = new Grid(30, 30);
+    expect(g.isWalkable(-1, 0)).toBe(false);
+    expect(g.isWalkable(30, 0)).toBe(false);
+  });
+
+  it('isWalkable возвращает true для non-wall клеток', () => {
+    const g = new Grid(30, 30);
+    expect(g.isWalkable(0, 0)).toBe(true);
+    g.setTile(10, 10, 'mine');
+    expect(g.isWalkable(10, 10)).toBe(true);
+  });
+
+  it('setTile игнорирует записи за пределами поля', () => {
+    const g = new Grid(30, 30);
+    g.setTile(-1, 0, 'mine');
+    expect(g.getTile(-1, 0)).toBe('wall');
+    g.setTile(30, 15, 'mine');
+    expect(g.getTile(30, 15)).toBe('wall');
   });
 });
 
