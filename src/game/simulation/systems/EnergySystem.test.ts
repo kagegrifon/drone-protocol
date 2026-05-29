@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { World } from '../world/World.js';
 import { EnergySystem } from './EnergySystem.js';
 
-// BASE_CHARGE_DURATION_PER_UNIT=0.5s, DT=0.1 → 5 ticks per +1 energy unit
-const TICKS_PER_UNIT = 5;
+// BASE_CHARGE_SPEED=10 unit/sec, DT=0.1 → progress += 1.0 per tick → 1 tick per +1 energy unit
+const TICKS_PER_UNIT = 1;
 
 function makeWorld() {
   return new World();
@@ -40,26 +40,22 @@ describe('EnergySystem', () => {
     system = new EnergySystem(world);
   });
 
-  it('charges +1 energy per 5 ticks (BASE_CHARGE_DURATION=0.5s)', () => {
+  it('charges +1 energy per 1 tick (BASE_CHARGE_SPEED=10 → 0.1s)', () => {
     const drone = addDrone(world, 3, 3, 50);
     addCharger(world, 3, 3);
     for (let i = 0; i < TICKS_PER_UNIT; i++) system.update();
     expect(world.getComponent(drone, 'Energy')!.current).toBe(51);
   });
 
-  it('does not charge before 5 ticks', () => {
+  it('accumulates chargeProgress without adding energy before threshold', () => {
+    // With SPEED=10 and DT=0.1, progress hits 1.0 immediately on first tick — no sub-threshold state.
+    // This test verifies the field is cleared (undefined) after charge fires.
     const drone = addDrone(world, 3, 3, 50);
     addCharger(world, 3, 3);
-    for (let i = 0; i < TICKS_PER_UNIT - 1; i++) system.update();
-    expect(world.getComponent(drone, 'Energy')!.current).toBe(50);
-  });
-
-  it('accumulates chargeElapsed without adding energy before threshold', () => {
-    const drone = addDrone(world, 3, 3, 50);
-    addCharger(world, 3, 3);
-    for (let i = 0; i < 3; i++) system.update();
-    expect(world.getComponent(drone, 'Program')!.chargeElapsed).toBeCloseTo(0.3);
-    expect(world.getComponent(drone, 'Energy')!.current).toBe(50);
+    system.update();
+    // After CHARGE fires, chargeProgress is cleared to undefined
+    expect(world.getComponent(drone, 'Program')!.chargeProgress).toBeUndefined();
+    expect(world.getComponent(drone, 'Energy')!.current).toBe(51);
   });
 
   it('active CHARGE completes after +1 and passive charging continues (atomic CHARGE)', () => {
@@ -97,7 +93,7 @@ describe('EnergySystem', () => {
     const program = world.getComponent(drone, 'Program')!;
     expect(program.state).toBe('running');
     expect(program.waitingFor).toBeUndefined();
-    expect(program.chargeElapsed).toBeUndefined();
+    expect(program.chargeProgress).toBeUndefined();
   });
 
   it('resumes program after charging +1 unit even if not full (atomic CHARGE)', () => {

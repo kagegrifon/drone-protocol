@@ -2,10 +2,10 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { World } from '../world/World.js';
 import { MiningSystem } from './MiningSystem.js';
 
-// BASE_MINE_DURATION_PER_ORE=2.0s, DT=0.1 → 20 ticks per ore
-// BASE_DROP_DURATION_PER_ORE=0.5s, DT=0.1 → 5 ticks per ore
-const TICKS_PER_ORE_MINE = 20;
-const TICKS_PER_ORE_DROP = 5;
+// BASE_MINE_SPEED=2 ore/sec, DT=0.1 → progress += 0.2 per tick → 5 ticks per ore
+// BASE_DROP_SPEED=10 ore/sec, DT=0.1 → progress += 1.0 per tick → 1 tick per ore
+const TICKS_PER_ORE_MINE = 5;
+const TICKS_PER_ORE_DROP = 1;
 
 function makeWorld() {
   return new World();
@@ -50,14 +50,14 @@ describe('MiningSystem — MINE', () => {
     system = new MiningSystem(world);
   });
 
-  it('does not mine before 20 ticks (BASE_MINE_DURATION=2.0s)', () => {
+  it('does not mine before 5 ticks (BASE_MINE_SPEED=2 → 0.5s)', () => {
     const drone = addDrone(world, 2, 3);
     addDeposit(world, 2, 3, 50, 1);
     for (let i = 0; i < TICKS_PER_ORE_MINE - 1; i++) system.update();
     expect(world.getComponent(drone, 'Inventory')!.ore).toBe(0);
   });
 
-  it('mines 1 ore after 20 ticks', () => {
+  it('mines 1 ore after 5 ticks', () => {
     const drone = addDrone(world, 2, 3);
     addDeposit(world, 2, 3, 50, 1);
     for (let i = 0; i < TICKS_PER_ORE_MINE; i++) system.update();
@@ -65,7 +65,7 @@ describe('MiningSystem — MINE', () => {
     expect(world.getComponent(world.query('Position', 'Deposit')[0], 'Deposit')!.oreRemaining).toBe(49);
   });
 
-  it('mines only 1 ore even after 40 ticks (atomic: command completes after first ore)', () => {
+  it('mines only 1 ore even after 10 ticks (atomic: command completes after first ore)', () => {
     const drone = addDrone(world, 2, 3);
     addDeposit(world, 2, 3, 50, 1);
     for (let i = 0; i < TICKS_PER_ORE_MINE * 2; i++) system.update();
@@ -79,7 +79,7 @@ describe('MiningSystem — MINE', () => {
     const program = world.getComponent(drone, 'Program')!;
     expect(program.state).toBe('running');
     expect(program.waitingFor).toBeUndefined();
-    expect(program.mineElapsed).toBeUndefined();
+    expect(program.mineProgress).toBeUndefined();
   });
 
   it('drains drainPerMine energy once per ore mined', () => {
@@ -90,11 +90,12 @@ describe('MiningSystem — MINE', () => {
     expect(world.getComponent(drone, 'Energy')!.current).toBe(98); // 100 - 2
   });
 
-  it('accumulates mineElapsed without mining before threshold', () => {
+  it('accumulates mineProgress without mining before threshold', () => {
     const drone = addDrone(world, 2, 3);
     addDeposit(world, 2, 3, 50, 1);
-    for (let i = 0; i < 5; i++) system.update();
-    expect(world.getComponent(drone, 'Program')!.mineElapsed).toBeCloseTo(0.5);
+    for (let i = 0; i < 2; i++) system.update();
+    // progress = 2 ticks * BASE_MINE_SPEED * DT = 2 * 2 * 0.1 = 0.4
+    expect(world.getComponent(drone, 'Program')!.mineProgress).toBeCloseTo(0.4);
     expect(world.getComponent(drone, 'Inventory')!.ore).toBe(0);
   });
 
@@ -105,7 +106,7 @@ describe('MiningSystem — MINE', () => {
     const program = world.getComponent(drone, 'Program')!;
     expect(program.state).toBe('running');
     expect(program.waitingFor).toBeUndefined();
-    expect(program.mineElapsed).toBeUndefined();
+    expect(program.mineProgress).toBeUndefined();
   });
 
   it('resumes program when deposit is exhausted', () => {
@@ -114,7 +115,7 @@ describe('MiningSystem — MINE', () => {
     for (let i = 0; i < TICKS_PER_ORE_MINE; i++) system.update();
     const program = world.getComponent(drone, 'Program')!;
     expect(program.state).toBe('running');
-    expect(program.mineElapsed).toBeUndefined();
+    expect(program.mineProgress).toBeUndefined();
   });
 
   it('resumes immediately if no deposit at drone position', () => {
@@ -143,15 +144,7 @@ describe('MiningSystem — DROP', () => {
     system = new MiningSystem(world);
   });
 
-  it('does not transfer ore before 5 ticks (BASE_DROP_DURATION=0.5s)', () => {
-    const drone = addDrone(world, 5, 5, 3, 10, 'drop');
-    const base = addBase(world, 5, 5);
-    for (let i = 0; i < TICKS_PER_ORE_DROP - 1; i++) system.update();
-    expect(world.getComponent(drone, 'Inventory')!.ore).toBe(3);
-    expect(world.getComponent(base, 'Inventory')!.ore).toBe(0);
-  });
-
-  it('transfers 1 ore after 5 ticks', () => {
+  it('transfers 1 ore after 1 tick (BASE_DROP_SPEED=10 → 0.1s)', () => {
     const drone = addDrone(world, 5, 5, 3, 10, 'drop');
     const base = addBase(world, 5, 5);
     for (let i = 0; i < TICKS_PER_ORE_DROP; i++) system.update();
@@ -162,7 +155,7 @@ describe('MiningSystem — DROP', () => {
   it('transfers only 1 ore per command even after 10 ticks (atomic)', () => {
     const drone = addDrone(world, 5, 5, 2, 10, 'drop');
     const base = addBase(world, 5, 5);
-    for (let i = 0; i < TICKS_PER_ORE_DROP * 2; i++) system.update();
+    for (let i = 0; i < TICKS_PER_ORE_DROP * 10; i++) system.update();
     expect(world.getComponent(drone, 'Inventory')!.ore).toBe(1);
     expect(world.getComponent(base, 'Inventory')!.ore).toBe(1);
   });
@@ -174,7 +167,7 @@ describe('MiningSystem — DROP', () => {
     const program = world.getComponent(drone, 'Program')!;
     expect(program.state).toBe('running');
     expect(program.waitingFor).toBeUndefined();
-    expect(program.dropElapsed).toBeUndefined();
+    expect(program.dropProgress).toBeUndefined();
   });
 
   it('resumes immediately if no base at position', () => {

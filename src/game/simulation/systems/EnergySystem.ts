@@ -1,7 +1,7 @@
 import type { EntityId } from '../../../shared/types/index.js';
 import type { World } from '../world/World.js';
 import { gameEvents } from '../../../shared/events/gameEvents.js';
-import { DT, EPSILON, BASE_CHARGE_DURATION_PER_UNIT } from '../constants.js';
+import { DT, EPSILON, BASE_CHARGE_SPEED } from '../constants.js';
 
 export class EnergySystem {
   private _charging = new Set<EntityId>();
@@ -25,7 +25,7 @@ export class EnergySystem {
       if (chargerId === null) {
         // Не на станции: активная CHARGE завершается сразу, ничего больше не делаем.
         if (isActiveCharge) {
-          program.chargeElapsed = undefined;
+          program.chargeProgress = undefined;
           program.state = 'running';
           program.waitingFor = undefined;
         }
@@ -34,21 +34,21 @@ export class EnergySystem {
 
       // На станции и уже полная энергия — активная CHARGE завершается сразу.
       if (isActiveCharge && energy.current >= energy.max) {
-        program.chargeElapsed = undefined;
+        program.chargeProgress = undefined;
         program.state = 'running';
         program.waitingFor = undefined;
         continue;
       }
 
       if (energy.current < energy.max) {
-        program.chargeElapsed = (program.chargeElapsed ?? 0) + DT;
+        program.chargeProgress = (program.chargeProgress ?? 0) + BASE_CHARGE_SPEED * DT;
         // Пассивная зарядка: while-цикл сохранён, чтобы поведение станции не менялось.
-        while (program.chargeElapsed >= BASE_CHARGE_DURATION_PER_UNIT - EPSILON && energy.current < energy.max) {
+        while (program.chargeProgress >= 1 - EPSILON && energy.current < energy.max) {
           energy.current = Math.min(energy.max, energy.current + 1);
-          program.chargeElapsed -= BASE_CHARGE_DURATION_PER_UNIT;
+          program.chargeProgress -= 1;
           // Активная CHARGE: после первой выданной единицы — выход.
           if (isActiveCharge) {
-            program.chargeElapsed = undefined;
+            program.chargeProgress = undefined;
             program.state = 'running';
             program.waitingFor = undefined;
             break;

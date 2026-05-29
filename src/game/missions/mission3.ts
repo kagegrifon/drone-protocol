@@ -50,14 +50,23 @@ export const mission3: MissionDef = {
               type: "IF",
               conditions: [
                 {
-                  left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: charger1Id }] },
+                  left: {
+                    fn: "Distance",
+                    args: [
+                      { kind: "self" },
+                      { kind: "entity", id: charger1Id },
+                    ],
+                  },
                   operator: "<=",
                   right: { kind: "number", value: 0 },
                 },
                 {
                   left: { fn: "Energy", args: [{ kind: "self" }] },
                   operator: "<",
-                  right: { kind: "function", call: { fn: "EnergyMax", args: [{ kind: "self" }] } },
+                  right: {
+                    kind: "function",
+                    call: { fn: "EnergyMax", args: [{ kind: "self" }] },
+                  },
                 },
               ],
               operators: ["AND"],
@@ -73,7 +82,13 @@ export const mission3: MissionDef = {
                   right: { kind: "number", value: 30 },
                 },
                 {
-                  left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: charger1Id }] },
+                  left: {
+                    fn: "Distance",
+                    args: [
+                      { kind: "self" },
+                      { kind: "entity", id: charger1Id },
+                    ],
+                  },
                   operator: ">",
                   right: { kind: "number", value: 0 },
                 },
@@ -91,7 +106,10 @@ export const mission3: MissionDef = {
               type: "IF",
               conditions: [
                 {
-                  left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: baseId }] },
+                  left: {
+                    fn: "Distance",
+                    args: [{ kind: "self" }, { kind: "entity", id: baseId }],
+                  },
                   operator: "<=",
                   right: { kind: "number", value: 0 },
                 },
@@ -102,7 +120,23 @@ export const mission3: MissionDef = {
                 },
               ],
               operators: ["AND"],
-              then: [{ type: "DROP" }],
+              then: [
+                {
+                  type: "WHILE",
+                  conditions: [
+                    {
+                      left: { fn: "Inventory", args: [{ kind: "self" }] },
+                      operator: ">",
+                      right: {
+                        kind: "number",
+                        value: 0,
+                      },
+                    },
+                  ],
+                  operators: [],
+                  body: [{ type: "DROP" }],
+                },
+              ],
             },
             // Priority 4: есть руда И не у базы → MOVE_TO(base)
             {
@@ -114,7 +148,10 @@ export const mission3: MissionDef = {
                   right: { kind: "number", value: 0 },
                 },
                 {
-                  left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: baseId }] },
+                  left: {
+                    fn: "Distance",
+                    args: [{ kind: "self" }, { kind: "entity", id: baseId }],
+                  },
                   operator: ">",
                   right: { kind: "number", value: 0 },
                 },
@@ -137,13 +174,32 @@ export const mission3: MissionDef = {
                   right: { kind: "number", value: 30 },
                 },
                 {
-                  left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: mine1Id }] },
+                  left: {
+                    fn: "Distance",
+                    args: [{ kind: "self" }, { kind: "entity", id: mine1Id }],
+                  },
                   operator: "<=",
                   right: { kind: "number", value: 0 },
                 },
               ],
               operators: ["AND", "AND"],
-              then: [{ type: "MINE" }],
+              then: [
+                {
+                  type: "WHILE",
+                  conditions: [
+                    {
+                      left: { fn: "Inventory", args: [{ kind: "self" }] },
+                      operator: "<",
+                      right: {
+                        kind: "function",
+                        call: { fn: "InventoryMax", args: [{ kind: "self" }] },
+                      },
+                    },
+                  ],
+                  operators: [],
+                  body: [{ type: "MINE" }],
+                },
+              ],
             },
             // Priority 6: трюм пуст И энергия ≥ 30 И не у шахты → MOVE_TO(mine1)
             {
@@ -160,7 +216,10 @@ export const mission3: MissionDef = {
                   right: { kind: "number", value: 30 },
                 },
                 {
-                  left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: mine1Id }] },
+                  left: {
+                    fn: "Distance",
+                    args: [{ kind: "self" }, { kind: "entity", id: mine1Id }],
+                  },
                   operator: ">",
                   right: { kind: "number", value: 0 },
                 },
@@ -170,6 +229,134 @@ export const mission3: MissionDef = {
             },
           ],
         },
+        // {
+        //   type: "LOOP",
+        //   body: [
+        //     // Priority 1: у зарядки И энергия не полная → CHARGE
+        //     {
+        //       type: "IF",
+        //       conditions: [
+        //         {
+        //           left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: charger1Id }] },
+        //           operator: "<=",
+        //           right: { kind: "number", value: 0 },
+        //         },
+        //         {
+        //           left: { fn: "Energy", args: [{ kind: "self" }] },
+        //           operator: "<",
+        //           right: { kind: "function", call: { fn: "EnergyMax", args: [{ kind: "self" }] } },
+        //         },
+        //       ],
+        //       operators: ["AND"],
+        //       then: [{ type: "CHARGE" }],
+        //     },
+        //     // Priority 2: энергия < 30 И не у зарядки И трюм пуст → MOVE_TO(charger1)
+        //     {
+        //       type: "IF",
+        //       conditions: [
+        //         {
+        //           left: { fn: "Energy", args: [{ kind: "self" }] },
+        //           operator: "<",
+        //           right: { kind: "number", value: 30 },
+        //         },
+        //         {
+        //           left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: charger1Id }] },
+        //           operator: ">",
+        //           right: { kind: "number", value: 0 },
+        //         },
+        //         {
+        //           left: { fn: "Inventory", args: [{ kind: "self" }] },
+        //           operator: "=",
+        //           right: { kind: "number", value: 0 },
+        //         },
+        //       ],
+        //       operators: ["AND", "AND"],
+        //       then: [{ type: "MOVE_TO", targetEntityId: charger1Id }],
+        //     },
+        //     // Priority 3: у базы И есть руда → DROP
+        //     {
+        //       type: "IF",
+        //       conditions: [
+        //         {
+        //           left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: baseId }] },
+        //           operator: "<=",
+        //           right: { kind: "number", value: 0 },
+        //         },
+        //         {
+        //           left: { fn: "Inventory", args: [{ kind: "self" }] },
+        //           operator: ">",
+        //           right: { kind: "number", value: 0 },
+        //         },
+        //       ],
+        //       operators: ["AND"],
+        //       then: [{ type: "DROP" }],
+        //     },
+        //     // Priority 4: есть руда И не у базы → MOVE_TO(base)
+        //     {
+        //       type: "IF",
+        //       conditions: [
+        //         {
+        //           left: { fn: "Inventory", args: [{ kind: "self" }] },
+        //           operator: ">",
+        //           right: { kind: "number", value: 0 },
+        //         },
+        //         {
+        //           left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: baseId }] },
+        //           operator: ">",
+        //           right: { kind: "number", value: 0 },
+        //         },
+        //       ],
+        //       operators: ["AND"],
+        //       then: [{ type: "MOVE_TO", targetEntityId: baseId }],
+        //     },
+        //     // Priority 5: трюм пуст И энергия ≥ 30 И у шахты → MINE
+        //     {
+        //       type: "IF",
+        //       conditions: [
+        //         {
+        //           left: { fn: "Inventory", args: [{ kind: "self" }] },
+        //           operator: "=",
+        //           right: { kind: "number", value: 0 },
+        //         },
+        //         {
+        //           left: { fn: "Energy", args: [{ kind: "self" }] },
+        //           operator: ">=",
+        //           right: { kind: "number", value: 30 },
+        //         },
+        //         {
+        //           left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: mine1Id }] },
+        //           operator: "<=",
+        //           right: { kind: "number", value: 0 },
+        //         },
+        //       ],
+        //       operators: ["AND", "AND"],
+        //       then: [{ type: "MINE" }],
+        //     },
+        //     // Priority 6: трюм пуст И энергия ≥ 30 И не у шахты → MOVE_TO(mine1)
+        //     {
+        //       type: "IF",
+        //       conditions: [
+        //         {
+        //           left: { fn: "Inventory", args: [{ kind: "self" }] },
+        //           operator: "=",
+        //           right: { kind: "number", value: 0 },
+        //         },
+        //         {
+        //           left: { fn: "Energy", args: [{ kind: "self" }] },
+        //           operator: ">=",
+        //           right: { kind: "number", value: 30 },
+        //         },
+        //         {
+        //           left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: mine1Id }] },
+        //           operator: ">",
+        //           right: { kind: "number", value: 0 },
+        //         },
+        //       ],
+        //       operators: ["AND", "AND"],
+        //       then: [{ type: "MOVE_TO", targetEntityId: mine1Id }],
+        //     },
+        //   ],
+        // },
       ],
     };
     registry.set(sharedLoop.id, sharedLoop);

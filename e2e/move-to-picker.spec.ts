@@ -26,9 +26,9 @@ test('MOVE_TO picker: выбор и смена цели', async ({ page }) => {
   const droneItem = page.locator('[data-testid^="drone-item-"]').first();
   await droneItem.click();
 
-  // Перейти к редактированию назначенной библиотечной программы (LIBRARY → Edit → PROGRAM)
+  // Перейти к редактированию назначенной библиотечной программы (LIBRARY → имя программы → PROGRAM)
   await page.getByTitle('Открыть в библиотеке').click();
-  await page.getByRole('button', { name: 'Edit' }).first().click();
+  await page.locator('[data-testid^="program-edit-btn-"]').first().click();
 
   // MOVE_TO блок должен быть виден — найти тоггл пикера
   const toggle = page.locator('[data-testid="move-to-toggle"]').first();

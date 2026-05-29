@@ -2,13 +2,13 @@ import Phaser from 'phaser';
 import type { World } from '../../game/simulation/world/World.js';
 import type { Grid } from '../../game/simulation/world/Grid.js';
 import type { PositionComponent } from '../../game/simulation/components/Position.js';
-import type { MovementComponent } from '../../game/simulation/components/Movement.js';
 import type { EntityId } from '../../shared/types/index.js';
 import { DroneSprite } from '../sprites/DroneSprite.js';
 import { AudioManager } from '../audio/AudioManager.js';
 import { gameEvents } from '../../shared/events/gameEvents.js';
 import { TILE_SIZE, COLORS, TILE_COLORS } from '../config.js';
 import { useGameStore } from '../../shared/store/gameStore.js';
+import { DT } from '../../game/simulation/constants.js';
 
 export class GameScene extends Phaser.Scene {
   private _world!: World;
@@ -23,6 +23,12 @@ export class GameScene extends Phaser.Scene {
   private _chargingCount = 0;
   private _droneHumActive = false;
   private _tick = 0;
+
+  // Snapshot-интерполяция: позиции дронов из двух последних симуляционных тиков
+  private _snapPrev = new Map<EntityId, { x: number; y: number }>();
+  private _snapCurrent = new Map<EntityId, { x: number; y: number }>();
+  private _lastSimTick = -1;
+  private _tickStartMs = 0;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -200,21 +206,41 @@ export class GameScene extends Phaser.Scene {
   private syncSprites(): void {
     const entities = this._world.query('Position', 'Renderable');
     const activeIds = new Set(entities);
-    const selectedId = useGameStore.getState().selectedDroneId;
+    const store = useGameStore.getState();
+    const selectedId = store.selectedDroneId;
+
+    // Обнаружить новый симуляционный тик и обновить снимки позиций
+    const simTick = store.stats.tick;
+    if (simTick !== this._lastSimTick) {
+      this._snapPrev = new Map(this._snapCurrent);
+      for (const entityId of this._world.query('Position', 'Movement')) {
+        const pos = this._world.getComponent(entityId, 'Position')!;
+        this._snapCurrent.set(entityId, { x: pos.x, y: pos.y });
+        if (!this._snapPrev.has(entityId)) {
+          this._snapPrev.set(entityId, { x: pos.x, y: pos.y });
+        }
+      }
+      this._lastSimTick = simTick;
+      this._tickStartMs = performance.now();
+    }
 
     for (const [id, sprite] of this._droneSprites) {
-      if (!activeIds.has(id)) { sprite.destroy(); this._droneSprites.delete(id); }
+      if (!activeIds.has(id)) { sprite.destroy(); this._droneSprites.delete(id); this._snapPrev.delete(id); this._snapCurrent.delete(id); }
     }
     for (const [id, img] of this._staticSprites) {
       if (!activeIds.has(id)) { img.destroy(); this._staticSprites.delete(id); }
     }
+
+    // Коэффициент интерполяции между двумя последними симуляционными тиками
+    const tickMs = DT * 1000;
+    const elapsed = performance.now() - this._tickStartMs;
+    const t = Phaser.Math.Clamp(elapsed / tickMs, 0, 1);
 
     for (const entityId of entities) {
       this.ensureSprite(entityId);
 
       const pos = this._world.getComponent(entityId, 'Position')!;
       const renderable = this._world.getComponent(entityId, 'Renderable')!;
-      const movement = this._world.getComponent(entityId, 'Movement');
 
       if (renderable.spriteType === 'drone') {
         const sprite = this._droneSprites.get(entityId)!;
@@ -235,11 +261,12 @@ export class GameScene extends Phaser.Scene {
         const loadRatio = inventory && inventory.capacity > 0 ? inventory.ore / inventory.capacity : 0;
         sprite.updateStats(energyRatio, loadRatio);
 
-        const { x, y } = this.getInterpolatedPos(pos, movement);
-        const prev = { x: sprite.x, y: sprite.y };
+        const { x, y } = this.getSnapshotPos(entityId, pos, t);
+        const prevX = sprite.x;
+        const prevY = sprite.y;
         sprite.updateVisual(x, y);
 
-        if (Math.abs(x - prev.x) > 0.5 || Math.abs(y - prev.y) > 0.5) {
+        if (Math.abs(x - prevX) > 0.5 || Math.abs(y - prevY) > 0.5) {
           const last = this._robotThrottle.get(entityId) ?? -99;
           if (this._tick - last >= 10) {
             this._audio.play('robot_click');
@@ -260,19 +287,27 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private getInterpolatedPos(
+  private getSnapshotPos(
+    entityId: EntityId,
     pos: PositionComponent,
-    movement: MovementComponent | undefined,
+    t: number,
   ): { x: number; y: number } {
-    const baseX = pos.x * TILE_SIZE + TILE_SIZE / 2;
-    const baseY = pos.y * TILE_SIZE + TILE_SIZE / 2;
-    if (!movement || movement.path.length === 0 || movement.progress <= 0) {
-      return { x: baseX, y: baseY };
+    const prev = this._snapPrev.get(entityId);
+    const current = this._snapCurrent.get(entityId);
+
+    if (!prev || !current) {
+      return { x: pos.x * TILE_SIZE + TILE_SIZE / 2, y: pos.y * TILE_SIZE + TILE_SIZE / 2 };
     }
-    const nextX = movement.path[0].x * TILE_SIZE + TILE_SIZE / 2;
-    const nextY = movement.path[0].y * TILE_SIZE + TILE_SIZE / 2;
-    const t = Phaser.Math.Clamp(movement.progress, 0, 1);
-    return { x: Phaser.Math.Linear(baseX, nextX, t), y: Phaser.Math.Linear(baseY, nextY, t) };
+
+    const prevX = prev.x * TILE_SIZE + TILE_SIZE / 2;
+    const prevY = prev.y * TILE_SIZE + TILE_SIZE / 2;
+    const curX = current.x * TILE_SIZE + TILE_SIZE / 2;
+    const curY = current.y * TILE_SIZE + TILE_SIZE / 2;
+
+    return {
+      x: Phaser.Math.Linear(prevX, curX, t),
+      y: Phaser.Math.Linear(prevY, curY, t),
+    };
   }
 
   private setupCamera(worldW: number, worldH: number): void {

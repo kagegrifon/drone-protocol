@@ -2,7 +2,7 @@ import type { EntityId } from '../../../shared/types/index.js';
 import type { ComponentName } from '../world/World.js';
 import type { World } from '../world/World.js';
 import { gameEvents } from '../../../shared/events/gameEvents.js';
-import { DT, EPSILON, BASE_MINE_DURATION_PER_ORE, BASE_DROP_DURATION_PER_ORE } from '../constants.js';
+import { DT, EPSILON, BASE_MINE_SPEED, BASE_DROP_SPEED } from '../constants.js';
 
 export class MiningSystem {
   constructor(private readonly world: World) {}
@@ -25,7 +25,7 @@ export class MiningSystem {
 
       const depositId = this.findEntityAt(position.x, position.y, 'Deposit');
       if (depositId === null) {
-        program.mineElapsed = undefined;
+        program.mineProgress = undefined;
         program.state = 'running';
         program.waitingFor = undefined;
         continue;
@@ -34,20 +34,20 @@ export class MiningSystem {
       const deposit = this.world.getComponent(depositId, 'Deposit')!;
 
       if (deposit.oreRemaining <= 0 || inventory.ore >= inventory.capacity) {
-        program.mineElapsed = undefined;
+        program.mineProgress = undefined;
         program.state = 'running';
         program.waitingFor = undefined;
         continue;
       }
 
-      program.mineElapsed = (program.mineElapsed ?? 0) + DT;
+      program.mineProgress = (program.mineProgress ?? 0) + BASE_MINE_SPEED * DT;
 
-      if (program.mineElapsed >= BASE_MINE_DURATION_PER_ORE - EPSILON) {
+      if (program.mineProgress >= 1 - EPSILON) {
         deposit.oreRemaining -= 1;
         inventory.ore += 1;
         energy.current = Math.max(0, energy.current - energy.drainPerMine);
         gameEvents.emit('ore:mined', { droneId: id, x: position.x, y: position.y });
-        program.mineElapsed = undefined;
+        program.mineProgress = undefined;
         program.state = 'running';
         program.waitingFor = undefined;
       }
@@ -66,7 +66,7 @@ export class MiningSystem {
 
       const baseId = this.findEntityAt(position.x, position.y, 'Inventory', id);
       if (baseId === null) {
-        program.dropElapsed = undefined;
+        program.dropProgress = undefined;
         program.state = 'running';
         program.waitingFor = undefined;
         continue;
@@ -75,19 +75,19 @@ export class MiningSystem {
       const baseInventory = this.world.getComponent(baseId, 'Inventory')!;
 
       if (droneInventory.ore <= 0) {
-        program.dropElapsed = undefined;
+        program.dropProgress = undefined;
         program.state = 'running';
         program.waitingFor = undefined;
         continue;
       }
 
-      program.dropElapsed = (program.dropElapsed ?? 0) + DT;
+      program.dropProgress = (program.dropProgress ?? 0) + BASE_DROP_SPEED * DT;
 
-      if (program.dropElapsed >= BASE_DROP_DURATION_PER_ORE - EPSILON) {
+      if (program.dropProgress >= 1 - EPSILON) {
         baseInventory.ore += 1;
         droneInventory.ore -= 1;
         gameEvents.emit('ore:dropped', { droneId: id, amount: 1 });
-        program.dropElapsed = undefined;
+        program.dropProgress = undefined;
         program.state = 'running';
         program.waitingFor = undefined;
       }

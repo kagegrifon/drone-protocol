@@ -4,10 +4,11 @@ import { Grid } from './world/Grid.js';
 import { CollisionSystem } from './systems/CollisionSystem.js';
 import { ProgramExecutionSystem } from './systems/ProgramExecutionSystem.js';
 import { MiningSystem } from './systems/MiningSystem.js';
-import { BASE_MINE_DURATION_PER_ORE, DT } from './constants.js';
+import { BASE_MINE_SPEED, DT } from './constants.js';
 import type { ProgramRegistry } from '../programs/types.js';
 
-const TICKS_PER_ORE = Math.round(BASE_MINE_DURATION_PER_ORE / DT); // 20
+// BASE_MINE_SPEED=2 ore/sec, DT=0.1 → progress += 0.2 per tick → 5 ticks per ore
+const TICKS_PER_ORE = Math.round(1 / (BASE_MINE_SPEED * DT)); // 5
 
 function setup() {
   const world = new World();
@@ -50,12 +51,12 @@ function setup() {
 }
 
 describe('atomic actions integration: LOOP { MINE }', () => {
-  it('mines exactly one ore per BASE_MINE_DURATION_PER_ORE window (not all at once)', () => {
+  it('mines exactly one ore per BASE_MINE_SPEED window (not all at once)', () => {
     const { world, drone, tick } = setup();
 
-    // Один цикл LOOP { MINE }: 1 тик на push LOOP-кадра + 1 тик на выдачу MINE + 19 тиков
-    // накопления mineElapsed → +1 руда на 21-м тике. На следующей итерации цикл
-    // делает то же самое: reset кадра (1 тик) + MINE (1 тик) + 19 накопления = 21 тик.
+    // Один цикл LOOP { MINE }: 1 тик на push LOOP-кадра + 1 тик на выдачу MINE +
+    // (TICKS_PER_ORE - 1) тиков накопления mineProgress → +1 руда.
+    // На следующей итерации цикл повторяется: reset кадра (1 тик) + то же самое.
     const oreAtSnapshots: number[] = [];
     for (let iter = 0; iter < 3; iter++) {
       for (let i = 0; i < TICKS_PER_ORE + 1; i++) tick();
@@ -65,7 +66,7 @@ describe('atomic actions integration: LOOP { MINE }', () => {
     expect(oreAtSnapshots).toEqual([1, 2, 3]);
   });
 
-  it('does not mine more than one ore within a single BASE_MINE_DURATION window', () => {
+  it('does not mine more than one ore within a single BASE_MINE_SPEED window', () => {
     const { world, drone, tick } = setup();
 
     for (let i = 0; i < TICKS_PER_ORE + 1; i++) tick();

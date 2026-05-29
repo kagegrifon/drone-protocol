@@ -446,6 +446,7 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
                   style={{ display: "flex", alignItems: "center", gap: "8px" }}
                 >
                   <button
+                    data-testid={`program-edit-btn-${prog.id}`}
                     onClick={() => {
                       setEditingProgramId(prog.id);
                       setTab("program");

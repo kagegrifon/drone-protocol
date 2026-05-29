@@ -123,14 +123,14 @@ describe('store.pauseDrone / startDrone / resetDrone', () => {
     const { world, droneId } = setup();
     const program = world.getComponent(droneId, 'Program')!;
     program.localPaused = true;
-    program.mineElapsed = 1.5;
+    program.mineProgress = 0.6;
     program.callStack = [];
     program.state = 'idle';
 
     useGameStore.getState().resetDrone(droneId);
 
     expect(program.localPaused).toBe(false);
-    expect(program.mineElapsed).toBeUndefined();
+    expect(program.mineProgress).toBeUndefined();
     expect(program.state).toBe('running');
     expect(program.callStack).toHaveLength(1);
   });

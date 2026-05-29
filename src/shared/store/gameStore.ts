@@ -141,9 +141,9 @@ function resetDroneProgram(world: World, droneId: EntityId): void {
   program.callStack = [{ programId: program.currentProgramId, instructionIndex: 0 }];
   program.state = 'running';
   program.waitingFor = undefined;
-  program.mineElapsed = undefined;
-  program.chargeElapsed = undefined;
-  program.dropElapsed = undefined;
+  program.mineProgress = undefined;
+  program.chargeProgress = undefined;
+  program.dropProgress = undefined;
   const movement = world.getComponent(droneId, 'Movement');
   if (movement) {
     movement.path = [];

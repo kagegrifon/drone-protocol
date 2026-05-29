@@ -22,8 +22,8 @@ export interface ProgramComponent {
   waitingFor?: WaitingFor;
   personalProgramId: string;      // всегда заполнено, равно droneEntityId
   assignedProgramId?: string;     // id библиотечной программы если назначена
-  mineElapsed?: number;           // секунды с начала текущей mine-операции
-  chargeElapsed?: number;         // секунды с начала текущей charge-операции
-  dropElapsed?: number;           // секунды с начала текущей drop-операции
+  mineProgress?: number;          // безразмерный прогресс [0..1) текущей mine-операции
+  chargeProgress?: number;        // безразмерный прогресс [0..1) текущей charge-операции
+  dropProgress?: number;          // безразмерный прогресс [0..1) текущей drop-операции
   localPaused?: boolean;          // per-drone пауза, независимая от глобальной
 }
