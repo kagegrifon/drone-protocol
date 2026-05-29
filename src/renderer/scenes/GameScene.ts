@@ -8,6 +8,7 @@ import { DroneSprite } from '../sprites/DroneSprite.js';
 import { AudioManager } from '../audio/AudioManager.js';
 import { gameEvents } from '../../shared/events/gameEvents.js';
 import { TILE_SIZE, COLORS, TILE_COLORS } from '../config.js';
+import { useGameStore } from '../../shared/store/gameStore.js';
 
 export class GameScene extends Phaser.Scene {
   private _world!: World;
@@ -199,6 +200,7 @@ export class GameScene extends Phaser.Scene {
   private syncSprites(): void {
     const entities = this._world.query('Position', 'Renderable');
     const activeIds = new Set(entities);
+    const selectedId = useGameStore.getState().selectedDroneId;
 
     for (const [id, sprite] of this._droneSprites) {
       if (!activeIds.has(id)) { sprite.destroy(); this._droneSprites.delete(id); }
@@ -224,6 +226,14 @@ export class GameScene extends Phaser.Scene {
         if (program?.waitingFor === 'charge') {
           sprite.setGlowMode('charging');
         }
+
+        sprite.setSelected(entityId === selectedId);
+
+        const energy = this._world.getComponent(entityId, 'Energy');
+        const inventory = this._world.getComponent(entityId, 'Inventory');
+        const energyRatio = energy && energy.max > 0 ? energy.current / energy.max : 0;
+        const loadRatio = inventory && inventory.capacity > 0 ? inventory.ore / inventory.capacity : 0;
+        sprite.updateStats(energyRatio, loadRatio);
 
         const { x, y } = this.getInterpolatedPos(pos, movement);
         const prev = { x: sprite.x, y: sprite.y };
