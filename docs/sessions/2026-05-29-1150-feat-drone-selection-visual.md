@@ -51,3 +51,10 @@
 - `src/renderer/scenes/GameScene.ts` — добавлен импорт useGameStore, 6 строк в syncSprites
 
 Не затронуты: Simulation, Store (Zustand), UI
+
+## Метрики сессии
+- Модель: claude-haiku-4-5-20251001
+- Input: 163 токенов (кеш: 3,346,656 / запись в кеш: 359,386)
+- Output: 50,986 токенов
+- Контекст: 79,045 / 200,000 токенов (39.5%)
+- Стоимость: $3.117
