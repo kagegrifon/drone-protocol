@@ -4,7 +4,10 @@ import type { DroneState } from '../../shared/store/gameStore.js';
 function statusColor(state: DroneState['programState']): string {
   switch (state) {
     case 'running': return '#00d4ff';
-    case 'waiting': return '#ffd700';
+    case 'move':
+    case 'mine':
+    case 'drop':
+    case 'charge': return '#ffd700';
     case 'idle': return '#445566';
   }
 }
@@ -12,8 +15,8 @@ function statusColor(state: DroneState['programState']): string {
 function statusLabel(state: DroneState['programState']): string {
   switch (state) {
     case 'running': return 'RUN';
-    case 'waiting': return 'WAIT';
     case 'idle': return 'IDLE';
+    default: return state.toUpperCase(); // MOVE, MINE, DROP, CHARGE
   }
 }
 

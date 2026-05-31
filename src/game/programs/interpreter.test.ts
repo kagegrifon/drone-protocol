@@ -19,7 +19,7 @@ function addTarget(world: World, x: number, y: number): number {
 
 function addDrone(
   world: World,
-  state: 'idle' | 'running' | 'waiting' = 'running',
+  state: 'idle' | 'running' | 'move' | 'mine' | 'drop' | 'charge' = 'running',
   instructions: Instruction[] = [],
   opts: { ore?: number; capacity?: number; energy?: number; energyMax?: number } = {}
 ) {
@@ -56,12 +56,11 @@ describe('stepProgram — MINE', () => {
 
   beforeEach(() => { world = makeWorld(); });
 
-  it('sets state=waiting and waitingFor=mine', () => {
+  it('sets state=mine', () => {
     const { id, registry } = addDrone(world, 'running', [{ type: 'MINE' }]);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     const prog = world.getComponent(id, 'Program')!;
-    expect(prog.state).toBe('waiting');
-    expect(prog.waitingFor).toBe('mine');
+    expect(prog.state).toBe('mine');
   });
 
   it('advances instructionIndex after MINE', () => {
@@ -77,12 +76,11 @@ describe('stepProgram — DROP', () => {
 
   beforeEach(() => { world = makeWorld(); });
 
-  it('sets state=waiting and waitingFor=drop', () => {
+  it('sets state=drop', () => {
     const { id, registry } = addDrone(world, 'running', [{ type: 'DROP' }]);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     const prog = world.getComponent(id, 'Program')!;
-    expect(prog.state).toBe('waiting');
-    expect(prog.waitingFor).toBe('drop');
+    expect(prog.state).toBe('drop');
   });
 });
 
@@ -91,12 +89,11 @@ describe('stepProgram — CHARGE', () => {
 
   beforeEach(() => { world = makeWorld(); });
 
-  it('sets state=waiting and waitingFor=charge', () => {
+  it('sets state=charge', () => {
     const { id, registry } = addDrone(world, 'running', [{ type: 'CHARGE' }]);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     const prog = world.getComponent(id, 'Program')!;
-    expect(prog.state).toBe('waiting');
-    expect(prog.waitingFor).toBe('charge');
+    expect(prog.state).toBe('charge');
   });
 });
 
@@ -131,8 +128,7 @@ describe('stepProgram — WAIT', () => {
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // 0.1→0.0
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // 0 ≤ EPSILON → execute DROP
     const prog = world.getComponent(id, 'Program')!;
-    expect(prog.state).toBe('waiting');
-    expect(prog.waitingFor).toBe('drop');
+    expect(prog.state).toBe('drop');
   });
 });
 
@@ -151,10 +147,10 @@ describe('stepProgram — idle transitions', () => {
   });
 
   it('does nothing if state is not running', () => {
-    const { id, registry } = addDrone(world, 'waiting', [{ type: 'MINE' }]);
+    const { id, registry } = addDrone(world, 'mine', [{ type: 'MINE' }]);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     const prog = world.getComponent(id, 'Program')!;
-    expect(prog.state).toBe('waiting');
+    expect(prog.state).toBe('mine');
     expect(prog.callStack.length).toBe(0);
   });
 
@@ -164,7 +160,6 @@ describe('stepProgram — idle transitions', () => {
     // Resume manually
     const prog = world.getComponent(id, 'Program')!;
     prog.state = 'running';
-    prog.waitingFor = undefined;
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // index now past end → idle
     expect(world.getComponent(id, 'Program')!.state).toBe('idle');
   });
@@ -194,8 +189,7 @@ describe('stepProgram — LOOP', () => {
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // enter loop
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // execute MINE
     const prog = world.getComponent(id, 'Program')!;
-    expect(prog.state).toBe('waiting');
-    expect(prog.waitingFor).toBe('mine');
+    expect(prog.state).toBe('mine');
   });
 
   it('restarts loop body after body completes', () => {
@@ -208,11 +202,10 @@ describe('stepProgram — LOOP', () => {
     // Resume
     const prog = world.getComponent(id, 'Program')!;
     prog.state = 'running';
-    prog.waitingFor = undefined;
 
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // index past end → restart (isLoop)
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // MINE again → waiting
-    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('mine');
+    expect(world.getComponent(id, 'Program')!.state).toBe('mine');
   });
 });
 
@@ -243,11 +236,10 @@ describe('stepProgram — REPEAT', () => {
     function runUntilCharge(maxSteps = 20) {
       for (let i = 0; i < maxSteps; i++) {
         const prog = world.getComponent(id, 'Program')!;
-        if (prog.state === 'waiting' && prog.waitingFor === 'charge') return;
-        if (prog.state === 'waiting' && prog.waitingFor === 'drop') {
+        if (prog.state === 'charge') return;
+        if (prog.state === 'drop') {
           dropCount++;
           prog.state = 'running';
-          prog.waitingFor = undefined;
           continue;
         }
         stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
@@ -258,7 +250,7 @@ describe('stepProgram — REPEAT', () => {
     runUntilCharge();
 
     expect(dropCount).toBe(2);
-    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('charge');
+    expect(world.getComponent(id, 'Program')!.state).toBe('charge');
   });
 });
 
@@ -317,10 +309,9 @@ describe('stepProgram — RUN_PROGRAM', () => {
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // DROP → waiting
     const prog = world.getComponent(id, 'Program')!;
     prog.state = 'running';
-    prog.waitingFor = undefined;
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // sub end → pop → back to main at CHARGE
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // CHARGE → waiting
-    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('charge');
+    expect(world.getComponent(id, 'Program')!.state).toBe('charge');
   });
 });
 
@@ -348,7 +339,7 @@ describe('stepProgram — IF conditions', () => {
     ], { energy: 20, energyMax: 100 });
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
-    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('charge');
+    expect(world.getComponent(id, 'Program')!.state).toBe('charge');
   });
 
   it('Energy(Self) < 30 is false when energy=80', () => {
@@ -363,7 +354,7 @@ describe('stepProgram — IF conditions', () => {
     ], { energy: 80, energyMax: 100 });
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
-    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('drop');
+    expect(world.getComponent(id, 'Program')!.state).toBe('drop');
   });
 
   // ── Inventory < InventoryMax (RHS-функция) ─────────────────────────────
@@ -382,7 +373,7 @@ describe('stepProgram — IF conditions', () => {
     ], { ore: 3, capacity: 10 });
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
-    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('mine');
+    expect(world.getComponent(id, 'Program')!.state).toBe('mine');
   });
 
   it('Inventory(Self) < InventoryMax(Self) is false when ore=capacity', () => {
@@ -401,7 +392,7 @@ describe('stepProgram — IF conditions', () => {
     ], { ore: 10, capacity: 10 });
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
-    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('drop');
+    expect(world.getComponent(id, 'Program')!.state).toBe('drop');
   });
 
   // ── Deposit(entity) ─────────────────────────────────────────────────────
@@ -420,7 +411,7 @@ describe('stepProgram — IF conditions', () => {
     ]);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
-    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('drop');
+    expect(world.getComponent(id, 'Program')!.state).toBe('drop');
   });
 
   // ── Distance ────────────────────────────────────────────────────────────
@@ -440,7 +431,7 @@ describe('stepProgram — IF conditions', () => {
     ]);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
-    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('mine');
+    expect(world.getComponent(id, 'Program')!.state).toBe('mine');
   });
 
   it('Distance(Self, target) = 0 is true when drone is on target tile', () => {
@@ -459,7 +450,7 @@ describe('stepProgram — IF conditions', () => {
     ]);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
-    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('mine');
+    expect(world.getComponent(id, 'Program')!.state).toBe('mine');
   });
 
   // ── null-side gives false ───────────────────────────────────────────────
@@ -480,7 +471,7 @@ describe('stepProgram — IF conditions', () => {
     ]);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
-    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('drop');
+    expect(world.getComponent(id, 'Program')!.state).toBe('drop');
   });
 
   // ── AND / OR ────────────────────────────────────────────────────────────
@@ -498,7 +489,7 @@ describe('stepProgram — IF conditions', () => {
     ], { energy: 20, energyMax: 100, ore: 10, capacity: 10 });
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
-    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('charge');
+    expect(world.getComponent(id, 'Program')!.state).toBe('charge');
   });
 
   it('OR: true when only second met', () => {
@@ -515,7 +506,7 @@ describe('stepProgram — IF conditions', () => {
     ], { energy: 80, energyMax: 100, ore: 10, capacity: 10 });
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
-    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('drop');
+    expect(world.getComponent(id, 'Program')!.state).toBe('drop');
   });
 
   it('empty conditions list evaluates to false', () => {
@@ -525,7 +516,7 @@ describe('stepProgram — IF conditions', () => {
     ]);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
-    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('mine');
+    expect(world.getComponent(id, 'Program')!.state).toBe('mine');
   });
 
   it('executes else-body when condition is false', () => {
@@ -544,7 +535,7 @@ describe('stepProgram — IF conditions', () => {
     ], { ore: 3, capacity: 10 });
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
-    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('mine');
+    expect(world.getComponent(id, 'Program')!.state).toBe('mine');
   });
 });
 
@@ -559,7 +550,7 @@ describe('stepProgram — MOVE_TO', () => {
     grid = new Grid();
   });
 
-  it('sets movement path and state=waiting waitingFor=move', () => {
+  it('sets movement path and state=move', () => {
     const targetId = world.createEntity();
     world.addComponent(targetId, 'Position', { x: 3, y: 0 });
 
@@ -573,8 +564,7 @@ describe('stepProgram — MOVE_TO', () => {
 
     const prog = world.getComponent(id, 'Program')!;
     const movement = world.getComponent(id, 'Movement')!;
-    expect(prog.state).toBe('waiting');
-    expect(prog.waitingFor).toBe('move');
+    expect(prog.state).toBe('move');
     expect(movement.path.length).toBeGreaterThan(0);
     expect(movement.targetX).toBe(3);
     expect(movement.targetY).toBe(0);
@@ -591,8 +581,7 @@ describe('stepProgram — MOVE_TO', () => {
 
     const prog = world.getComponent(id, 'Program')!;
     // should still wait for move (drone stays put) or advance — we expect waiting
-    expect(prog.state).toBe('waiting');
-    expect(prog.waitingFor).toBe('move');
+    expect(prog.state).toBe('move');
   });
 });
 
@@ -620,7 +609,7 @@ describe('stepProgram — WHILE', () => {
 
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // evaluate WHILE → false → skip
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // CHARGE
-    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('charge');
+    expect(world.getComponent(id, 'Program')!.state).toBe('charge');
   });
 
   it('executes body when condition is true at entry', () => {
@@ -636,7 +625,7 @@ describe('stepProgram — WHILE', () => {
 
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // enter WHILE, push child frame
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // MINE → waiting
-    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('mine');
+    expect(world.getComponent(id, 'Program')!.state).toBe('mine');
   });
 
   it('repeats body while condition stays true', () => {
@@ -656,10 +645,9 @@ describe('stepProgram — WHILE', () => {
 
     for (let i = 0; i < 8; i++) {
       const prog = world.getComponent(id, 'Program')!;
-      if (prog.state === 'waiting' && prog.waitingFor === 'mine') {
+      if (prog.state === 'mine') {
         mineCount++;
         prog.state = 'running';
-        prog.waitingFor = undefined;
         continue;
       }
       stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED);
@@ -683,7 +671,7 @@ describe('stepProgram — WHILE', () => {
 
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // WHILE: ore(5) < 5 → false → skip
     stepProgram(id, world, registry, EMPTY_GRID, EMPTY_OCCUPIED); // DROP
-    expect(world.getComponent(id, 'Program')!.waitingFor).toBe('drop');
+    expect(world.getComponent(id, 'Program')!.state).toBe('drop');
   });
 
   it('stores whileConditions on the child frame', () => {

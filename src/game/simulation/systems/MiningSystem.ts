@@ -17,7 +17,7 @@ export class MiningSystem {
     for (const id of drones) {
       const program = this.world.getComponent(id, 'Program')!;
       if (program.localPaused) continue;
-      if (program.state !== 'waiting' || program.waitingFor !== 'mine') continue;
+      if (program.state !== 'mine') continue;
 
       const position = this.world.getComponent(id, 'Position')!;
       const inventory = this.world.getComponent(id, 'Inventory')!;
@@ -27,7 +27,6 @@ export class MiningSystem {
       if (depositId === null) {
         program.mineProgress = undefined;
         program.state = 'running';
-        program.waitingFor = undefined;
         continue;
       }
 
@@ -36,7 +35,6 @@ export class MiningSystem {
       if (deposit.oreRemaining <= 0 || inventory.ore >= inventory.capacity) {
         program.mineProgress = undefined;
         program.state = 'running';
-        program.waitingFor = undefined;
         continue;
       }
 
@@ -49,7 +47,6 @@ export class MiningSystem {
         gameEvents.emit('ore:mined', { droneId: id, x: position.x, y: position.y });
         program.mineProgress = undefined;
         program.state = 'running';
-        program.waitingFor = undefined;
       }
     }
   }
@@ -59,7 +56,7 @@ export class MiningSystem {
     for (const id of drones) {
       const program = this.world.getComponent(id, 'Program')!;
       if (program.localPaused) continue;
-      if (program.state !== 'waiting' || program.waitingFor !== 'drop') continue;
+      if (program.state !== 'drop') continue;
 
       const position = this.world.getComponent(id, 'Position')!;
       const droneInventory = this.world.getComponent(id, 'Inventory')!;
@@ -68,7 +65,6 @@ export class MiningSystem {
       if (baseId === null) {
         program.dropProgress = undefined;
         program.state = 'running';
-        program.waitingFor = undefined;
         continue;
       }
 
@@ -77,7 +73,6 @@ export class MiningSystem {
       if (droneInventory.ore <= 0) {
         program.dropProgress = undefined;
         program.state = 'running';
-        program.waitingFor = undefined;
         continue;
       }
 
@@ -89,7 +84,6 @@ export class MiningSystem {
         gameEvents.emit('ore:dropped', { droneId: id, amount: 1 });
         program.dropProgress = undefined;
         program.state = 'running';
-        program.waitingFor = undefined;
       }
     }
   }

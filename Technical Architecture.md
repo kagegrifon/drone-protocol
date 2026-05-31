@@ -192,11 +192,21 @@ Properties:
 ## ProgramComponent
 
 ```ts
+// Состояние выполнения программы дрона. Action-состояния названы как команды языка.
+type ProgramState = 'idle' | 'running' | 'move' | 'mine' | 'drop' | 'charge';
+
 {
-  currentProgramId: string;
-  instructionPointer: number;
+  currentProgramId: string | null;
+  callStack: CallFrame[];
+  state: ProgramState;
+  // ...прогресс действий (mineProgress / chargeProgress / dropProgress) и пр.
 }
 ```
+
+`state` кодирует и «занятость» дрона, и тип текущего действия одним полем:
+`'running'` — программа исполняется; `'move' | 'mine' | 'drop' | 'charge'` — дрон
+ждёт завершения соответствующей атомарной команды (её обрабатывает профильная
+система); `'idle'` — программа завершена. Отдельного поля `waitingFor` нет.
 
 ---
 

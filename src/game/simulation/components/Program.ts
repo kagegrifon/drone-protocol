@@ -1,7 +1,6 @@
 import type { ConditionLeaf, ConditionLogic } from '../../programs/types.js';
 
-export type ProgramState = 'idle' | 'running' | 'waiting';
-export type WaitingFor = 'move' | 'mine' | 'drop' | 'charge';
+export type ProgramState = 'idle' | 'running' | 'move' | 'mine' | 'drop' | 'charge';
 
 export interface CallFrame {
   programId: string;
@@ -19,7 +18,6 @@ export interface ProgramComponent {
   callStack: CallFrame[];
   state: ProgramState;
   commandSlots: number;
-  waitingFor?: WaitingFor;
   personalProgramId: string;      // всегда заполнено, равно droneEntityId
   assignedProgramId?: string;     // id библиотечной программы если назначена
   mineProgress?: number;          // безразмерный прогресс [0..1) текущей mine-операции

@@ -83,27 +83,23 @@ export function stepProgram(
             movement.progress = 0;
           }
         }
-        program.state = 'waiting';
-        program.waitingFor = 'move';
+        program.state = 'move';
         frame.instructionIndex++;
         return;
       }
 
       case 'MINE':
-        program.state = 'waiting';
-        program.waitingFor = 'mine';
+        program.state = 'mine';
         frame.instructionIndex++;
         return;
 
       case 'DROP':
-        program.state = 'waiting';
-        program.waitingFor = 'drop';
+        program.state = 'drop';
         frame.instructionIndex++;
         return;
 
       case 'CHARGE':
-        program.state = 'waiting';
-        program.waitingFor = 'charge';
+        program.state = 'charge';
         frame.instructionIndex++;
         return;
 

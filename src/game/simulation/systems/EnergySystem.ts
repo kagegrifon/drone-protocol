@@ -19,7 +19,7 @@ export class EnergySystem {
 
       if (program.localPaused) continue;
 
-      const isActiveCharge = program.state === 'waiting' && program.waitingFor === 'charge';
+      const isActiveCharge = program.state === 'charge';
 
       const chargerId = this.findChargerAt(position.x, position.y);
       if (chargerId === null) {
@@ -27,7 +27,6 @@ export class EnergySystem {
         if (isActiveCharge) {
           program.chargeProgress = undefined;
           program.state = 'running';
-          program.waitingFor = undefined;
         }
         continue;
       }
@@ -36,7 +35,6 @@ export class EnergySystem {
       if (isActiveCharge && energy.current >= energy.max) {
         program.chargeProgress = undefined;
         program.state = 'running';
-        program.waitingFor = undefined;
         continue;
       }
 
@@ -50,13 +48,12 @@ export class EnergySystem {
           if (isActiveCharge) {
             program.chargeProgress = undefined;
             program.state = 'running';
-            program.waitingFor = undefined;
             break;
           }
         }
       }
 
-      if (program.state === 'waiting' && program.waitingFor === 'charge') {
+      if (program.state === 'charge') {
         nowCharging.add(id);
       }
     }

@@ -21,7 +21,6 @@ export interface DroneState {
   currentInstruction: string;
   currentProgramId: string | null;
   currentInstructionPath: number[] | null;
-  waitingFor: string | null;
   personalProgramId: string;
   assignedProgramId?: string;
   localPaused: boolean;
@@ -41,7 +40,7 @@ export function computeActivePath(
 
     if (isTop) {
       const isWaiting =
-        state === 'waiting' ||
+        (state !== 'idle' && state !== 'running') ||
         (frame.waitRemaining !== undefined && frame.waitRemaining > 0);
       const idx = isWaiting ? frame.instructionIndex - 1 : frame.instructionIndex;
       if (idx < 0) return null;
@@ -140,7 +139,6 @@ function resetDroneProgram(world: World, droneId: EntityId): void {
   if (!program || !program.currentProgramId) return;
   program.callStack = [{ programId: program.currentProgramId, instructionIndex: 0 }];
   program.state = 'running';
-  program.waitingFor = undefined;
   program.mineProgress = undefined;
   program.chargeProgress = undefined;
   program.dropProgress = undefined;
@@ -163,7 +161,7 @@ function snapshotDrones(world: World, registry: ProgramRegistry): DroneState[] {
     const frame = program.callStack[program.callStack.length - 1];
     if (frame) {
       const isWaiting =
-        program.state === 'waiting' ||
+        (program.state !== 'idle' && program.state !== 'running') ||
         (frame.waitRemaining !== undefined && frame.waitRemaining > 0);
       const idx = isWaiting ? frame.instructionIndex - 1 : frame.instructionIndex;
       if (idx >= 0) {
@@ -184,7 +182,6 @@ function snapshotDrones(world: World, registry: ProgramRegistry): DroneState[] {
       currentInstruction,
       currentProgramId: program.currentProgramId,
       currentInstructionPath: computeActivePath(program.callStack, program.state),
-      waitingFor: program.waitingFor ?? null,
       personalProgramId: program.personalProgramId,
       assignedProgramId: program.assignedProgramId,
       localPaused: program.localPaused ?? false,
@@ -358,7 +355,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
     program.currentProgramId = programId;
     program.callStack = [{ programId, instructionIndex: 0 }];
     program.state = 'running';
-    program.waitingFor = undefined;
 
     set({ drones: snapshotDrones(world, get().registry) });
   },
@@ -373,7 +369,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
     program.currentProgramId = program.personalProgramId;
     program.callStack = [{ programId: program.personalProgramId, instructionIndex: 0 }];
     program.state = 'running';
-    program.waitingFor = undefined;
 
     const movement = world.getComponent(droneId, 'Movement');
     if (movement) {

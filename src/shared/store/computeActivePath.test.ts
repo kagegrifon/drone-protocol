@@ -17,14 +17,14 @@ describe('computeActivePath', () => {
     expect(computeActivePath(stack, 'running')).toEqual([2]);
   });
 
-  it('shifts index by -1 when state is waiting', () => {
+  it('shifts index by -1 when state is an action (move/mine/drop/charge)', () => {
     const stack: CallFrame[] = [{ programId: 'p1', instructionIndex: 1 }];
-    expect(computeActivePath(stack, 'waiting')).toEqual([0]);
+    expect(computeActivePath(stack, 'move')).toEqual([0]);
   });
 
-  it('returns null when state=waiting and instructionIndex=0 (underflow guard)', () => {
+  it('returns null when state is an action and instructionIndex=0 (underflow guard)', () => {
     const stack: CallFrame[] = [{ programId: 'p1', instructionIndex: 0 }];
-    expect(computeActivePath(stack, 'waiting')).toBeNull();
+    expect(computeActivePath(stack, 'move')).toBeNull();
   });
 
   it('shifts index by -1 when waitRemaining > 0', () => {
@@ -45,19 +45,19 @@ describe('computeActivePath', () => {
     expect(computeActivePath(stack, 'running')).toEqual([1, 0]);
   });
 
-  it('builds nested path when top frame is waiting', () => {
+  it('builds nested path when top frame is in an action state', () => {
     const stack: CallFrame[] = [
       { programId: 'p1', instructionIndex: 1 },
-      { programId: 'p1', instructionIndex: 1 }, // waiting on child at index 0
+      { programId: 'p1', instructionIndex: 1 }, // выполняет действие по child-инструкции index 0
     ];
-    expect(computeActivePath(stack, 'waiting')).toEqual([1, 0]);
+    expect(computeActivePath(stack, 'mine')).toEqual([1, 0]);
   });
 
   it('returns null for deeply nested underflow', () => {
     const stack: CallFrame[] = [
       { programId: 'p1', instructionIndex: 2 },
-      { programId: 'p1', instructionIndex: 0 }, // waiting: 0 - 1 < 0
+      { programId: 'p1', instructionIndex: 0 }, // action: 0 - 1 < 0
     ];
-    expect(computeActivePath(stack, 'waiting')).toBeNull();
+    expect(computeActivePath(stack, 'mine')).toBeNull();
   });
 });

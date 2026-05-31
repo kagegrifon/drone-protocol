@@ -17,13 +17,13 @@ function addDrone(
   y: number,
   ore = 0,
   capacity = 10,
-  waitingFor: 'mine' | 'drop' | undefined = 'mine'
+  state: 'idle' | 'running' | 'mine' | 'drop' = 'mine'
 ) {
   const id = world.createEntity();
   world.addComponent(id, 'Position', { x, y });
   world.addComponent(id, 'Energy', { current: 100, max: 100, drainPerMove: 5, drainPerMine: 2 });
   world.addComponent(id, 'Inventory', { ore, capacity });
-  world.addComponent(id, 'Program', { currentProgramId: null, callStack: [], state: 'waiting', commandSlots: 4, waitingFor, personalProgramId: '' });
+  world.addComponent(id, 'Program', { currentProgramId: null, callStack: [], state, commandSlots: 4, personalProgramId: '' });
   return id;
 }
 
@@ -78,7 +78,6 @@ describe('MiningSystem — MINE', () => {
     for (let i = 0; i < TICKS_PER_ORE_MINE; i++) system.update();
     const program = world.getComponent(drone, 'Program')!;
     expect(program.state).toBe('running');
-    expect(program.waitingFor).toBeUndefined();
     expect(program.mineProgress).toBeUndefined();
   });
 
@@ -105,7 +104,6 @@ describe('MiningSystem — MINE', () => {
     for (let i = 0; i < TICKS_PER_ORE_MINE; i++) system.update();
     const program = world.getComponent(drone, 'Program')!;
     expect(program.state).toBe('running');
-    expect(program.waitingFor).toBeUndefined();
     expect(program.mineProgress).toBeUndefined();
   });
 
@@ -125,10 +123,8 @@ describe('MiningSystem — MINE', () => {
     expect(program.state).toBe('running');
   });
 
-  it('does not mine if drone not waiting for mine', () => {
-    const drone = addDrone(world, 2, 3, 0, 10, undefined);
-    world.getComponent(drone, 'Program')!.waitingFor = undefined;
-    world.getComponent(drone, 'Program')!.state = 'running';
+  it('does not mine if drone state is not mine', () => {
+    addDrone(world, 2, 3, 0, 10, 'running');
     const deposit = addDeposit(world, 2, 3, 50, 1);
     for (let i = 0; i < TICKS_PER_ORE_MINE; i++) system.update();
     expect(world.getComponent(deposit, 'Deposit')!.oreRemaining).toBe(50);
@@ -166,7 +162,6 @@ describe('MiningSystem — DROP', () => {
     for (let i = 0; i < TICKS_PER_ORE_DROP; i++) system.update();
     const program = world.getComponent(drone, 'Program')!;
     expect(program.state).toBe('running');
-    expect(program.waitingFor).toBeUndefined();
     expect(program.dropProgress).toBeUndefined();
   });
 
@@ -183,7 +178,6 @@ describe('MiningSystem — DROP', () => {
     for (let i = 0; i < TICKS_PER_ORE_DROP; i++) system.update();
     const program = world.getComponent(drone, 'Program')!;
     expect(program.state).toBe('running');
-    expect(program.waitingFor).toBeUndefined();
     expect(world.getComponent(drone, 'Inventory')!.ore).toBe(0); // not -1
   });
 });

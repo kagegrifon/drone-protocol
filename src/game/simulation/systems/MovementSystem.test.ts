@@ -14,15 +14,14 @@ function addDrone(
   pathTo: { x: number; y: number }[],
   speed = 1,
   energy = 100,
-  state: 'idle' | 'running' | 'waiting' = 'waiting',
-  waitingFor: 'move' | 'mine' | 'drop' | 'charge' | undefined = 'move'
+  state: 'idle' | 'running' | 'move' | 'mine' | 'drop' | 'charge' = 'move'
 ) {
   const id = world.createEntity();
   world.addComponent(id, 'Position', { x, y });
   world.addComponent(id, 'Energy', { current: energy, max: 100, drainPerMove: 5, drainPerMine: 2 });
   const last = pathTo[pathTo.length - 1];
   world.addComponent(id, 'Movement', { targetX: last?.x ?? x, targetY: last?.y ?? y, path: [...pathTo], progress: 0, speed });
-  world.addComponent(id, 'Program', { currentProgramId: null, callStack: [], state, commandSlots: 4, waitingFor, personalProgramId: '' });
+  world.addComponent(id, 'Program', { currentProgramId: null, callStack: [], state, commandSlots: 4, personalProgramId: '' });
   return id;
 }
 
@@ -89,20 +88,18 @@ describe('MovementSystem', () => {
     expect(energy.current).toBe(95); // 100 - 5*1 (атомарный шаг)
   });
 
-  it('resumes program on arrival (waitingFor=move)', () => {
+  it('resumes program on arrival (state=move)', () => {
     const id = addDrone(world, 0, 0, [{ x: 1, y: 0 }], 10);
     system.update();
     const program = world.getComponent(id, 'Program')!;
     expect(program.state).toBe('running');
-    expect(program.waitingFor).toBeUndefined();
   });
 
-  it('does not resume program if waitingFor is not move', () => {
-    const id = addDrone(world, 0, 0, [{ x: 1, y: 0 }], 10, 100, 'waiting', 'mine');
+  it('does not resume program if state is not move', () => {
+    const id = addDrone(world, 0, 0, [{ x: 1, y: 0 }], 10, 100, 'mine');
     system.update();
     const program = world.getComponent(id, 'Program')!;
-    expect(program.state).toBe('waiting');
-    expect(program.waitingFor).toBe('mine');
+    expect(program.state).toBe('mine');
   });
 
   it('does not move drone with empty path', () => {
@@ -203,7 +200,6 @@ describe('MovementSystem — фикс гонки (stepped-set)', () => {
     expect(mov2.path).toEqual([]);
     expect(mov2.progress).toBe(0);
     expect(prog2.state).toBe('running');
-    expect(prog2.waitingFor).toBeUndefined();
   });
 
   it('два дрона движутся в разные клетки — оба проходят', () => {

@@ -24,10 +24,9 @@ export class MovementSystem {
       if (program.localPaused) continue;
 
       if (movement.path.length === 0) {
-        if (program.state === 'waiting' && program.waitingFor === 'move') {
+        if (program.state === 'move') {
           movement.progress = 0;
           program.state = 'running';
-          program.waitingFor = undefined;
         }
         continue;
       }
@@ -43,9 +42,8 @@ export class MovementSystem {
       if (toKey !== fromKey && stepped.has(toKey)) {
         movement.path = [];
         movement.progress = 0;
-        if (program.state === 'waiting' && program.waitingFor === 'move') {
+        if (program.state === 'move') {
           program.state = 'running';
-          program.waitingFor = undefined;
         }
         gameEvents.emit('drone:blocked', { droneId: id });
         continue;
@@ -64,9 +62,8 @@ export class MovementSystem {
       movement.path = [];
       movement.progress = 0;
 
-      if (program.state === 'waiting' && program.waitingFor === 'move') {
+      if (program.state === 'move') {
         program.state = 'running';
-        program.waitingFor = undefined;
       }
 
       gameEvents.emit('drone:moved', { droneId: id, fromX, fromY, toX: next.x, toY: next.y });

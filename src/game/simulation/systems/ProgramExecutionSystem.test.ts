@@ -13,7 +13,7 @@ function makeRegistry(instructions: object[] = []): ProgramRegistry {
 
 function addDrone(
   world: World,
-  state: 'idle' | 'running' | 'waiting' = 'running'
+  state: 'idle' | 'running' | 'move' | 'mine' | 'drop' | 'charge' = 'running'
 ) {
   const id = world.createEntity();
   world.addComponent(id, 'Position', { x: 0, y: 0 });
@@ -55,17 +55,16 @@ describe('ProgramExecutionSystem', () => {
     collision.update();
     system.update();
     const prog = world.getComponent(id, 'Program')!;
-    expect(prog.state).toBe('waiting');
-    expect(prog.waitingFor).toBe('mine');
+    expect(prog.state).toBe('mine');
   });
 
-  it('skips waiting drone', () => {
+  it('skips drone already in an action state', () => {
     const registry = makeRegistry([{ type: 'MINE' }]);
     system = makeSystem(registry);
-    const id = addDrone(world, 'waiting');
+    const id = addDrone(world, 'mine');
     collision.update();
     system.update();
-    expect(world.getComponent(id, 'Program')!.state).toBe('waiting');
+    expect(world.getComponent(id, 'Program')!.state).toBe('mine');
   });
 
   it('skips idle drone', () => {
@@ -84,8 +83,8 @@ describe('ProgramExecutionSystem', () => {
     const id2 = addDrone(world, 'running');
     collision.update();
     system.update();
-    expect(world.getComponent(id1, 'Program')!.waitingFor).toBe('drop');
-    expect(world.getComponent(id2, 'Program')!.waitingFor).toBe('drop');
+    expect(world.getComponent(id1, 'Program')!.state).toBe('drop');
+    expect(world.getComponent(id2, 'Program')!.state).toBe('drop');
   });
 
   it('drone with empty program becomes idle after update', () => {

@@ -251,7 +251,7 @@ export class GameScene extends Phaser.Scene {
         const isIdle = !program || program.state === "idle";
         sprite.setIdleAnimation(isIdle);
 
-        if (program?.waitingFor === "charge") {
+        if (program?.state === "charge") {
           sprite.setGlowMode("charging");
         }
 

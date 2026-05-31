@@ -9,7 +9,7 @@ function makeWorld() {
   return new World();
 }
 
-function addDrone(world: World, state: 'idle' | 'running' | 'waiting' = 'running') {
+function addDrone(world: World, state: 'idle' | 'running' | 'mine' = 'running') {
   const id = world.createEntity();
   world.addComponent(id, 'Position', { x: 0, y: 0 });
   world.addComponent(id, 'Program', { currentProgramId: null, callStack: [], state, commandSlots: 4, personalProgramId: '' });
@@ -43,7 +43,7 @@ describe('StatisticsSystem', () => {
   it('counts idle drones correctly', () => {
     addDrone(world, 'idle');
     addDrone(world, 'running');
-    addDrone(world, 'waiting');
+    addDrone(world, 'mine');
     system.update();
     expect(system.stats.idleDroneCount).toBe(1);
   });

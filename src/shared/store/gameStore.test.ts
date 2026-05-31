@@ -164,15 +164,14 @@ describe('store.restartProgram()', () => {
     expect(program.callStack[0].instructionIndex).toBe(0);
   });
 
-  it('очищает waitingFor и путь движения', () => {
+  it('сбрасывает состояние действия и путь движения', () => {
     const prog: ProgramDef = { id: 'p1', name: 'Test', instructions: [{ type: 'MOVE_TO', targetEntityId: 99 }] };
     const { world, registry, droneId } = makeWorldWithDrone('p1', prog);
     useGameStore.getState().init(world, new Grid(), registry);
 
     // Имитируем дрона в процессе движения
     const program = world.getComponent(droneId, 'Program')!;
-    program.state = 'waiting';
-    program.waitingFor = 'move';
+    program.state = 'move';
     const movement = world.getComponent(droneId, 'Movement')!;
     movement.path = [{ x: 1, y: 0 }, { x: 2, y: 0 }];
     movement.progress = 0.5;
@@ -180,7 +179,6 @@ describe('store.restartProgram()', () => {
     useGameStore.getState().restartProgram(droneId);
 
     expect(program.state).toBe('running');
-    expect(program.waitingFor).toBeUndefined();
     expect(movement.path).toHaveLength(0);
     expect(movement.progress).toBe(0);
   });

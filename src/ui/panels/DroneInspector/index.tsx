@@ -49,7 +49,7 @@ export function DroneInspector() {
   }
 
   const stateColor = drone.programState === 'running' ? '#00d4ff'
-    : drone.programState === 'waiting' ? '#ffd700' : '#445566';
+    : drone.programState !== 'idle' ? '#ffd700' : '#445566';
 
   return (
     <div style={{ padding: '12px' }}>

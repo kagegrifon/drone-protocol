@@ -99,6 +99,10 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
     ? registry.get(drone.assignedProgramId)
     : undefined;
 
+  // Дрон занят action-командой (не idle и не running) — показываем «⚡».
+  const isDroneBusy =
+    !!drone && drone.programState !== "idle" && drone.programState !== "running";
+
   const handleAddPersonal = (type: Instruction["type"]) => {
     if (!personalProgram) return;
     const instr = makeDefaultInstruction(type, entities, programIds);
@@ -396,10 +400,10 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
                         borderTop: "1px solid #1e3a5f",
                         fontFamily: "monospace",
                         fontSize: "11px",
-                        color: drone.waitingFor ? "#00ff88" : "#445566",
+                        color: isDroneBusy ? "#00ff88" : "#445566",
                       }}
                     >
-                      <span>{drone.waitingFor ? "⚡" : "◌"}</span>
+                      <span>{isDroneBusy ? "⚡" : "◌"}</span>
                       <span>{drone.currentInstruction}</span>
                     </div>
                     <button
