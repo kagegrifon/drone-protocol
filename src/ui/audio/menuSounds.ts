@@ -1,16 +1,14 @@
+import { playUiSound } from './uiAudio.js';
 import { useAudioStore } from "../../shared/store/audioStore.js";
 
+function sfxVol(): number {
+  return useAudioStore.getState().sfxVol / 100;
+}
+
 export function playMenuMissionClick(): void {
-  const vol = useAudioStore.getState().sfxVol / 100;
-  const audio = new Audio("/sound/menu_hover.mp3");
-  audio.volume = vol;
-  audio.play().catch(() => {});
+  playUiSound('menu_hover', sfxVol());
 }
 
 export function playMenuStart(): void {
-  const vol = useAudioStore.getState().sfxVol / 100;
-  const audio = new Audio("/sound/menu_click.mp3");
-  audio.volume = vol;
-  audio.play().catch(() => {});
+  playUiSound('menu_click', sfxVol());
 }
-

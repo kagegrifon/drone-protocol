@@ -18,6 +18,7 @@ import { LoadingScreen } from "./ui/screens/LoadingScreen.js";
 import { AudioSettingsModal } from "./ui/modals/AudioSettingsModal.js";
 import type { EntityMeta } from "./game/missions/types.js";
 import type { AudioManager } from "./renderer/audio/AudioManager.js";
+import { preloadUiSounds } from "./ui/audio/uiAudio.js";
 import "./global.css";
 
 type GamePhase = "intro" | "start" | "loading" | "game";
@@ -110,6 +111,10 @@ export default function App() {
       audioManager.play('robot_click');
     }
   }, [selectedDroneId, audioManager]);
+
+  useEffect(() => {
+    preloadUiSounds();
+  }, []);
 
   useEffect(() => {
     return () => controllerRef.current?.destroy();
