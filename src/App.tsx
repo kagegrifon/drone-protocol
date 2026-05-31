@@ -36,6 +36,8 @@ export default function App() {
   const [audioManager, setAudioManager] = useState<AudioManager | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
+  const selectedDroneId = useGameStore((s) => s.selectedDroneId);
+
   const currentMission = ALL_MISSIONS[missionIndex] ?? ALL_MISSIONS[0];
   const isLastMission = missionIndex === ALL_MISSIONS.length - 1;
 
@@ -102,6 +104,12 @@ export default function App() {
     return () => document.removeEventListener("keydown", handleKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSettingsOpen, gamePhase]);
+
+  useEffect(() => {
+    if (selectedDroneId !== null && audioManager) {
+      audioManager.play('robot_click');
+    }
+  }, [selectedDroneId, audioManager]);
 
   useEffect(() => {
     return () => controllerRef.current?.destroy();

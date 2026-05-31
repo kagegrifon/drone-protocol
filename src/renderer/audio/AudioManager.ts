@@ -13,6 +13,7 @@ export class AudioManager {
   private _sfxVol = 0.8;
 
   private readonly _fileLoops = new Map<FileSoundKey, Phaser.Sound.WebAudioSound>();
+  private readonly _playingShots = new Map<FileSoundKey, Phaser.Sound.WebAudioSound>();
   private readonly _synthBuffers = new Map<SynthSoundKey, AudioBuffer>();
   private readonly _synthLoops = new Map<SynthSoundKey, AudioBufferSourceNode>();
 
@@ -45,6 +46,27 @@ export class AudioManager {
 
   play(key: FileSoundKey): void {
     this._sm.play(key, { volume: this._sfxVol });
+  }
+
+  playOnce(key: FileSoundKey): void {
+    const existing = this._playingShots.get(key);
+    if (existing?.isPlaying) return;
+    existing?.destroy();
+    const sound = this._sm.add(key, { volume: this._sfxVol }) as Phaser.Sound.WebAudioSound;
+    sound.once('complete', () => {
+      this._playingShots.delete(key);
+      sound.destroy();
+    });
+    sound.play();
+    this._playingShots.set(key, sound);
+  }
+
+  stopShot(key: FileSoundKey): void {
+    const sound = this._playingShots.get(key);
+    if (!sound) return;
+    sound.stop();
+    sound.destroy();
+    this._playingShots.delete(key);
   }
 
   startFileLoop(key: FileSoundKey): void {
@@ -99,11 +121,13 @@ export class AudioManager {
     this._sfxVol = v;
     this._sfxGain.gain.value = v;
     for (const s of this._fileLoops.values()) s.setVolume(v);
+    for (const s of this._playingShots.values()) s.setVolume(v);
   }
 
   destroy(): void {
     this._musicSound?.destroy();
     for (const s of this._fileLoops.values()) { s.stop(); s.destroy(); }
+    for (const s of this._playingShots.values()) { s.stop(); s.destroy(); }
     for (const src of this._synthLoops.values()) { try { src.stop(); } catch { /* ignore */ } }
   }
 }

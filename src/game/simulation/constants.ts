@@ -9,7 +9,7 @@ export const EPSILON = 1e-6;
 export const BASE_MINE_SPEED = 2;
 export const BASE_CHARGE_SPEED = 10;
 export const BASE_DROP_SPEED = 5;
-export const DEFAULT_DRONE_SPEED = 4;
+export const DEFAULT_DRONE_SPEED = 1;
 
 export function getMineSpeed(_world: World, _droneId: EntityId): number {
   return BASE_MINE_SPEED;
