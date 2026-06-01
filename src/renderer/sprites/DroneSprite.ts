@@ -1,14 +1,17 @@
-import Phaser from 'phaser';
-import { COLORS } from '../config.js';
+import Phaser from "phaser";
+import { COLORS } from "../config.js";
 
 const TRAIL_MAX = 8;
 
-type GlowMode = 'normal' | 'mining' | 'charging';
+type GlowMode = "normal" | "mining" | "charging";
 
-const GLOW_CONFIG: Record<GlowMode, { color: number; radius: number; duration: number }> = {
-  normal:   { color: COLORS.DRONE_LIGHT, radius: 3,  duration: 700 },
-  mining:   { color: 0xff8800,           radius: 5,  duration: 400 },
-  charging: { color: 0x00aaff,           radius: 4,  duration: 280 },
+const GLOW_CONFIG: Record<
+  GlowMode,
+  { color: number; radius: number; duration: number }
+> = {
+  normal: { color: COLORS.DRONE_LIGHT, radius: 3, duration: 700 },
+  mining: { color: 0xff8800, radius: 5, duration: 400 },
+  charging: { color: 0x00aaff, radius: 4, duration: 280 },
 };
 
 const SELECTION_RING_RADIUS = 16;
@@ -19,8 +22,8 @@ const BAR_WIDTH = 28;
 const BAR_HEIGHT = 3;
 const BAR_BG_COLOR = 0x000000;
 const BAR_BG_ALPHA = 0.55;
-const ENERGY_BAR_Y = -16;
-const LOAD_BAR_Y = -12;
+const ENERGY_BAR_Y = -20;
+const LOAD_BAR_Y = -24;
 const ENERGY_BAR_COLOR = 0x00d4ff;
 const LOAD_BAR_COLOR = 0x00ff88;
 
@@ -32,7 +35,7 @@ export class DroneSprite extends Phaser.GameObjects.Container {
   private readonly _loadBar: Phaser.GameObjects.Graphics;
   private _blinkTween: Phaser.Tweens.Tween;
   private _idleTween: Phaser.Tweens.Tween | null = null;
-  private _glowMode: GlowMode = 'normal';
+  private _glowMode: GlowMode = "normal";
   private readonly _trail: { x: number; y: number }[] = [];
   private _lastEnergyRatio = -1;
   private _lastLoadRatio = -1;
@@ -40,18 +43,44 @@ export class DroneSprite extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y);
 
-    this._body = scene.add.image(0, 0, 'sprite_drone');
-    this._light = scene.add.arc(10, -10, 3, 0, 360, false, COLORS.DRONE_LIGHT, 1);
+    this._body = scene.add.image(0, 0, "sprite_drone");
+    this._light = scene.add.arc(
+      10,
+      -10,
+      3,
+      0,
+      360,
+      false,
+      COLORS.DRONE_LIGHT,
+      1,
+    );
 
-    this._selectionRing = scene.add.arc(0, 0, SELECTION_RING_RADIUS, 0, 360, false);
-    this._selectionRing.setStrokeStyle(SELECTION_RING_THICKNESS, SELECTION_RING_COLOR, 1);
+    this._selectionRing = scene.add.arc(
+      0,
+      0,
+      SELECTION_RING_RADIUS,
+      0,
+      360,
+      false,
+    );
+    this._selectionRing.setStrokeStyle(
+      SELECTION_RING_THICKNESS,
+      SELECTION_RING_COLOR,
+      1,
+    );
     this._selectionRing.setFillStyle();
     this._selectionRing.setVisible(false);
 
     this._energyBar = scene.add.graphics();
     this._loadBar = scene.add.graphics();
 
-    this.add([this._light, this._selectionRing, this._body, this._energyBar, this._loadBar]);
+    this.add([
+      this._light,
+      this._selectionRing,
+      this._body,
+      this._energyBar,
+      this._loadBar,
+    ]);
     this.setDepth(10);
     scene.add.existing(this);
 
@@ -64,7 +93,7 @@ export class DroneSprite extends Phaser.GameObjects.Container {
       duration: 700,
       yoyo: true,
       repeat: -1,
-      ease: 'Sine.easeInOut',
+      ease: "Sine.easeInOut",
     });
   }
 
@@ -83,7 +112,7 @@ export class DroneSprite extends Phaser.GameObjects.Container {
       duration: cfg.duration,
       yoyo: true,
       repeat: -1,
-      ease: 'Sine.easeInOut',
+      ease: "Sine.easeInOut",
     });
   }
 
@@ -97,7 +126,7 @@ export class DroneSprite extends Phaser.GameObjects.Container {
         duration: 2000,
         yoyo: true,
         repeat: -1,
-        ease: 'Sine.easeInOut',
+        ease: "Sine.easeInOut",
       });
     } else {
       this._idleTween?.remove();
@@ -123,7 +152,12 @@ export class DroneSprite extends Phaser.GameObjects.Container {
     }
   }
 
-  private _redrawBar(g: Phaser.GameObjects.Graphics, ratio: number, y: number, fillColor: number): void {
+  private _redrawBar(
+    g: Phaser.GameObjects.Graphics,
+    ratio: number,
+    y: number,
+    fillColor: number,
+  ): void {
     const x = -BAR_WIDTH / 2;
     g.clear();
     g.fillStyle(BAR_BG_COLOR, BAR_BG_ALPHA);
