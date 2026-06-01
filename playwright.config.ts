@@ -5,7 +5,7 @@ export default defineConfig({
   fullyParallel: false,
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:5174',
     screenshot: 'only-on-failure',
     // Разрешаем AudioContext без жеста пользователя
     launchOptions: {
@@ -19,8 +19,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
+    command: 'npm run dev -- --port 5174',
+    url: 'http://localhost:5174',
     reuseExistingServer: true,
     timeout: 30_000,
   },

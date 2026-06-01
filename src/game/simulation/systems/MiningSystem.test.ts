@@ -3,9 +3,9 @@ import { World } from '../world/World.js';
 import { MiningSystem } from './MiningSystem.js';
 
 // BASE_MINE_SPEED=2 ore/sec, DT=0.1 → progress += 0.2 per tick → 5 ticks per ore
-// BASE_DROP_SPEED=10 ore/sec, DT=0.1 → progress += 1.0 per tick → 1 tick per ore
+// BASE_DROP_SPEED=5 ore/sec, DT=0.1 → progress += 0.5 per tick → 2 ticks per ore
 const TICKS_PER_ORE_MINE = 5;
-const TICKS_PER_ORE_DROP = 1;
+const TICKS_PER_ORE_DROP = 2;
 
 function makeWorld() {
   return new World();
