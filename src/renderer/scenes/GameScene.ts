@@ -1,7 +1,6 @@
 import Phaser from "phaser";
 import type { World } from "../../game/simulation/world/World.js";
 import type { Grid } from "../../game/simulation/world/Grid.js";
-import type { PositionComponent } from "../../game/simulation/components/Position.js";
 import type { EntityId } from "../../shared/types/index.js";
 import { DroneSprite } from "../sprites/DroneSprite.js";
 import { AudioManager } from "../audio/AudioManager.js";
@@ -9,6 +8,7 @@ import { gameEvents } from "../../shared/events/gameEvents.js";
 import { TILE_SIZE, COLORS, TILE_COLORS } from "../config.js";
 import { useGameStore } from "../../shared/store/gameStore.js";
 import { DT } from "../../game/simulation/constants.js";
+import { interpolateVisualPos } from "./interpolatePosition.js";
 
 export class GameScene extends Phaser.Scene {
   private _world!: World;
@@ -21,9 +21,8 @@ export class GameScene extends Phaser.Scene {
   private _chargingCount = 0;
   private _tick = 0;
 
-  // Snapshot-интерполяция: позиции дронов из двух последних симуляционных тиков
-  private _snapPrev = new Map<EntityId, { x: number; y: number }>();
-  private _snapCurrent = new Map<EntityId, { x: number; y: number }>();
+  // Доинтерполяция внутри симуляционного тика: засекаем начало каждого тика,
+  // чтобы плавно «доводить» прогресс шага между дискретными апдейтами симуляции.
   private _lastSimTick = -1;
   private _tickStartMs = 0;
 
@@ -203,17 +202,9 @@ export class GameScene extends Phaser.Scene {
     const store = useGameStore.getState();
     const selectedId = store.selectedDroneId;
 
-    // Обнаружить новый симуляционный тик и обновить снимки позиций
+    // Обнаружить новый симуляционный тик — засечь его начало для доинтерполяции
     const simTick = store.stats.tick;
     if (simTick !== this._lastSimTick) {
-      this._snapPrev = new Map(this._snapCurrent);
-      for (const entityId of this._world.query("Position", "Movement")) {
-        const pos = this._world.getComponent(entityId, "Position")!;
-        this._snapCurrent.set(entityId, { x: pos.x, y: pos.y });
-        if (!this._snapPrev.has(entityId)) {
-          this._snapPrev.set(entityId, { x: pos.x, y: pos.y });
-        }
-      }
       this._lastSimTick = simTick;
       this._tickStartMs = performance.now();
     }
@@ -222,8 +213,6 @@ export class GameScene extends Phaser.Scene {
       if (!activeIds.has(id)) {
         sprite.destroy();
         this._droneSprites.delete(id);
-        this._snapPrev.delete(id);
-        this._snapCurrent.delete(id);
       }
     }
     for (const [id, img] of this._staticSprites) {
@@ -267,7 +256,16 @@ export class GameScene extends Phaser.Scene {
             : 0;
         sprite.updateStats(energyRatio, loadRatio);
 
-        const { x, y } = this.getSnapshotPos(entityId, pos, t);
+        const movement = this._world.getComponent(entityId, "Movement");
+        const to = movement && movement.path.length > 0 ? movement.path[0] : null;
+        const { x, y } = interpolateVisualPos(
+          pos,
+          to,
+          movement?.progress ?? 0,
+          movement?.speed ?? 0,
+          t,
+          TILE_SIZE,
+        );
         const prevX = sprite.x;
         const prevY = sprite.y;
         sprite.updateVisual(x, y);
@@ -287,32 +285,6 @@ export class GameScene extends Phaser.Scene {
         if (img) img.setVisible(renderable.visible);
       }
     }
-  }
-
-  private getSnapshotPos(
-    entityId: EntityId,
-    pos: PositionComponent,
-    t: number,
-  ): { x: number; y: number } {
-    const prev = this._snapPrev.get(entityId);
-    const current = this._snapCurrent.get(entityId);
-
-    if (!prev || !current) {
-      return {
-        x: pos.x * TILE_SIZE + TILE_SIZE / 2,
-        y: pos.y * TILE_SIZE + TILE_SIZE / 2,
-      };
-    }
-
-    const prevX = prev.x * TILE_SIZE + TILE_SIZE / 2;
-    const prevY = prev.y * TILE_SIZE + TILE_SIZE / 2;
-    const curX = current.x * TILE_SIZE + TILE_SIZE / 2;
-    const curY = current.y * TILE_SIZE + TILE_SIZE / 2;
-
-    return {
-      x: Phaser.Math.Linear(prevX, curX, t),
-      y: Phaser.Math.Linear(prevY, curY, t),
-    };
   }
 
   private setupCamera(worldW: number, worldH: number): void {
