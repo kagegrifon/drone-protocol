@@ -1,16 +1,17 @@
-import Phaser from 'phaser';
-import { COLORS } from '../config.js';
+import Phaser from "phaser";
+import { COLORS } from "../config.js";
+import { BASE_PATH } from "@/constant.js";
 
 export class BootScene extends Phaser.Scene {
   constructor() {
-    super({ key: 'BootScene' });
+    super({ key: "BootScene" });
   }
 
   preload(): void {
-    this.load.audio('music',       '/music/Orbital Rain.mp3');
-    this.load.audio('mine_click',  '/sound/mine_click.mp3');
-    this.load.audio('robot_click', '/sound/robot_click.wav');
-    this.load.audio('drone_hum',   '/sound/drone_hum.mp3');
+    this.load.audio("music", `${BASE_PATH}music/Orbital Rain.mp3`);
+    this.load.audio("mine_click", `${BASE_PATH}sound/mine_click.mp3`);
+    this.load.audio("robot_click", `${BASE_PATH}sound/robot_click.wav`);
+    this.load.audio("drone_hum", `${BASE_PATH}sound/drone_hum.mp3`);
   }
 
   create(): void {
@@ -20,14 +21,14 @@ export class BootScene extends Phaser.Scene {
     this.createChargerTexture();
     this.createParticleTexture();
     this.synthesizeAudio();
-    this.scene.start('GameScene');
+    this.scene.start("GameScene");
   }
 
   private createParticleTexture(): void {
     const g = this.make.graphics();
     g.fillStyle(0xffffff, 1);
     g.fillCircle(4, 4, 4);
-    g.generateTexture('particle_dust', 8, 8);
+    g.generateTexture("particle_dust", 8, 8);
     g.destroy();
   }
 
@@ -46,10 +47,11 @@ export class BootScene extends Phaser.Scene {
         const freq = 400 - 200 * (t / 0.3);
         const gain = Math.exp(-t * 10);
         const tone = Math.sin(2 * Math.PI * freq * t) * gain * 0.5;
-        const noise = t < 0.05 ? (Math.random() * 2 - 1) * Math.exp(-t * 80) * 0.3 : 0;
+        const noise =
+          t < 0.05 ? (Math.random() * 2 - 1) * Math.exp(-t * 80) * 0.3 : 0;
         d[i] = tone + noise;
       }
-      this.registry.set('synth_drop_ore', buf);
+      this.registry.set("synth_drop_ore", buf);
     }
 
     // charge_buzz: 120 Hz с FM wobble ±5 Hz, loopable
@@ -62,9 +64,9 @@ export class BootScene extends Phaser.Scene {
         const t = i / sr;
         const wobble = Math.sin(2 * Math.PI * 5 * t) * 5;
         const phase = ((120 + wobble) * t) % 1;
-        d[i] = (phase < 0.5 ? 0.12 : -0.12);
+        d[i] = phase < 0.5 ? 0.12 : -0.12;
       }
-      this.registry.set('synth_charge_buzz', buf);
+      this.registry.set("synth_charge_buzz", buf);
     }
 
     // mission_complete: C5→E5→G5
@@ -74,9 +76,9 @@ export class BootScene extends Phaser.Scene {
       const buf = ctx.createBuffer(1, n, sr);
       const d = buf.getChannelData(0);
       const notes = [
-        { freq: 523.25, start: 0,    end: 0.5  },
+        { freq: 523.25, start: 0, end: 0.5 },
         { freq: 659.25, start: 0.15, end: 0.75 },
-        { freq: 783.99, start: 0.30, end: 1.5  },
+        { freq: 783.99, start: 0.3, end: 1.5 },
       ];
       for (let i = 0; i < n; i++) {
         const t = i / sr;
@@ -89,7 +91,7 @@ export class BootScene extends Phaser.Scene {
         }
         d[i] = Math.max(-1, Math.min(1, s));
       }
-      this.registry.set('synth_mission_complete', buf);
+      this.registry.set("synth_mission_complete", buf);
     }
   }
 
@@ -105,7 +107,7 @@ export class BootScene extends Phaser.Scene {
     // Solid body
     g.fillStyle(COLORS.DRONE_BODY, 1.0);
     g.fillCircle(24, 24, 9);
-    g.generateTexture('sprite_drone', 48, 48);
+    g.generateTexture("sprite_drone", 48, 48);
     g.destroy();
   }
 
@@ -117,13 +119,13 @@ export class BootScene extends Phaser.Scene {
     g.fillRect(8, 8, 32, 32);
     g.lineStyle(2, COLORS.BASE_ACCENT, 1);
     g.strokeRect(4, 4, 40, 40);
-    g.generateTexture('sprite_base', 48, 48);
+    g.generateTexture("sprite_base", 48, 48);
     g.destroy();
   }
 
   private createMineTexture(): void {
     const g = this.make.graphics();
-    g.fillStyle(COLORS.MINE_ACCENT, 0.10);
+    g.fillStyle(COLORS.MINE_ACCENT, 0.1);
     g.fillRect(4, 4, 40, 40);
     g.fillStyle(COLORS.MINE_ACCENT, 0.45);
     g.fillRect(9, 9, 30, 30);
@@ -138,7 +140,7 @@ export class BootScene extends Phaser.Scene {
     g.lineTo(10, 24);
     g.lineTo(24, 10);
     g.strokePath();
-    g.generateTexture('sprite_mine', 48, 48);
+    g.generateTexture("sprite_mine", 48, 48);
     g.destroy();
   }
 
@@ -154,7 +156,8 @@ export class BootScene extends Phaser.Scene {
     g.fillStyle(COLORS.CHARGER_ACCENT, 0.9);
     g.fillTriangle(24, 11, 30, 25, 24, 25);
     g.fillTriangle(24, 25, 18, 25, 24, 37);
-    g.generateTexture('sprite_charger', 48, 48);
+    g.generateTexture("sprite_charger", 48, 48);
     g.destroy();
   }
 }
+
