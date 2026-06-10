@@ -2,14 +2,19 @@ import type { World } from "../world/World.js";
 import type { Grid } from "../world/Grid.js";
 import type { CollisionSystem } from "./CollisionSystem.js";
 import type { ProgramRegistry } from "../../programs/types.js";
-import { stepProgram } from "../../programs/interpreter.js";
+import { AstBehaviorDriver } from "../../code/AstBehaviorDriver.js";
+import type { BehaviorDriver } from "../../code/BehaviorDriver.js";
+import type { CodeBehaviorDriver } from "../../code/CodeBehaviorDriver.js";
 
 export class ProgramExecutionSystem {
+  private readonly astDriver: BehaviorDriver = new AstBehaviorDriver();
+
   constructor(
     private readonly world: World,
     private readonly grid: Grid,
     private readonly collision: CollisionSystem,
     private readonly registry: ProgramRegistry,
+    private readonly codeDriver?: CodeBehaviorDriver,
   ) {}
 
   update(): void {
@@ -18,13 +23,18 @@ export class ProgramExecutionSystem {
       const program = this.world.getComponent(id, "Program")!;
       if (program.localPaused) continue;
       if (program.state !== "running") continue;
-      stepProgram(
-        id,
-        this.world,
-        this.registry,
-        this.grid,
-        this.collision.occupied,
-      );
+
+      const ctx = {
+        world: this.world,
+        grid: this.grid,
+        registry: this.registry,
+        occupied: this.collision.occupied,
+      };
+
+      const driver: BehaviorDriver =
+        program.codeSource && this.codeDriver ? this.codeDriver : this.astDriver;
+
+      driver.step(id, ctx);
     }
   }
 }

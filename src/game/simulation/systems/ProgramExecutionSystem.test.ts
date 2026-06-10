@@ -136,4 +136,29 @@ describe("ProgramExecutionSystem", () => {
     expect(movement.targetX).toBe(2);
     expect(movement.targetY).toBe(0);
   });
+
+  it("uses CodeBehaviorDriver when program.codeSource is set", async () => {
+    const { CodeBehaviorDriver } = await import("../../code/CodeBehaviorDriver.js");
+    const { NodeWorkerPort } = await import("../../code/worker/NodeWorkerPort.js");
+
+    const registry = makeRegistry([]);
+    const codeDriver = new CodeBehaviorDriver({
+      createPort: () => new NodeWorkerPort(),
+      timeoutMs: 1000,
+    });
+    system = new ProgramExecutionSystem(world, GRID, collision, registry, codeDriver);
+
+    const id = addDrone(world, "running");
+    world.getComponent(id, "Program")!.codeSource = "await drone.mine();";
+
+    collision.update();
+    for (let i = 0; i < 50; i++) {
+      system.update();
+      if (world.getComponent(id, "Program")!.state === "mine") break;
+      await new Promise((r) => setTimeout(r, 10));
+    }
+
+    expect(world.getComponent(id, "Program")!.state).toBe("mine");
+    codeDriver.disposeAll();
+  }, 5000);
 });
