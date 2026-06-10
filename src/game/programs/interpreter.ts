@@ -83,21 +83,13 @@ export function stepProgram(
 
     switch (instruction.type) {
       case "MOVE_TO": {
-        const dronePos = world.getComponent(droneId, "Position");
-        const targetPos = world.getComponent(
+        planAstarMove(
+          droneId,
           instruction.targetEntityId,
-          "Position",
+          world,
+          grid,
+          occupied,
         );
-        if (dronePos && targetPos) {
-          const path = astar(grid, dronePos, targetPos, occupied);
-          const movement = world.getComponent(droneId, "Movement");
-          if (movement && path !== null) {
-            movement.path = path;
-            movement.targetX = targetPos.x;
-            movement.targetY = targetPos.y;
-            movement.progress = 0;
-          }
-        }
         program.state = "move";
         frame.instructionIndex++;
         return;
@@ -201,6 +193,30 @@ export function stepProgram(
   console.warn(
     `stepProgram: drone ${droneId} hit MAX_STEPS_PER_TICK (${MAX_STEPS_PER_TICK}) — likely empty-body LOOP/WHILE/REPEAT`,
   );
+}
+
+/**
+ * Строит путь до targetEntityId через astar и применяет его к Movement дрона.
+ * Используется и AST-веткой MOVE_TO, и CodeBehaviorDriver для drone.moveTo().
+ */
+export function planAstarMove(
+  droneId: EntityId,
+  targetEntityId: EntityId,
+  world: World,
+  grid: Grid,
+  occupied: Set<string>,
+): void {
+  const dronePos = world.getComponent(droneId, "Position");
+  const targetPos = world.getComponent(targetEntityId, "Position");
+  if (!dronePos || !targetPos) return;
+  const path = astar(grid, dronePos, targetPos, occupied);
+  const movement = world.getComponent(droneId, "Movement");
+  if (movement && path !== null) {
+    movement.path = path;
+    movement.targetX = targetPos.x;
+    movement.targetY = targetPos.y;
+    movement.progress = 0;
+  }
 }
 
 function evaluateLeaf(
