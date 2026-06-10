@@ -139,6 +139,7 @@ export class CodeBehaviorDriver implements BehaviorDriver {
         session.phase = "done";
         program.state = "idle";
         this.clearTimeout(session);
+        session.port.terminate();
         return;
       }
       case "error": {
@@ -146,6 +147,7 @@ export class CodeBehaviorDriver implements BehaviorDriver {
         program.state = "idle";
         program.codeError = msg.message;
         this.clearTimeout(session);
+        session.port.terminate();
         return;
       }
     }
