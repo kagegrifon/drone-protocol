@@ -69,3 +69,7 @@ export interface ProgramDef {
 }
 
 export type ProgramRegistry = Map<string, ProgramDef>;
+
+export type DroneBehavior =
+  | { source: "block"; instructions: Instruction[] }
+  | { source: "code"; code: string };
