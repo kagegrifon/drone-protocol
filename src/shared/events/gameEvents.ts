@@ -1,14 +1,20 @@
-import type { EntityId } from '../types/index.js';
+import type { EntityId } from "../types/index.js";
 
 export type GameEventMap = {
-  'ore:mined':        { droneId: EntityId; x: number; y: number };
-  'ore:dropped':      { droneId: EntityId; amount: number };
-  'charge:started':   { droneId: EntityId };
-  'charge:completed': { droneId: EntityId };
-  'mission:complete': undefined;
-  'drone:moved':      { droneId: EntityId; fromX: number; fromY: number; toX: number; toY: number };
-  'entity:removed':   { entityId: EntityId; lastX?: number; lastY?: number };
-  'drone:blocked':    { droneId: EntityId };
+  "ore:mined": { droneId: EntityId; x: number; y: number };
+  "ore:dropped": { droneId: EntityId; amount: number };
+  "charge:started": { droneId: EntityId };
+  "charge:completed": { droneId: EntityId };
+  "mission:complete": undefined;
+  "drone:moved": {
+    droneId: EntityId;
+    fromX: number;
+    fromY: number;
+    toX: number;
+    toY: number;
+  };
+  "entity:removed": { entityId: EntityId; lastX?: number; lastY?: number };
+  "drone:blocked": { droneId: EntityId };
 };
 
 type Listener<T> = (data: T) => void;

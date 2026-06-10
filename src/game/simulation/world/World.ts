@@ -1,15 +1,15 @@
-import type { EntityId } from '../../../shared/types/index.js';
-import type { PositionComponent } from '../components/Position.js';
-import type { EnergyComponent } from '../components/Energy.js';
-import type { InventoryComponent } from '../components/Inventory.js';
-import type { ProgramComponent } from '../components/Program.js';
-import type { MovementComponent } from '../components/Movement.js';
-import type { RenderableComponent } from '../components/Renderable.js';
-import type { DepositComponent } from '../components/Deposit.js';
-import type { ChargerStationComponent } from '../components/ChargerStation.js';
-import type { ModifiersComponent } from '../components/Modifiers.js';
-import type { WorkSlotsComponent } from '../components/WorkSlots.js';
-import { gameEvents } from '../../../shared/events/gameEvents.js';
+import type { EntityId } from "../../../shared/types/index.js";
+import type { PositionComponent } from "../components/Position.js";
+import type { EnergyComponent } from "../components/Energy.js";
+import type { InventoryComponent } from "../components/Inventory.js";
+import type { ProgramComponent } from "../components/Program.js";
+import type { MovementComponent } from "../components/Movement.js";
+import type { RenderableComponent } from "../components/Renderable.js";
+import type { DepositComponent } from "../components/Deposit.js";
+import type { ChargerStationComponent } from "../components/ChargerStation.js";
+import type { ModifiersComponent } from "../components/Modifiers.js";
+import type { WorkSlotsComponent } from "../components/WorkSlots.js";
+import { gameEvents } from "../../../shared/events/gameEvents.js";
 
 export interface ComponentMap {
   Position: PositionComponent;
@@ -28,7 +28,10 @@ export type ComponentName = keyof ComponentMap;
 
 export class World {
   private nextEntityId: EntityId = 1;
-  private components: Map<EntityId, Map<ComponentName, ComponentMap[ComponentName]>> = new Map();
+  private components: Map<
+    EntityId,
+    Map<ComponentName, ComponentMap[ComponentName]>
+  > = new Map();
   private index: Map<ComponentName, Set<EntityId>> = new Map();
 
   createEntity(): EntityId {
@@ -42,8 +45,8 @@ export class World {
     if (!entityComponents) return;
 
     // Emit before removal so subscribers can still read components
-    const pos = this.getComponent(entity, 'Position');
-    gameEvents.emit('entity:removed', {
+    const pos = this.getComponent(entity, "Position");
+    gameEvents.emit("entity:removed", {
       entityId: entity,
       lastX: pos?.x,
       lastY: pos?.y,
@@ -55,7 +58,11 @@ export class World {
     this.components.delete(entity);
   }
 
-  addComponent<K extends ComponentName>(entity: EntityId, name: K, data: ComponentMap[K]): void {
+  addComponent<K extends ComponentName>(
+    entity: EntityId,
+    name: K,
+    data: ComponentMap[K],
+  ): void {
     const entityComponents = this.components.get(entity);
     if (!entityComponents) throw new Error(`Entity ${entity} does not exist`);
     entityComponents.set(name, data);
@@ -68,8 +75,13 @@ export class World {
     this.index.get(name)?.delete(entity);
   }
 
-  getComponent<K extends ComponentName>(entity: EntityId, name: K): ComponentMap[K] | undefined {
-    return this.components.get(entity)?.get(name) as ComponentMap[K] | undefined;
+  getComponent<K extends ComponentName>(
+    entity: EntityId,
+    name: K,
+  ): ComponentMap[K] | undefined {
+    return this.components.get(entity)?.get(name) as
+      | ComponentMap[K]
+      | undefined;
   }
 
   hasComponent<K extends ComponentName>(entity: EntityId, name: K): boolean {

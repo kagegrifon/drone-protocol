@@ -1,4 +1,4 @@
-import type { EntityId } from '../../../shared/types/index.js';
+import type { EntityId } from "../../../shared/types/index.js";
 
 export interface WorkSlot {
   x: number;

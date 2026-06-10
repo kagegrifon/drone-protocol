@@ -108,7 +108,7 @@ export default function App() {
 
   useEffect(() => {
     if (selectedDroneId !== null && audioManager) {
-      audioManager.play('robot_click');
+      audioManager.play("robot_click");
     }
   }, [selectedDroneId, audioManager]);
 
@@ -261,4 +261,3 @@ function SectionLabel({ label }: { label: string }) {
     </div>
   );
 }
-

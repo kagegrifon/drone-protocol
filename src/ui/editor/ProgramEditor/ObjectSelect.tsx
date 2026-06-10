@@ -1,14 +1,14 @@
-import type { ObjectRef } from '../../../game/programs/types.js';
-import type { EntityMeta } from '../../../game/missions/types.js';
+import type { ObjectRef } from "../../../game/programs/types.js";
+import type { EntityMeta } from "../../../game/missions/types.js";
 
 const selectStyle: React.CSSProperties = {
-  background: '#0a1628',
-  border: '1px solid #1e3a5f',
-  color: '#aabbcc',
-  fontFamily: 'monospace',
-  fontSize: '11px',
-  padding: '2px 4px',
-  borderRadius: '2px',
+  background: "#0a1628",
+  border: "1px solid #1e3a5f",
+  color: "#aabbcc",
+  fontFamily: "monospace",
+  fontSize: "11px",
+  padding: "2px 4px",
+  borderRadius: "2px",
 };
 
 interface Props {
@@ -21,25 +21,43 @@ interface Props {
   onChange: (next: ObjectRef) => void;
 }
 
-export function ObjectSelect({ value, entities, filter, label, onChange }: Props) {
+export function ObjectSelect({
+  value,
+  entities,
+  filter,
+  label,
+  onChange,
+}: Props) {
   const filtered = filter ? entities.filter(filter) : entities;
-  const stringValue = value.kind === 'self' ? '__self__' : String(value.id);
+  const stringValue = value.kind === "self" ? "__self__" : String(value.id);
 
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-      {label && <span style={{ color: '#445566', fontFamily: 'monospace', fontSize: '10px' }}>{label}:</span>}
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}>
+      {label && (
+        <span
+          style={{
+            color: "#445566",
+            fontFamily: "monospace",
+            fontSize: "10px",
+          }}
+        >
+          {label}:
+        </span>
+      )}
       <select
         style={selectStyle}
         value={stringValue}
         onChange={(e) => {
           const v = e.target.value;
-          if (v === '__self__') onChange({ kind: 'self' });
-          else onChange({ kind: 'entity', id: Number(v) });
+          if (v === "__self__") onChange({ kind: "self" });
+          else onChange({ kind: "entity", id: Number(v) });
         }}
       >
         <option value="__self__">Self</option>
         {filtered.map(({ id, label: l }) => (
-          <option key={id} value={id}>{l}</option>
+          <option key={id} value={id}>
+            {l}
+          </option>
         ))}
       </select>
     </span>

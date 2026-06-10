@@ -160,4 +160,3 @@ export class BootScene extends Phaser.Scene {
     g.destroy();
   }
 }
-

@@ -1,4 +1,4 @@
-import { playUiSound } from './uiAudio.js';
+import { playUiSound } from "./uiAudio.js";
 import { useAudioStore } from "../../shared/store/audioStore.js";
 
 function sfxVol(): number {
@@ -6,9 +6,9 @@ function sfxVol(): number {
 }
 
 export function playMenuMissionClick(): void {
-  playUiSound('menu_hover', sfxVol());
+  playUiSound("menu_hover", sfxVol());
 }
 
 export function playMenuStart(): void {
-  playUiSound('menu_click', sfxVol());
+  playUiSound("menu_click", sfxVol());
 }

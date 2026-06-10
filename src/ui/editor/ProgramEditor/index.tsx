@@ -59,7 +59,8 @@ function getInstructionByPath(prog: ProgramDef, path: number[]) {
   for (let i = 0; i < path.length - 1; i++) {
     const node = list[path[i]];
     if (!node) return null;
-    if (node.type === "LOOP" || node.type === "REPEAT" || node.type === "WHILE") list = node.body;
+    if (node.type === "LOOP" || node.type === "REPEAT" || node.type === "WHILE")
+      list = node.body;
     else if (node.type === "IF") list = node.then;
     else return null;
   }
@@ -101,7 +102,9 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
 
   // Дрон занят action-командой (не idle и не running) — показываем «⚡».
   const isDroneBusy =
-    !!drone && drone.programState !== "idle" && drone.programState !== "running";
+    !!drone &&
+    drone.programState !== "idle" &&
+    drone.programState !== "running";
 
   const handleAddPersonal = (type: Instruction["type"]) => {
     if (!personalProgram) return;

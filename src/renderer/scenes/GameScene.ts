@@ -257,7 +257,8 @@ export class GameScene extends Phaser.Scene {
         sprite.updateStats(energyRatio, loadRatio);
 
         const movement = this._world.getComponent(entityId, "Movement");
-        const to = movement && movement.path.length > 0 ? movement.path[0] : null;
+        const to =
+          movement && movement.path.length > 0 ? movement.path[0] : null;
         const { x, y } = interpolateVisualPos(
           pos,
           to,

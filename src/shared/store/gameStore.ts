@@ -1,16 +1,23 @@
-import { create } from 'zustand';
-import type { EntityId } from '../types/index.js';
-import type { GameStatus } from '../../game/types.js';
-import type { World } from '../../game/simulation/world/World.js';
-import type { Grid } from '../../game/simulation/world/Grid.js';
-import type { ProgramRegistry, ProgramDef, Instruction } from '../../game/programs/types.js';
-import type { ProgramState, CallFrame } from '../../game/simulation/components/Program.js';
-import { CollisionSystem } from '../../game/simulation/systems/CollisionSystem.js';
-import { ProgramExecutionSystem } from '../../game/simulation/systems/ProgramExecutionSystem.js';
-import { MovementSystem } from '../../game/simulation/systems/MovementSystem.js';
-import { MiningSystem } from '../../game/simulation/systems/MiningSystem.js';
-import { EnergySystem } from '../../game/simulation/systems/EnergySystem.js';
-import { StatisticsSystem } from '../../game/simulation/systems/StatisticsSystem.js';
+import { create } from "zustand";
+import type { EntityId } from "../types/index.js";
+import type { GameStatus } from "../../game/types.js";
+import type { World } from "../../game/simulation/world/World.js";
+import type { Grid } from "../../game/simulation/world/Grid.js";
+import type {
+  ProgramRegistry,
+  ProgramDef,
+  Instruction,
+} from "../../game/programs/types.js";
+import type {
+  ProgramState,
+  CallFrame,
+} from "../../game/simulation/components/Program.js";
+import { CollisionSystem } from "../../game/simulation/systems/CollisionSystem.js";
+import { ProgramExecutionSystem } from "../../game/simulation/systems/ProgramExecutionSystem.js";
+import { MovementSystem } from "../../game/simulation/systems/MovementSystem.js";
+import { MiningSystem } from "../../game/simulation/systems/MiningSystem.js";
+import { EnergySystem } from "../../game/simulation/systems/EnergySystem.js";
+import { StatisticsSystem } from "../../game/simulation/systems/StatisticsSystem.js";
 
 export interface DroneState {
   id: EntityId;
@@ -28,7 +35,7 @@ export interface DroneState {
 
 export function computeActivePath(
   callStack: CallFrame[],
-  state: ProgramState
+  state: ProgramState,
 ): number[] | null {
   if (callStack.length === 0) return null;
 
@@ -40,9 +47,11 @@ export function computeActivePath(
 
     if (isTop) {
       const isWaiting =
-        (state !== 'idle' && state !== 'running') ||
+        (state !== "idle" && state !== "running") ||
         (frame.waitRemaining !== undefined && frame.waitRemaining > 0);
-      const idx = isWaiting ? frame.instructionIndex - 1 : frame.instructionIndex;
+      const idx = isWaiting
+        ? frame.instructionIndex - 1
+        : frame.instructionIndex;
       if (idx < 0) return null;
       path.push(idx);
     } else {
@@ -90,10 +99,23 @@ interface GameStore {
   setRunning(v: boolean): void;
   stepOnce(): void;
   setGameStatus(status: GameStatus, message?: string): void;
-  addInstruction(programId: string, instruction: Instruction, parentPath?: number[]): void;
+  addInstruction(
+    programId: string,
+    instruction: Instruction,
+    parentPath?: number[],
+  ): void;
   removeInstruction(programId: string, path: number[]): void;
-  updateInstruction(programId: string, path: number[], updated: Instruction): void;
-  moveInstruction(programId: string, fromPath: number[], toContainerPath: number[], toIndex: number): void;
+  updateInstruction(
+    programId: string,
+    path: number[],
+    updated: Instruction,
+  ): void;
+  moveInstruction(
+    programId: string,
+    fromPath: number[],
+    toContainerPath: number[],
+    toIndex: number,
+  ): void;
   createProgram(name: string): void;
   assignProgram(droneId: EntityId, programId: string): void;
   unassignProgram(droneId: EntityId): void;
@@ -105,27 +127,44 @@ interface GameStore {
 
 function describeInstruction(instr: Instruction): string {
   switch (instr.type) {
-    case 'MOVE_TO': return `MOVE → #${instr.targetEntityId}`;
-    case 'MINE': return 'MINE';
-    case 'DROP': return 'DROP';
-    case 'CHARGE': return 'CHARGE';
-    case 'WAIT': return `WAIT ${instr.seconds}s`;
-    case 'LOOP': return 'LOOP ∞';
-    case 'REPEAT': return `REPEAT ×${instr.count}`;
-    case 'WHILE': return `WHILE (${instr.conditions.length} cond)`;
-    case 'RUN_PROGRAM': return `RUN ${instr.programId}`;
-    case 'IF': return `IF (${instr.conditions.length} condition${instr.conditions.length !== 1 ? 's' : ''})`;
+    case "MOVE_TO":
+      return `MOVE → #${instr.targetEntityId}`;
+    case "MINE":
+      return "MINE";
+    case "DROP":
+      return "DROP";
+    case "CHARGE":
+      return "CHARGE";
+    case "WAIT":
+      return `WAIT ${instr.seconds}s`;
+    case "LOOP":
+      return "LOOP ∞";
+    case "REPEAT":
+      return `REPEAT ×${instr.count}`;
+    case "WHILE":
+      return `WHILE (${instr.conditions.length} cond)`;
+    case "RUN_PROGRAM":
+      return `RUN ${instr.programId}`;
+    case "IF":
+      return `IF (${instr.conditions.length} condition${instr.conditions.length !== 1 ? "s" : ""})`;
   }
 }
 
-function getInstructionList(instructions: Instruction[], path: number[]): Instruction[] {
+function getInstructionList(
+  instructions: Instruction[],
+  path: number[],
+): Instruction[] {
   let current = instructions;
   for (const idx of path) {
     const node = current[idx];
     if (!node) return current;
-    if (node.type === 'LOOP' || node.type === 'REPEAT' || node.type === 'WHILE') {
+    if (
+      node.type === "LOOP" ||
+      node.type === "REPEAT" ||
+      node.type === "WHILE"
+    ) {
       current = node.body;
-    } else if (node.type === 'IF') {
+    } else if (node.type === "IF") {
       current = node.then;
     } else {
       break;
@@ -135,14 +174,16 @@ function getInstructionList(instructions: Instruction[], path: number[]): Instru
 }
 
 function resetDroneProgram(world: World, droneId: EntityId): void {
-  const program = world.getComponent(droneId, 'Program');
+  const program = world.getComponent(droneId, "Program");
   if (!program || !program.currentProgramId) return;
-  program.callStack = [{ programId: program.currentProgramId, instructionIndex: 0 }];
-  program.state = 'running';
+  program.callStack = [
+    { programId: program.currentProgramId, instructionIndex: 0 },
+  ];
+  program.state = "running";
   program.mineProgress = undefined;
   program.chargeProgress = undefined;
   program.dropProgress = undefined;
-  const movement = world.getComponent(droneId, 'Movement');
+  const movement = world.getComponent(droneId, "Movement");
   if (movement) {
     movement.path = [];
     movement.progress = 0;
@@ -150,20 +191,22 @@ function resetDroneProgram(world: World, droneId: EntityId): void {
 }
 
 function snapshotDrones(world: World, registry: ProgramRegistry): DroneState[] {
-  const ids = world.query('Position', 'Energy', 'Inventory', 'Program');
+  const ids = world.query("Position", "Energy", "Inventory", "Program");
   return ids.map((id) => {
-    const pos = world.getComponent(id, 'Position')!;
-    const energy = world.getComponent(id, 'Energy')!;
-    const inventory = world.getComponent(id, 'Inventory')!;
-    const program = world.getComponent(id, 'Program')!;
+    const pos = world.getComponent(id, "Position")!;
+    const energy = world.getComponent(id, "Energy")!;
+    const inventory = world.getComponent(id, "Inventory")!;
+    const program = world.getComponent(id, "Program")!;
 
-    let currentInstruction = '—';
+    let currentInstruction = "—";
     const frame = program.callStack[program.callStack.length - 1];
     if (frame) {
       const isWaiting =
-        (program.state !== 'idle' && program.state !== 'running') ||
+        (program.state !== "idle" && program.state !== "running") ||
         (frame.waitRemaining !== undefined && frame.waitRemaining > 0);
-      const idx = isWaiting ? frame.instructionIndex - 1 : frame.instructionIndex;
+      const idx = isWaiting
+        ? frame.instructionIndex - 1
+        : frame.instructionIndex;
       if (idx >= 0) {
         const prog = registry.get(frame.programId);
         if (prog) {
@@ -181,7 +224,10 @@ function snapshotDrones(world: World, registry: ProgramRegistry): DroneState[] {
       programState: program.state,
       currentInstruction,
       currentProgramId: program.currentProgramId,
-      currentInstructionPath: computeActivePath(program.callStack, program.state),
+      currentInstructionPath: computeActivePath(
+        program.callStack,
+        program.state,
+      ),
       personalProgramId: program.personalProgramId,
       assignedProgramId: program.assignedProgramId,
       localPaused: program.localPaused ?? false,
@@ -200,7 +246,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   programs: [],
   stats: { orePerMin: 0, congestion: 0, efficiency: 0, tick: 0, oreMined: 0 },
   isRunning: false,
-  gameStatus: 'idle' as GameStatus,
+  gameStatus: "idle" as GameStatus,
   statusMessage: null,
   _systems: null,
   _tickCount: 0,
@@ -208,22 +254,45 @@ export const useGameStore = create<GameStore>((set, get) => ({
   init(world, grid, registry) {
     get()._systems?.statistics.destroy();
     const collision = new CollisionSystem(world);
-    const programExecution = new ProgramExecutionSystem(world, grid, collision, registry);
+    const programExecution = new ProgramExecutionSystem(
+      world,
+      grid,
+      collision,
+      registry,
+    );
     const movement = new MovementSystem(world);
     const mining = new MiningSystem(world);
     const energy = new EnergySystem(world);
     const statistics = new StatisticsSystem(world);
 
-    const systems: Systems = { collision, programExecution, movement, mining, energy, statistics };
-    const programs = Array.from(registry.values()).filter(p => !p.personal);
+    const systems: Systems = {
+      collision,
+      programExecution,
+      movement,
+      mining,
+      energy,
+      statistics,
+    };
+    const programs = Array.from(registry.values()).filter((p) => !p.personal);
     const drones = snapshotDrones(world, registry);
 
     set({
-      world, grid, registry, _systems: systems, programs, drones,
+      world,
+      grid,
+      registry,
+      _systems: systems,
+      programs,
+      drones,
       _tickCount: 0,
-      stats: { orePerMin: 0, congestion: 0, efficiency: 0, tick: 0, oreMined: 0 },
+      stats: {
+        orePerMin: 0,
+        congestion: 0,
+        efficiency: 0,
+        tick: 0,
+        oreMined: 0,
+      },
       isRunning: false,
-      gameStatus: 'idle',
+      gameStatus: "idle",
       statusMessage: null,
     });
   },
@@ -246,9 +315,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       drones: snapshotDrones(world, registry),
       stats: {
         orePerMin: Math.round(s.orePerMinute * 10) / 10,
-        congestion: s.totalDrones > 0
-          ? Math.round((s.congestionEvents / Math.max(tickCount, 1)) * 100)
-          : 0,
+        congestion:
+          s.totalDrones > 0
+            ? Math.round((s.congestionEvents / Math.max(tickCount, 1)) * 100)
+            : 0,
         efficiency: Math.round(s.efficiency * 100),
         tick: tickCount,
         oreMined: s.oreMined,
@@ -281,7 +351,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const list = getInstructionList(prog.instructions, parentPath);
     list.push(instruction);
 
-    set({ programs: Array.from(registry.values()).filter(p => !p.personal) });
+    set({ programs: Array.from(registry.values()).filter((p) => !p.personal) });
   },
 
   removeInstruction(programId, path) {
@@ -294,7 +364,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const list = getInstructionList(prog.instructions, parentPath);
     list.splice(idx, 1);
 
-    set({ programs: Array.from(registry.values()).filter(p => !p.personal) });
+    set({ programs: Array.from(registry.values()).filter((p) => !p.personal) });
   },
 
   updateInstruction(programId, path, updated) {
@@ -305,7 +375,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const idx = path[path.length - 1];
     const list = getInstructionList(prog.instructions, parentPath);
     list[idx] = updated;
-    set({ programs: Array.from(registry.values()).filter(p => !p.personal) });
+    set({ programs: Array.from(registry.values()).filter((p) => !p.personal) });
   },
 
   moveInstruction(programId, fromPath, toContainerPath, toIndex) {
@@ -331,10 +401,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!instr) return;
 
     fromList.splice(fromIndex, 1);
-    const toList = getInstructionList(prog.instructions, adjustedToContainerPath);
+    const toList = getInstructionList(
+      prog.instructions,
+      adjustedToContainerPath,
+    );
     toList.splice(toIndex, 0, instr);
 
-    set({ programs: Array.from(registry.values()).filter(p => !p.personal) });
+    set({ programs: Array.from(registry.values()).filter((p) => !p.personal) });
   },
 
   createProgram(name) {
@@ -342,19 +415,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const id = `program_${_programIdCounter++}`;
     const prog: ProgramDef = { id, name, instructions: [] };
     registry.set(id, prog);
-    set({ programs: Array.from(registry.values()).filter(p => !p.personal) });
+    set({ programs: Array.from(registry.values()).filter((p) => !p.personal) });
   },
 
   assignProgram(droneId, programId) {
     const { world } = get();
     if (!world) return;
-    const program = world.getComponent(droneId, 'Program');
+    const program = world.getComponent(droneId, "Program");
     if (!program) return;
 
     program.assignedProgramId = programId;
     program.currentProgramId = programId;
     program.callStack = [{ programId, instructionIndex: 0 }];
-    program.state = 'running';
+    program.state = "running";
 
     set({ drones: snapshotDrones(world, get().registry) });
   },
@@ -362,15 +435,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
   unassignProgram(droneId) {
     const { world, registry } = get();
     if (!world) return;
-    const program = world.getComponent(droneId, 'Program');
+    const program = world.getComponent(droneId, "Program");
     if (!program) return;
 
     program.assignedProgramId = undefined;
     program.currentProgramId = program.personalProgramId;
-    program.callStack = [{ programId: program.personalProgramId, instructionIndex: 0 }];
-    program.state = 'running';
+    program.callStack = [
+      { programId: program.personalProgramId, instructionIndex: 0 },
+    ];
+    program.state = "running";
 
-    const movement = world.getComponent(droneId, 'Movement');
+    const movement = world.getComponent(droneId, "Movement");
     if (movement) {
       movement.path = [];
       movement.progress = 0;
@@ -389,7 +464,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   startDrone(droneId) {
     const { world, registry } = get();
     if (!world) return;
-    const program = world.getComponent(droneId, 'Program');
+    const program = world.getComponent(droneId, "Program");
     if (!program) return;
     program.localPaused = false;
     set({ drones: snapshotDrones(world, registry) });
@@ -398,7 +473,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   pauseDrone(droneId) {
     const { world, registry } = get();
     if (!world) return;
-    const program = world.getComponent(droneId, 'Program');
+    const program = world.getComponent(droneId, "Program");
     if (!program) return;
     program.localPaused = true;
     set({ drones: snapshotDrones(world, registry) });
@@ -408,7 +483,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { world, registry } = get();
     if (!world) return;
     resetDroneProgram(world, droneId);
-    const program = world.getComponent(droneId, 'Program');
+    const program = world.getComponent(droneId, "Program");
     if (program) program.localPaused = false;
     set({ drones: snapshotDrones(world, registry) });
   },

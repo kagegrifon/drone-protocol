@@ -1,10 +1,15 @@
-import type { EntityId } from '../../shared/types/index.js';
-import type { World } from '../simulation/world/World.js';
-import { DT, EPSILON } from '../simulation/constants.js';
-import type { Grid } from '../simulation/world/Grid.js';
-import type { Instruction, ProgramRegistry, ConditionLeaf, ConditionLogic } from './types.js';
-import { astar } from '../pathfinding/astar.js';
-import { evaluateFunctionCall } from './functions.js';
+import type { EntityId } from "../../shared/types/index.js";
+import type { World } from "../simulation/world/World.js";
+import { DT, EPSILON } from "../simulation/constants.js";
+import type { Grid } from "../simulation/world/Grid.js";
+import type {
+  Instruction,
+  ProgramRegistry,
+  ConditionLeaf,
+  ConditionLogic,
+} from "./types.js";
+import { astar } from "../pathfinding/astar.js";
+import { evaluateFunctionCall } from "./functions.js";
 
 // Защита от бесконечных циклов из чистого control-flow (например, LOOP {}).
 // Любая программа с реальными yield-инструкциями (MOVE_TO/MINE/DROP/CHARGE/WAIT)
@@ -16,10 +21,10 @@ export function stepProgram(
   world: World,
   registry: ProgramRegistry,
   grid: Grid,
-  occupied: Set<string>
+  occupied: Set<string>,
 ): void {
-  const program = world.getComponent(droneId, 'Program');
-  if (!program || program.state !== 'running') return;
+  const program = world.getComponent(droneId, "Program");
+  if (!program || program.state !== "running") return;
 
   // Pre-tick: если на вершине стоит активный WAIT — декрементируем и выходим.
   // Поведение совпадает с прежней семантикой WAIT (N секунд = N/DT тиков задержки).
@@ -33,17 +38,24 @@ export function stepProgram(
 
   for (let step = 0; step < MAX_STEPS_PER_TICK; step++) {
     if (program.callStack.length === 0) {
-      program.state = 'idle';
+      program.state = "idle";
       return;
     }
 
     const frame = program.callStack[program.callStack.length - 1];
-    const instructions = (frame.inlineInstructions as Instruction[] | undefined) ??
-      registry.get(frame.programId)?.instructions ?? [];
+    const instructions =
+      (frame.inlineInstructions as Instruction[] | undefined) ??
+      registry.get(frame.programId)?.instructions ??
+      [];
 
     if (frame.instructionIndex >= instructions.length) {
       if (frame.whileConditions) {
-        const again = evaluateConditions(frame.whileConditions, frame.whileOperators ?? [], droneId, world);
+        const again = evaluateConditions(
+          frame.whileConditions,
+          frame.whileOperators ?? [],
+          droneId,
+          world,
+        );
         if (again) {
           frame.instructionIndex = 0;
           continue;
@@ -63,19 +75,22 @@ export function stepProgram(
         program.callStack[program.callStack.length - 1].instructionIndex++;
         continue;
       }
-      program.state = 'idle';
+      program.state = "idle";
       return;
     }
 
     const instruction = instructions[frame.instructionIndex];
 
     switch (instruction.type) {
-      case 'MOVE_TO': {
-        const dronePos = world.getComponent(droneId, 'Position');
-        const targetPos = world.getComponent(instruction.targetEntityId, 'Position');
+      case "MOVE_TO": {
+        const dronePos = world.getComponent(droneId, "Position");
+        const targetPos = world.getComponent(
+          instruction.targetEntityId,
+          "Position",
+        );
         if (dronePos && targetPos) {
           const path = astar(grid, dronePos, targetPos, occupied);
-          const movement = world.getComponent(droneId, 'Movement');
+          const movement = world.getComponent(droneId, "Movement");
           if (movement && path !== null) {
             movement.path = path;
             movement.targetX = targetPos.x;
@@ -83,56 +98,61 @@ export function stepProgram(
             movement.progress = 0;
           }
         }
-        program.state = 'move';
+        program.state = "move";
         frame.instructionIndex++;
         return;
       }
 
-      case 'MINE':
-        program.state = 'mine';
+      case "MINE":
+        program.state = "mine";
         frame.instructionIndex++;
         return;
 
-      case 'DROP':
-        program.state = 'drop';
+      case "DROP":
+        program.state = "drop";
         frame.instructionIndex++;
         return;
 
-      case 'CHARGE':
-        program.state = 'charge';
+      case "CHARGE":
+        program.state = "charge";
         frame.instructionIndex++;
         return;
 
-      case 'WAIT':
+      case "WAIT":
         // Yield: ставим waitRemaining и выходим, чтобы не «съесть» первый тик ожидания
         // в том же тике (сохраняем прежнее поведение тестов на WAIT).
         frame.waitRemaining = instruction.seconds;
         frame.instructionIndex++;
         return;
 
-      case 'LOOP':
+      case "LOOP":
         program.callStack.push({
-          programId: '__inline__',
+          programId: "__inline__",
           instructionIndex: 0,
           isLoop: true,
           inlineInstructions: instruction.body,
         });
         continue;
 
-      case 'REPEAT':
+      case "REPEAT":
         program.callStack.push({
-          programId: '__inline__',
+          programId: "__inline__",
           instructionIndex: 0,
           repeatRemaining: instruction.count - 1,
           inlineInstructions: instruction.body,
         });
         continue;
 
-      case 'WHILE': {
-        const met = evaluateConditions(instruction.conditions, instruction.operators, droneId, world);
+      case "WHILE": {
+        const met = evaluateConditions(
+          instruction.conditions,
+          instruction.operators,
+          droneId,
+          world,
+        );
         if (met) {
           program.callStack.push({
-            programId: '__inline__',
+            programId: "__inline__",
             instructionIndex: 0,
             whileConditions: instruction.conditions,
             whileOperators: instruction.operators,
@@ -144,24 +164,29 @@ export function stepProgram(
         continue;
       }
 
-      case 'RUN_PROGRAM':
+      case "RUN_PROGRAM":
         program.callStack.push({
           programId: instruction.programId,
           instructionIndex: 0,
         });
         continue;
 
-      case 'IF': {
-        const met = evaluateConditions(instruction.conditions, instruction.operators, droneId, world);
+      case "IF": {
+        const met = evaluateConditions(
+          instruction.conditions,
+          instruction.operators,
+          droneId,
+          world,
+        );
         if (met && instruction.then.length > 0) {
           program.callStack.push({
-            programId: '__inline__',
+            programId: "__inline__",
             instructionIndex: 0,
             inlineInstructions: instruction.then,
           });
         } else if (!met && instruction.else && instruction.else.length > 0) {
           program.callStack.push({
-            programId: '__inline__',
+            programId: "__inline__",
             instructionIndex: 0,
             inlineInstructions: instruction.else,
           });
@@ -173,21 +198,33 @@ export function stepProgram(
     }
   }
 
-  console.warn(`stepProgram: drone ${droneId} hit MAX_STEPS_PER_TICK (${MAX_STEPS_PER_TICK}) — likely empty-body LOOP/WHILE/REPEAT`);
+  console.warn(
+    `stepProgram: drone ${droneId} hit MAX_STEPS_PER_TICK (${MAX_STEPS_PER_TICK}) — likely empty-body LOOP/WHILE/REPEAT`,
+  );
 }
 
-function evaluateLeaf(leaf: ConditionLeaf, droneId: EntityId, world: World): boolean {
+function evaluateLeaf(
+  leaf: ConditionLeaf,
+  droneId: EntityId,
+  world: World,
+): boolean {
   const left = evaluateFunctionCall(leaf.left, droneId, world);
-  const right = leaf.right.kind === 'number'
-    ? leaf.right.value
-    : evaluateFunctionCall(leaf.right.call, droneId, world);
+  const right =
+    leaf.right.kind === "number"
+      ? leaf.right.value
+      : evaluateFunctionCall(leaf.right.call, droneId, world);
   if (left === null || right === null) return false;
   switch (leaf.operator) {
-    case '<':  return left < right;
-    case '<=': return left <= right;
-    case '=':  return left === right;
-    case '>=': return left >= right;
-    case '>':  return left > right;
+    case "<":
+      return left < right;
+    case "<=":
+      return left <= right;
+    case "=":
+      return left === right;
+    case ">=":
+      return left >= right;
+    case ">":
+      return left > right;
   }
 }
 
@@ -195,13 +232,13 @@ function evaluateConditions(
   conditions: ConditionLeaf[],
   operators: ConditionLogic[],
   droneId: EntityId,
-  world: World
+  world: World,
 ): boolean {
   if (conditions.length === 0) return false;
   let result = evaluateLeaf(conditions[0], droneId, world);
   for (let i = 0; i < operators.length; i++) {
     const next = evaluateLeaf(conditions[i + 1], droneId, world);
-    result = operators[i] === 'AND' ? result && next : result || next;
+    result = operators[i] === "AND" ? result && next : result || next;
   }
   return result;
 }

@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 interface AudioState {
   musicVol: number;
@@ -16,6 +16,6 @@ export const useAudioStore = create<AudioState>()(
       setMusicVol: (v) => set({ musicVol: v }),
       setSfxVol: (v) => set({ sfxVol: v }),
     }),
-    { name: 'drone-loop-audio' },
+    { name: "drone-loop-audio" },
   ),
 );

@@ -438,4 +438,3 @@ export function IntroScreen({ onStart }: IntroScreenProps) {
     </div>
   );
 }
-

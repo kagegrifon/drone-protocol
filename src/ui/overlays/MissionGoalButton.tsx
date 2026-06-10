@@ -111,7 +111,12 @@ export function MissionGoalButton({ mission }: Props) {
               fontWeight: "bold",
             }}
           >
-            {progressText(mission, stats.oreMined, stats.orePerMin, stats.efficiency)}
+            {progressText(
+              mission,
+              stats.oreMined,
+              stats.orePerMin,
+              stats.efficiency,
+            )}
           </div>
         </div>
       )}

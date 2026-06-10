@@ -55,7 +55,10 @@ export function BottomPanel({ children }: { children: ReactNode }) {
       const parent = containerRef.current?.parentElement;
       const parentH = parent?.clientHeight ?? window.innerHeight;
       const max = Math.max(MIN_HEIGHT, parentH - 60);
-      const next = Math.max(MIN_HEIGHT, Math.min(max, st.startH + (st.startY - e.clientY)));
+      const next = Math.max(
+        MIN_HEIGHT,
+        Math.min(max, st.startH + (st.startY - e.clientY)),
+      );
       setHeight(next);
     };
     const onUp = () => {
@@ -126,7 +129,11 @@ export function BottomPanel({ children }: { children: ReactNode }) {
         }}
       >
         {mode === "fullscreen" ? (
-          <button style={ICON_BTN} title="Restore" onClick={() => setMode("normal")}>
+          <button
+            style={ICON_BTN}
+            title="Restore"
+            onClick={() => setMode("normal")}
+          >
             ▼
           </button>
         ) : (
@@ -134,11 +141,17 @@ export function BottomPanel({ children }: { children: ReactNode }) {
             <button
               style={ICON_BTN}
               title={mode === "collapsed" ? "Expand" : "Collapse"}
-              onClick={() => setMode(mode === "collapsed" ? "normal" : "collapsed")}
+              onClick={() =>
+                setMode(mode === "collapsed" ? "normal" : "collapsed")
+              }
             >
               {mode === "collapsed" ? "▲" : "▽"}
             </button>
-            <button style={ICON_BTN} title="Fullscreen" onClick={() => setMode("fullscreen")}>
+            <button
+              style={ICON_BTN}
+              title="Fullscreen"
+              onClick={() => setMode("fullscreen")}
+            >
               ⛶
             </button>
           </>

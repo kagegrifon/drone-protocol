@@ -1,17 +1,17 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { GameLoop } from './GameLoop.js';
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { GameLoop } from "./GameLoop.js";
 
 afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('GameLoop', () => {
-  it('starts not running', () => {
+describe("GameLoop", () => {
+  it("starts not running", () => {
     const loop = new GameLoop();
     expect(loop.isRunning).toBe(false);
   });
 
-  it('calls callback at 100ms intervals', () => {
+  it("calls callback at 100ms intervals", () => {
     vi.useFakeTimers();
     const loop = new GameLoop();
     const spy = vi.fn();
@@ -23,7 +23,7 @@ describe('GameLoop', () => {
     expect(spy).toHaveBeenCalledTimes(3);
   });
 
-  it('stops calling callback after stop()', () => {
+  it("stops calling callback after stop()", () => {
     vi.useFakeTimers();
     const loop = new GameLoop();
     const spy = vi.fn();
@@ -37,7 +37,7 @@ describe('GameLoop', () => {
     expect(loop.isRunning).toBe(false);
   });
 
-  it('ignores duplicate start() calls', () => {
+  it("ignores duplicate start() calls", () => {
     vi.useFakeTimers();
     const loop = new GameLoop();
     const spy = vi.fn();
@@ -48,7 +48,7 @@ describe('GameLoop', () => {
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
-  it('stop() is safe when not running', () => {
+  it("stop() is safe when not running", () => {
     const loop = new GameLoop();
     expect(() => loop.stop()).not.toThrow();
   });

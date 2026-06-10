@@ -13,4 +13,3 @@ export interface GameConfig {
   win: WinCondition;
   fail?: FailCondition;
 }
-

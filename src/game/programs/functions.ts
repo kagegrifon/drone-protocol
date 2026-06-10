@@ -1,7 +1,7 @@
-import type { EntityId } from '../../shared/types/index.js';
-import type { ComponentName, World } from '../simulation/world/World.js';
-import type { FunctionName, ObjectRef, FunctionCall } from './types.js';
-import { freeSlotsCount } from '../simulation/world/workSlots.js';
+import type { EntityId } from "../../shared/types/index.js";
+import type { ComponentName, World } from "../simulation/world/World.js";
+import type { FunctionName, ObjectRef, FunctionCall } from "./types.js";
+import { freeSlotsCount } from "../simulation/world/workSlots.js";
 
 export interface FunctionSpec {
   name: FunctionName;
@@ -10,14 +10,22 @@ export interface FunctionSpec {
   arity: 1 | 2;
   argLabels: string[];
   argFilter?: (entityId: EntityId, world: World) => boolean;
-  evaluate: (resolved: EntityId[], droneId: EntityId, world: World) => number | null;
+  evaluate: (
+    resolved: EntityId[],
+    droneId: EntityId,
+    world: World,
+  ) => number | null;
 }
 
 export function resolveObjectRef(ref: ObjectRef, droneId: EntityId): EntityId {
-  return ref.kind === 'self' ? droneId : ref.id;
+  return ref.kind === "self" ? droneId : ref.id;
 }
 
-export function evaluateFunctionCall(call: FunctionCall, droneId: EntityId, world: World): number | null {
+export function evaluateFunctionCall(
+  call: FunctionCall,
+  droneId: EntityId,
+  world: World,
+): number | null {
   const spec = FUNCTIONS[call.fn];
   const resolved = call.args.map((a) => resolveObjectRef(a, droneId));
   return spec.evaluate(resolved, droneId, world);
@@ -31,52 +39,78 @@ function isEntityType(types: ComponentName[]) {
 
 export const FUNCTIONS: Record<FunctionName, FunctionSpec> = {
   Energy: {
-    name: 'Energy', label: 'Energy', icon: '⚡',
-    arity: 1, argLabels: [''],
-    argFilter: isEntityType(['Energy']),
-    evaluate: ([id], _droneId, world) => world.getComponent(id, 'Energy')?.current ?? null,
+    name: "Energy",
+    label: "Energy",
+    icon: "⚡",
+    arity: 1,
+    argLabels: [""],
+    argFilter: isEntityType(["Energy"]),
+    evaluate: ([id], _droneId, world) =>
+      world.getComponent(id, "Energy")?.current ?? null,
   },
   EnergyMax: {
-    name: 'EnergyMax', label: 'EnergyMax', icon: '🔋',
-    arity: 1, argLabels: [''],
-    argFilter: isEntityType(['Energy']),
-    evaluate: ([id], _droneId, world) => world.getComponent(id, 'Energy')?.max ?? null,
+    name: "EnergyMax",
+    label: "EnergyMax",
+    icon: "🔋",
+    arity: 1,
+    argLabels: [""],
+    argFilter: isEntityType(["Energy"]),
+    evaluate: ([id], _droneId, world) =>
+      world.getComponent(id, "Energy")?.max ?? null,
   },
   Inventory: {
-    name: 'Inventory', label: 'Inventory', icon: '📦',
-    arity: 1, argLabels: [''],
-    argFilter: isEntityType(['Inventory']),
-    evaluate: ([id], _droneId, world) => world.getComponent(id, 'Inventory')?.ore ?? null,
+    name: "Inventory",
+    label: "Inventory",
+    icon: "📦",
+    arity: 1,
+    argLabels: [""],
+    argFilter: isEntityType(["Inventory"]),
+    evaluate: ([id], _droneId, world) =>
+      world.getComponent(id, "Inventory")?.ore ?? null,
   },
   InventoryMax: {
-    name: 'InventoryMax', label: 'InventoryMax', icon: '📦+',
-    arity: 1, argLabels: [''],
-    argFilter: isEntityType(['Inventory']),
-    evaluate: ([id], _droneId, world) => world.getComponent(id, 'Inventory')?.capacity ?? null,
+    name: "InventoryMax",
+    label: "InventoryMax",
+    icon: "📦+",
+    arity: 1,
+    argLabels: [""],
+    argFilter: isEntityType(["Inventory"]),
+    evaluate: ([id], _droneId, world) =>
+      world.getComponent(id, "Inventory")?.capacity ?? null,
   },
   Deposit: {
-    name: 'Deposit', label: 'Deposit', icon: '⛏',
-    arity: 1, argLabels: [''],
-    argFilter: isEntityType(['Deposit']),
-    evaluate: ([id], _droneId, world) => world.getComponent(id, 'Deposit')?.oreRemaining ?? null,
+    name: "Deposit",
+    label: "Deposit",
+    icon: "⛏",
+    arity: 1,
+    argLabels: [""],
+    argFilter: isEntityType(["Deposit"]),
+    evaluate: ([id], _droneId, world) =>
+      world.getComponent(id, "Deposit")?.oreRemaining ?? null,
   },
   Distance: {
-    name: 'Distance', label: 'Distance', icon: '🛣',
-    arity: 2, argLabels: ['от', 'до'],
-    argFilter: isEntityType(['Position']),
+    name: "Distance",
+    label: "Distance",
+    icon: "🛣",
+    arity: 2,
+    argLabels: ["от", "до"],
+    argFilter: isEntityType(["Position"]),
     evaluate: ([a, b], _droneId, world) => {
-      const pa = world.getComponent(a, 'Position');
-      const pb = world.getComponent(b, 'Position');
+      const pa = world.getComponent(a, "Position");
+      const pb = world.getComponent(b, "Position");
       if (!pa || !pb) return null;
       return Math.abs(pa.x - pb.x) + Math.abs(pa.y - pb.y);
     },
   },
   FreeSlots: {
-    name: 'FreeSlots', label: 'FreeSlots', icon: '🅿️',
-    arity: 1, argLabels: [''],
-    argFilter: isEntityType(['WorkSlots']),
+    name: "FreeSlots",
+    label: "FreeSlots",
+    icon: "🅿️",
+    arity: 1,
+    argLabels: [""],
+    argFilter: isEntityType(["WorkSlots"]),
     evaluate: ([id], _droneId, world) => {
-      if (!world.getComponent(id, 'WorkSlots')) return null;
+      if (!world.getComponent(id, "WorkSlots")) return null;
       return freeSlotsCount(world, id);
     },
   },

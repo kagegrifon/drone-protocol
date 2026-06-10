@@ -1,4 +1,4 @@
-import type { CellType } from '../shared/constants/cellTypes.js';
+import type { CellType } from "../shared/constants/cellTypes.js";
 
 export const TILE_SIZE = 40;
 

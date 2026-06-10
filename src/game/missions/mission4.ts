@@ -52,7 +52,10 @@ export const mission4: MissionDef = {
               type: "IF",
               conditions: [
                 {
-                  left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: baseId }] },
+                  left: {
+                    fn: "Distance",
+                    args: [{ kind: "self" }, { kind: "entity", id: baseId }],
+                  },
                   operator: "<=",
                   right: { kind: "number", value: 0 },
                 },
@@ -75,7 +78,10 @@ export const mission4: MissionDef = {
                   right: { kind: "number", value: 0 },
                 },
                 {
-                  left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: baseId }] },
+                  left: {
+                    fn: "Distance",
+                    args: [{ kind: "self" }, { kind: "entity", id: baseId }],
+                  },
                   operator: ">",
                   right: { kind: "number", value: 0 },
                 },
@@ -93,7 +99,10 @@ export const mission4: MissionDef = {
                   right: { kind: "number", value: 0 },
                 },
                 {
-                  left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: mine1Id }] },
+                  left: {
+                    fn: "Distance",
+                    args: [{ kind: "self" }, { kind: "entity", id: mine1Id }],
+                  },
                   operator: "<=",
                   right: { kind: "number", value: 0 },
                 },
@@ -111,7 +120,10 @@ export const mission4: MissionDef = {
                   right: { kind: "number", value: 0 },
                 },
                 {
-                  left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: mine1Id }] },
+                  left: {
+                    fn: "Distance",
+                    args: [{ kind: "self" }, { kind: "entity", id: mine1Id }],
+                  },
                   operator: ">",
                   right: { kind: "number", value: 0 },
                 },
@@ -135,7 +147,10 @@ export const mission4: MissionDef = {
               type: "IF",
               conditions: [
                 {
-                  left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: baseId }] },
+                  left: {
+                    fn: "Distance",
+                    args: [{ kind: "self" }, { kind: "entity", id: baseId }],
+                  },
                   operator: "<=",
                   right: { kind: "number", value: 0 },
                 },
@@ -157,7 +172,10 @@ export const mission4: MissionDef = {
                   right: { kind: "number", value: 0 },
                 },
                 {
-                  left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: baseId }] },
+                  left: {
+                    fn: "Distance",
+                    args: [{ kind: "self" }, { kind: "entity", id: baseId }],
+                  },
                   operator: ">",
                   right: { kind: "number", value: 0 },
                 },
@@ -174,7 +192,10 @@ export const mission4: MissionDef = {
                   right: { kind: "number", value: 0 },
                 },
                 {
-                  left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: mine2Id }] },
+                  left: {
+                    fn: "Distance",
+                    args: [{ kind: "self" }, { kind: "entity", id: mine2Id }],
+                  },
                   operator: "<=",
                   right: { kind: "number", value: 0 },
                 },
@@ -191,7 +212,10 @@ export const mission4: MissionDef = {
                   right: { kind: "number", value: 0 },
                 },
                 {
-                  left: { fn: "Distance", args: [{ kind: "self" }, { kind: "entity", id: mine2Id }] },
+                  left: {
+                    fn: "Distance",
+                    args: [{ kind: "self" }, { kind: "entity", id: mine2Id }],
+                  },
                   operator: ">",
                   right: { kind: "number", value: 0 },
                 },

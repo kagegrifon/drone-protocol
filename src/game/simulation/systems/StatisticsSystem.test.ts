@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { World } from '../world/World.js';
-import { StatisticsSystem } from './StatisticsSystem.js';
-import { DT } from '../constants.js';
+import { describe, it, expect, beforeEach } from "vitest";
+import { World } from "../world/World.js";
+import { StatisticsSystem } from "./StatisticsSystem.js";
+import { DT } from "../constants.js";
 
 const WINDOW_TICKS = Math.round(60 / DT);
 
@@ -9,14 +9,23 @@ function makeWorld() {
   return new World();
 }
 
-function addDrone(world: World, state: 'idle' | 'running' | 'mine' = 'running') {
+function addDrone(
+  world: World,
+  state: "idle" | "running" | "mine" = "running",
+) {
   const id = world.createEntity();
-  world.addComponent(id, 'Position', { x: 0, y: 0 });
-  world.addComponent(id, 'Program', { currentProgramId: null, callStack: [], state, commandSlots: 4, personalProgramId: '' });
+  world.addComponent(id, "Position", { x: 0, y: 0 });
+  world.addComponent(id, "Program", {
+    currentProgramId: null,
+    callStack: [],
+    state,
+    commandSlots: 4,
+    personalProgramId: "",
+  });
   return id;
 }
 
-describe('StatisticsSystem', () => {
+describe("StatisticsSystem", () => {
   let world: World;
   let system: StatisticsSystem;
 
@@ -25,7 +34,7 @@ describe('StatisticsSystem', () => {
     system = new StatisticsSystem(world);
   });
 
-  it('starts with zero stats', () => {
+  it("starts with zero stats", () => {
     expect(system.stats.oreMined).toBe(0);
     expect(system.stats.orePerMinute).toBe(0);
     expect(system.stats.idleDroneCount).toBe(0);
@@ -33,40 +42,40 @@ describe('StatisticsSystem', () => {
     expect(system.stats.efficiency).toBe(0);
   });
 
-  it('counts total drones after update', () => {
-    addDrone(world, 'running');
-    addDrone(world, 'running');
+  it("counts total drones after update", () => {
+    addDrone(world, "running");
+    addDrone(world, "running");
     system.update();
     expect(system.stats.totalDrones).toBe(2);
   });
 
-  it('counts idle drones correctly', () => {
-    addDrone(world, 'idle');
-    addDrone(world, 'running');
-    addDrone(world, 'mine');
+  it("counts idle drones correctly", () => {
+    addDrone(world, "idle");
+    addDrone(world, "running");
+    addDrone(world, "mine");
     system.update();
     expect(system.stats.idleDroneCount).toBe(1);
   });
 
-  it('calculates efficiency as ratio of non-idle drones', () => {
-    addDrone(world, 'idle');
-    addDrone(world, 'running');
+  it("calculates efficiency as ratio of non-idle drones", () => {
+    addDrone(world, "idle");
+    addDrone(world, "running");
     system.update();
     expect(system.stats.efficiency).toBeCloseTo(0.5);
   });
 
-  it('efficiency is 0 when no drones', () => {
+  it("efficiency is 0 when no drones", () => {
     system.update();
     expect(system.stats.efficiency).toBe(0);
   });
 
-  it('accumulates total ore via recordOreMined', () => {
+  it("accumulates total ore via recordOreMined", () => {
     system.recordOreMined(5);
     system.recordOreMined(3);
     expect(system.stats.oreMined).toBe(8);
   });
 
-  it('computes orePerMinute based on ore in last 60 seconds', () => {
+  it("computes orePerMinute based on ore in last 60 seconds", () => {
     // 10 ticks/sec, 60s window = 600 ticks
     // Mine 10 ore per tick for 1 tick, then update
     system.recordOreMined(600);
@@ -83,7 +92,7 @@ describe('StatisticsSystem', () => {
     expect(system.stats.orePerMinute).toBeGreaterThan(0);
   });
 
-  it('orePerMinute stabilizes to correct value over a full 60-second window', () => {
+  it("orePerMinute stabilizes to correct value over a full 60-second window", () => {
     // Mine 10 ore/tick consistently for WINDOW_TICKS (= 60s / DT)
     for (let i = 0; i < WINDOW_TICKS; i++) {
       system.recordOreMined(10);
@@ -93,7 +102,7 @@ describe('StatisticsSystem', () => {
     expect(system.stats.orePerMinute).toBeCloseTo(6000, 0);
   });
 
-  it('records congestion events', () => {
+  it("records congestion events", () => {
     system.recordCongestion();
     system.recordCongestion();
     expect(system.stats.congestionEvents).toBe(2);

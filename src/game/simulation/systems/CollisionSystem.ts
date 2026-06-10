@@ -1,4 +1,4 @@
-import type { World } from '../world/World.js';
+import type { World } from "../world/World.js";
 
 /**
  * CollisionSystem — снимает snapshot целочисленных позиций всех дронов.
@@ -12,9 +12,9 @@ export class CollisionSystem {
 
   update(): void {
     this.occupied.clear();
-    const drones = this.world.query('Position', 'Movement');
+    const drones = this.world.query("Position", "Movement");
     for (const id of drones) {
-      const pos = this.world.getComponent(id, 'Position')!;
+      const pos = this.world.getComponent(id, "Position")!;
       this.occupied.add(`${pos.x},${pos.y}`);
     }
   }

@@ -1,4 +1,4 @@
-import type { Grid } from '../simulation/world/Grid.js';
+import type { Grid } from "../simulation/world/Grid.js";
 
 interface Point {
   x: number;
@@ -31,7 +31,7 @@ export function astar(
   grid: Grid,
   start: Point,
   goal: Point,
-  occupied: Set<string>
+  occupied: Set<string>,
 ): Point[] | null {
   if (start.x === goal.x && start.y === goal.y) return [];
 

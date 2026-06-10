@@ -1,11 +1,18 @@
 export function LoadingScreen() {
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 300,
-      background: '#050810',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      gap: '16px',
-    }}>
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 300,
+        background: "#050810",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "16px",
+      }}
+    >
       <style>{`
         @keyframes spin {
           to { transform: rotate(360deg); }
@@ -19,7 +26,14 @@ export function LoadingScreen() {
         }
       `}</style>
       <div className="loader" />
-      <div style={{ fontFamily: 'monospace', fontSize: '11px', letterSpacing: '3px', color: '#2a4a6a' }}>
+      <div
+        style={{
+          fontFamily: "monospace",
+          fontSize: "11px",
+          letterSpacing: "3px",
+          color: "#2a4a6a",
+        }}
+      >
         ИНИЦИАЛИЗАЦИЯ СИСТЕМ…
       </div>
     </div>

@@ -31,4 +31,3 @@ export const OVERLOAD_THRESHOLDS = [
   { minRatio: 0.5, mul: 0.8, id: "overloaded:medium" as const },
   { minRatio: 0.7, mul: 0.7, id: "overloaded:heavy" as const },
 ] as const;
-

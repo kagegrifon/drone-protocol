@@ -1,4 +1,4 @@
-import type { CellType } from '../../../shared/constants/cellTypes.js';
+import type { CellType } from "../../../shared/constants/cellTypes.js";
 
 const GRID_MIN = 30;
 
@@ -9,19 +9,25 @@ export class Grid {
 
   constructor(width = GRID_MIN, height = GRID_MIN) {
     if (width < GRID_MIN || height < GRID_MIN)
-      throw new Error(`Grid size must be at least ${GRID_MIN}×${GRID_MIN}, got ${width}×${height}`);
+      throw new Error(
+        `Grid size must be at least ${GRID_MIN}×${GRID_MIN}, got ${width}×${height}`,
+      );
     this._width = width;
     this._height = height;
     this.cells = Array.from({ length: height }, () =>
-      Array<CellType>(width).fill('empty')
+      Array<CellType>(width).fill("empty"),
     );
   }
 
-  get width(): number { return this._width; }
-  get height(): number { return this._height; }
+  get width(): number {
+    return this._width;
+  }
+  get height(): number {
+    return this._height;
+  }
 
   getTile(x: number, y: number): CellType {
-    if (!this.inBounds(x, y)) return 'wall';
+    if (!this.inBounds(x, y)) return "wall";
     return this.cells[y][x];
   }
 
@@ -32,7 +38,7 @@ export class Grid {
 
   isWalkable(x: number, y: number): boolean {
     const cell = this.getTile(x, y);
-    return cell !== 'wall';
+    return cell !== "wall";
   }
 
   neighbours(x: number, y: number): { x: number; y: number }[] {

@@ -1,5 +1,5 @@
-import type { AudioManager } from '../../renderer/audio/AudioManager.js';
-import { useAudioStore } from '../../shared/store/audioStore.js';
+import type { AudioManager } from "../../renderer/audio/AudioManager.js";
+import { useAudioStore } from "../../shared/store/audioStore.js";
 
 interface AudioSettingsModalProps {
   isOpen: boolean;
@@ -9,81 +9,86 @@ interface AudioSettingsModalProps {
 }
 
 const OVERLAY: React.CSSProperties = {
-  position: 'fixed',
+  position: "fixed",
   inset: 0,
   zIndex: 400,
-  background: 'rgba(0,0,0,0.7)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
+  background: "rgba(0,0,0,0.7)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
 };
 
 const PANEL: React.CSSProperties = {
-  width: '340px',
-  background: '#0a1628',
-  border: '1px solid #1a3a5a',
-  borderRadius: '4px',
-  padding: '20px 24px',
-  fontFamily: 'monospace',
+  width: "340px",
+  background: "#0a1628",
+  border: "1px solid #1a3a5a",
+  borderRadius: "4px",
+  padding: "20px 24px",
+  fontFamily: "monospace",
 };
 
 const TITLE: React.CSSProperties = {
-  fontSize: '13px',
-  letterSpacing: '3px',
-  color: '#00d4ff',
-  marginBottom: '16px',
+  fontSize: "13px",
+  letterSpacing: "3px",
+  color: "#00d4ff",
+  marginBottom: "16px",
 };
 
 const SECTION: React.CSSProperties = {
-  fontSize: '10px',
-  letterSpacing: '2px',
-  color: '#2a4a6a',
-  marginBottom: '10px',
+  fontSize: "10px",
+  letterSpacing: "2px",
+  color: "#2a4a6a",
+  marginBottom: "10px",
 };
 
 const ROW: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '8px',
-  marginBottom: '8px',
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  marginBottom: "8px",
 };
 
 const LABEL: React.CSSProperties = {
-  fontSize: '11px',
-  color: '#4a8aaa',
-  width: '20px',
+  fontSize: "11px",
+  color: "#4a8aaa",
+  width: "20px",
   flexShrink: 0,
 };
 
 const SLIDER: React.CSSProperties = {
   flex: 1,
-  accentColor: '#00d4ff',
-  cursor: 'pointer',
+  accentColor: "#00d4ff",
+  cursor: "pointer",
 };
 
 const VAL: React.CSSProperties = {
-  fontSize: '10px',
-  color: '#2a6a8a',
-  width: '28px',
-  textAlign: 'right',
+  fontSize: "10px",
+  color: "#2a6a8a",
+  width: "28px",
+  textAlign: "right",
   flexShrink: 0,
 };
 
 const CLOSE_BTN: React.CSSProperties = {
-  marginTop: '16px',
-  width: '100%',
-  background: '#0d2040',
-  border: '1px solid #1a3a5a',
-  color: '#4a8aaa',
-  padding: '8px',
-  cursor: 'pointer',
-  fontFamily: 'monospace',
-  fontSize: '11px',
-  letterSpacing: '2px',
-  borderRadius: '3px',
+  marginTop: "16px",
+  width: "100%",
+  background: "#0d2040",
+  border: "1px solid #1a3a5a",
+  color: "#4a8aaa",
+  padding: "8px",
+  cursor: "pointer",
+  fontFamily: "monospace",
+  fontSize: "11px",
+  letterSpacing: "2px",
+  borderRadius: "3px",
 };
 
-export function AudioSettingsModal({ isOpen, onClose, audioManager, onBackToMissions }: AudioSettingsModalProps) {
+export function AudioSettingsModal({
+  isOpen,
+  onClose,
+  audioManager,
+  onBackToMissions,
+}: AudioSettingsModalProps) {
   const { musicVol, sfxVol, setMusicVol, setSfxVol } = useAudioStore();
 
   if (!isOpen) return null;
@@ -106,7 +111,10 @@ export function AudioSettingsModal({ isOpen, onClose, audioManager, onBackToMiss
         <div style={ROW}>
           <span style={LABEL}>🎵</span>
           <input
-            type="range" min={0} max={100} value={musicVol}
+            type="range"
+            min={0}
+            max={100}
+            value={musicVol}
             style={SLIDER}
             onChange={(e) => handleMusicVol(+e.target.value)}
           />
@@ -115,7 +123,10 @@ export function AudioSettingsModal({ isOpen, onClose, audioManager, onBackToMiss
         <div style={ROW}>
           <span style={LABEL}>🔊</span>
           <input
-            type="range" min={0} max={100} value={sfxVol}
+            type="range"
+            min={0}
+            max={100}
+            value={sfxVol}
             style={SLIDER}
             onChange={(e) => handleSfxVol(+e.target.value)}
           />
@@ -123,13 +134,20 @@ export function AudioSettingsModal({ isOpen, onClose, audioManager, onBackToMiss
         </div>
         {onBackToMissions && (
           <button
-            style={{ ...CLOSE_BTN, marginTop: '12px', color: '#00d4ff', borderColor: '#1a4a6a' }}
+            style={{
+              ...CLOSE_BTN,
+              marginTop: "12px",
+              color: "#00d4ff",
+              borderColor: "#1a4a6a",
+            }}
             onClick={onBackToMissions}
           >
             ← ВЫБОР МИССИЙ
           </button>
         )}
-        <button style={CLOSE_BTN} onClick={onClose}>✕ ЗАКРЫТЬ</button>
+        <button style={CLOSE_BTN} onClick={onClose}>
+          ✕ ЗАКРЫТЬ
+        </button>
       </div>
     </div>
   );

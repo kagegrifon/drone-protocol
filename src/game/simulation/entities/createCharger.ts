@@ -1,15 +1,15 @@
-import type { EntityId } from '../../../shared/types/index.js';
-import type { World } from '../world/World.js';
+import type { EntityId } from "../../../shared/types/index.js";
+import type { World } from "../world/World.js";
 
 export function createCharger(world: World, x: number, y: number): EntityId {
   const id = world.createEntity();
-  world.addComponent(id, 'Position', { x, y });
-  world.addComponent(id, 'ChargerStation', { chargeRate: 10 });
-  world.addComponent(id, 'Renderable', {
-    spriteType: 'charger',
+  world.addComponent(id, "Position", { x, y });
+  world.addComponent(id, "ChargerStation", { chargeRate: 10 });
+  world.addComponent(id, "Renderable", {
+    spriteType: "charger",
     visible: true,
     tint: 0xffffff,
   });
-  world.addComponent(id, 'WorkSlots', { slots: [{ x, y, occupiedBy: null }] });
+  world.addComponent(id, "WorkSlots", { slots: [{ x, y, occupiedBy: null }] });
   return id;
 }

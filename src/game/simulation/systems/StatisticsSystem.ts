@@ -1,6 +1,9 @@
-import type { World } from '../world/World.js';
-import { gameEvents, type GameEventMap } from '../../../shared/events/gameEvents.js';
-import { DT } from '../constants.js';
+import type { World } from "../world/World.js";
+import {
+  gameEvents,
+  type GameEventMap,
+} from "../../../shared/events/gameEvents.js";
+import { DT } from "../constants.js";
 
 export interface StatisticsState {
   oreMined: number;
@@ -26,15 +29,15 @@ export class StatisticsSystem {
   private oreThisTick = 0;
   private oreHistory: number[] = [];
 
-  private readonly _onOreDropped: (data: GameEventMap['ore:dropped']) => void;
+  private readonly _onOreDropped: (data: GameEventMap["ore:dropped"]) => void;
 
   constructor(private readonly world: World) {
     this._onOreDropped = ({ amount }) => this.recordOreMined(amount);
-    gameEvents.on('ore:dropped', this._onOreDropped);
+    gameEvents.on("ore:dropped", this._onOreDropped);
   }
 
   destroy(): void {
-    gameEvents.off('ore:dropped', this._onOreDropped);
+    gameEvents.off("ore:dropped", this._onOreDropped);
   }
 
   recordOreMined(amount: number): void {
@@ -56,16 +59,18 @@ export class StatisticsSystem {
 
     const totalOreInWindow = this.oreHistory.reduce((a, b) => a + b, 0);
     const elapsedSeconds = this.oreHistory.length * DT;
-    this.stats.orePerMinute = elapsedSeconds > 0 ? (totalOreInWindow / elapsedSeconds) * 60 : 0;
+    this.stats.orePerMinute =
+      elapsedSeconds > 0 ? (totalOreInWindow / elapsedSeconds) * 60 : 0;
 
-    const drones = this.world.query('Position', 'Program');
+    const drones = this.world.query("Position", "Program");
     let idle = 0;
     for (const id of drones) {
-      const program = this.world.getComponent(id, 'Program')!;
-      if (program.state === 'idle') idle++;
+      const program = this.world.getComponent(id, "Program")!;
+      if (program.state === "idle") idle++;
     }
     this.stats.idleDroneCount = idle;
     this.stats.totalDrones = drones.length;
-    this.stats.efficiency = drones.length > 0 ? (drones.length - idle) / drones.length : 0;
+    this.stats.efficiency =
+      drones.length > 0 ? (drones.length - idle) / drones.length : 0;
   }
 }

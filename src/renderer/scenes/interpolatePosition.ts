@@ -1,4 +1,4 @@
-import { DT } from '../../game/simulation/constants.js';
+import { DT } from "../../game/simulation/constants.js";
 
 export interface Cell {
   x: number;
