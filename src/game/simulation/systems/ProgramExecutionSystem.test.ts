@@ -146,11 +146,22 @@ describe("ProgramExecutionSystem", () => {
     expect(movement.targetY).toBe(0);
   });
 
-  it("uses CodeBehaviorDriver when program.codeSource is set", async () => {
+  it("uses CodeBehaviorDriver when active program has behaviorMode='code'", async () => {
     const { CodeBehaviorDriver } = await import("../../code/CodeBehaviorDriver.js");
     const { NodeWorkerPort } = await import("../../code/worker/NodeWorkerPort.js");
 
-    const registry = makeRegistry([]);
+    const registry: ProgramRegistry = new Map([
+      [
+        "prog",
+        {
+          id: "prog",
+          name: "Prog",
+          instructions: [],
+          behaviorMode: "code",
+          codeSource: "await drone.mine();",
+        },
+      ],
+    ]);
     const codeDriver = new CodeBehaviorDriver({
       createPort: () => new NodeWorkerPort(),
       timeoutMs: 1000,
@@ -158,7 +169,6 @@ describe("ProgramExecutionSystem", () => {
     system = new ProgramExecutionSystem(world, GRID, collision, registry, codeDriver);
 
     const id = addDrone(world, "running");
-    world.getComponent(id, "Program")!.codeSource = "await drone.mine();";
 
     collision.update();
     for (let i = 0; i < 50; i++) {
@@ -170,4 +180,23 @@ describe("ProgramExecutionSystem", () => {
     expect(world.getComponent(id, "Program")!.state).toBe("mine");
     codeDriver.disposeAll();
   }, 5000);
+
+  it("uses AstBehaviorDriver when active program has behaviorMode='block', even if codeDriver is provided", async () => {
+    const { CodeBehaviorDriver } = await import("../../code/CodeBehaviorDriver.js");
+    const { NodeWorkerPort } = await import("../../code/worker/NodeWorkerPort.js");
+
+    const registry = makeRegistry([{ type: "MINE" }]);
+    const codeDriver = new CodeBehaviorDriver({
+      createPort: () => new NodeWorkerPort(),
+      timeoutMs: 1000,
+    });
+    system = new ProgramExecutionSystem(world, GRID, collision, registry, codeDriver);
+
+    const id = addDrone(world, "running");
+    collision.update();
+    system.update();
+
+    expect(world.getComponent(id, "Program")!.state).toBe("mine");
+    codeDriver.disposeAll();
+  });
 });

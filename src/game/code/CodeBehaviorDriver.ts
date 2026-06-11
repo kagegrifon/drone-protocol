@@ -46,7 +46,9 @@ export class CodeBehaviorDriver implements BehaviorDriver {
     let session = this.sessions.get(droneId);
 
     if (!session) {
-      const code = program.codeSource;
+      const activeProgramId =
+        program.currentProgramId ?? program.personalProgramId;
+      const code = ctx.registry.get(activeProgramId)?.codeSource;
       if (!code) return;
       const entities = this.options.entities?.(droneId, ctx) ?? {};
       const port = this.options.createPort();

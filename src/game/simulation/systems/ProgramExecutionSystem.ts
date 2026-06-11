@@ -31,8 +31,13 @@ export class ProgramExecutionSystem {
         occupied: this.collision.occupied,
       };
 
+      const activeProgramId =
+        program.currentProgramId ?? program.personalProgramId;
+      const activeDef = this.registry.get(activeProgramId);
       const driver: BehaviorDriver =
-        program.codeSource && this.codeDriver ? this.codeDriver : this.astDriver;
+        activeDef?.behaviorMode === "code" && this.codeDriver
+          ? this.codeDriver
+          : this.astDriver;
 
       driver.step(id, ctx);
     }

@@ -7,9 +7,8 @@ import type { ProgramRegistry } from "../programs/types.js";
 
 const EMPTY_GRID = new Grid();
 const EMPTY_OCCUPIED = new Set<string>();
-const EMPTY_REGISTRY: ProgramRegistry = new Map();
 
-function addDrone(world: World, x = 0, y = 0) {
+function addDrone(world: World, codeSource: string, x = 0, y = 0) {
   const id = world.createEntity();
   world.addComponent(id, "Position", { x, y });
   world.addComponent(id, "Energy", {
@@ -27,28 +26,41 @@ function addDrone(world: World, x = 0, y = 0) {
     speed: 1,
   });
   world.addComponent(id, "Program", {
-    currentProgramId: null,
+    currentProgramId: "personal",
     callStack: [],
     state: "running",
     commandSlots: 4,
-    personalProgramId: "",
+    personalProgramId: "personal",
   });
-  return id;
+  const registry: ProgramRegistry = new Map([
+    [
+      "personal",
+      {
+        id: "personal",
+        name: "Personal",
+        instructions: [],
+        behaviorMode: "code",
+        codeSource,
+      },
+    ],
+  ]);
+  return { id, registry };
 }
 
-function ctx(world: World) {
-  return { world, grid: EMPTY_GRID, registry: EMPTY_REGISTRY, occupied: EMPTY_OCCUPIED };
+function ctx(world: World, registry: ProgramRegistry) {
+  return { world, grid: EMPTY_GRID, registry, occupied: EMPTY_OCCUPIED };
 }
 
 async function tickUntil(
   driver: CodeBehaviorDriver,
   droneId: number,
   world: World,
+  registry: ProgramRegistry,
   predicate: () => boolean,
   maxTicks = 200,
 ) {
   for (let i = 0; i < maxTicks; i++) {
-    driver.step(droneId, ctx(world));
+    driver.step(droneId, ctx(world, registry));
     if (predicate()) return i;
     await new Promise((r) => setTimeout(r, 5));
   }
@@ -72,13 +84,13 @@ describe("CodeBehaviorDriver", () => {
   });
 
   it("await drone.mine() sets state=mine and returns from the tick", async () => {
-    const drone = addDrone(world);
-    world.getComponent(drone, "Program")!.codeSource = "await drone.mine();";
+    const { id: drone, registry } = addDrone(world, "await drone.mine();");
 
     await tickUntil(
       driver,
       drone,
       world,
+      registry,
       () => world.getComponent(drone, "Program")!.state === "mine",
     );
 
@@ -87,14 +99,16 @@ describe("CodeBehaviorDriver", () => {
   });
 
   it("resolves the awaited action once state returns to running, advancing to the next await", async () => {
-    const drone = addDrone(world);
-    world.getComponent(drone, "Program")!.codeSource =
-      "await drone.mine(); await drone.charge();";
+    const { id: drone, registry } = addDrone(
+      world,
+      "await drone.mine(); await drone.charge();",
+    );
 
     await tickUntil(
       driver,
       drone,
       world,
+      registry,
       () => world.getComponent(drone, "Program")!.state === "mine",
     );
 
@@ -105,6 +119,7 @@ describe("CodeBehaviorDriver", () => {
       driver,
       drone,
       world,
+      registry,
       () => world.getComponent(drone, "Program")!.state === "charge",
     );
 
@@ -112,8 +127,7 @@ describe("CodeBehaviorDriver", () => {
   });
 
   it("an infinite loop without await is caught by the timeout", async () => {
-    const drone = addDrone(world);
-    world.getComponent(drone, "Program")!.codeSource = "while (true) {}";
+    const { id: drone, registry } = addDrone(world, "while (true) {}");
     driver = new CodeBehaviorDriver({
       createPort: () => new NodeWorkerPort(),
       timeoutMs: 200,
@@ -123,6 +137,7 @@ describe("CodeBehaviorDriver", () => {
       driver,
       drone,
       world,
+      registry,
       () => world.getComponent(drone, "Program")!.codeError !== undefined,
       400,
     );
@@ -134,9 +149,10 @@ describe("CodeBehaviorDriver", () => {
   it("identical code produces an identical state trace (determinism)", async () => {
     async function run(): Promise<string[]> {
       const w = new World();
-      const drone = addDrone(w);
-      w.getComponent(drone, "Program")!.codeSource =
-        "await drone.mine(); await drone.charge();";
+      const { id: drone, registry } = addDrone(
+        w,
+        "await drone.mine(); await drone.charge();",
+      );
       const d = new CodeBehaviorDriver({
         createPort: () => new NodeWorkerPort(),
         timeoutMs: 1000,
@@ -147,6 +163,7 @@ describe("CodeBehaviorDriver", () => {
           d,
           drone,
           w,
+          registry,
           () => {
             trace.push(w.getComponent(drone, "Program")!.state);
             if (w.getComponent(drone, "Program")!.state === "mine") {

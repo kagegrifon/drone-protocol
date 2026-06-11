@@ -96,13 +96,24 @@ describe("block vs code equivalence", () => {
     // --- CODE ---
     const { world: w2, drone: d2, ore: o2 } = setupWorld();
     w2.addComponent(d2, "Program", {
-      currentProgramId: null,
+      currentProgramId: "personal",
       callStack: [],
       state: "running",
       commandSlots: 4,
-      personalProgramId: "",
-      codeSource: "await drone.moveTo(ore); await drone.mine();",
+      personalProgramId: "personal",
     });
+    const codeRegistry: ProgramRegistry = new Map([
+      [
+        "personal",
+        {
+          id: "personal",
+          name: "Personal",
+          instructions: [],
+          behaviorMode: "code",
+          codeSource: "await drone.moveTo(ore); await drone.mine();",
+        },
+      ],
+    ]);
     const codeDriver = new CodeBehaviorDriver({
       createPort: () => new NodeWorkerPort(),
       timeoutMs: 1000,
@@ -119,7 +130,7 @@ describe("block vs code equivalence", () => {
           codeDriver.step(d2, {
             world: w2,
             grid: GRID,
-            registry: new Map(),
+            registry: codeRegistry,
             occupied: OCCUPIED,
           });
           continue;
@@ -127,7 +138,7 @@ describe("block vs code equivalence", () => {
         codeDriver.step(d2, {
           world: w2,
           grid: GRID,
-          registry: new Map(),
+          registry: codeRegistry,
           occupied: OCCUPIED,
         });
         await new Promise((r) => setTimeout(r, 5));
