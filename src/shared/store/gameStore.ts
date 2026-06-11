@@ -123,6 +123,7 @@ interface GameStore {
     options?: { createPort?: () => CodeWorkerPort },
   ): void;
   setCodeModeEnabled(v: boolean): void;
+  setProgramCodeSource(programId: string, code: string): void;
   tick(): void;
   selectDrone(id: EntityId | null): void;
   setRunning(v: boolean): void;
@@ -412,6 +413,32 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (status !== "idle" && status !== "won" && status !== "failed") return;
     saveCodeModeEnabled(v);
     set({ codeModeEnabled: v });
+  },
+
+  setProgramCodeSource(programId, code) {
+    const { registry, world, _systems } = get();
+    const prog = registry.get(programId);
+    if (!prog) return;
+    prog.codeSource = code;
+
+    if (world && _systems) {
+      for (const droneId of world.query(
+        "Position",
+        "Energy",
+        "Inventory",
+        "Program",
+      )) {
+        const program = world.getComponent(droneId, "Program")!;
+        if (
+          program.personalProgramId === programId ||
+          program.currentProgramId === programId
+        ) {
+          _systems.programExecution.disposeDrone(droneId);
+        }
+      }
+    }
+
+    set({ programs: filterPrograms(registry, get().codeModeEnabled) });
   },
 
   addInstruction(programId, instruction, parentPath = []) {

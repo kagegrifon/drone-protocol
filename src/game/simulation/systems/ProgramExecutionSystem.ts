@@ -2,6 +2,7 @@ import type { World } from "../world/World.js";
 import type { Grid } from "../world/Grid.js";
 import type { CollisionSystem } from "./CollisionSystem.js";
 import type { ProgramRegistry } from "../../programs/types.js";
+import type { EntityId } from "../../../shared/types/index.js";
 import { AstBehaviorDriver } from "../../code/AstBehaviorDriver.js";
 import type { BehaviorDriver } from "../../code/BehaviorDriver.js";
 import type { CodeBehaviorDriver } from "../../code/CodeBehaviorDriver.js";
@@ -45,5 +46,10 @@ export class ProgramExecutionSystem {
 
   dispose(): void {
     this.codeDriver?.disposeAll();
+  }
+
+  /** Сбрасывает воркер-сессию дрона, чтобы новый код применился на следующем тике. */
+  disposeDrone(droneId: EntityId): void {
+    this.codeDriver?.dispose(droneId);
   }
 }

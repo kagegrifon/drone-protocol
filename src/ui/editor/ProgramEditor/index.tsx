@@ -21,6 +21,7 @@ import {
   AddInstructionMenu,
 } from "./instructionUtils.js";
 import { DropSlot, type SlotData } from "./DropSlot.js";
+import { CodeEditor } from "../CodeEditor/CodeEditor.js";
 import type { Instruction, ProgramDef } from "../../../game/programs/types.js";
 import type { EntityMeta } from "../../../game/missions/types.js";
 
@@ -86,6 +87,8 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
   const unassignProgram = useGameStore((s) => s.unassignProgram);
   const selectDrone = useGameStore((s) => s.selectDrone);
   const moveInstruction = useGameStore((s) => s.moveInstruction);
+  const codeModeEnabled = useGameStore((s) => s.codeModeEnabled);
+  const setProgramCodeSource = useGameStore((s) => s.setProgramCodeSource);
   const [activeDragData, setActiveDragData] = useState<DragItemData | null>(
     null,
   );
@@ -339,7 +342,31 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
                         {personalExpanded ? "▲" : "▼"}
                       </button>
                     </div>
-                    {personalExpanded && (
+                    {personalExpanded && codeModeEnabled && (
+                      <>
+                        <CodeEditor
+                          value={personalProgram.codeSource ?? ""}
+                          onChange={(code) =>
+                            setProgramCodeSource(personalProgram.id, code)
+                          }
+                          height="240px"
+                        />
+                        {drone.codeError && (
+                          <div
+                            style={{
+                              color: "#ff4444",
+                              fontFamily: "monospace",
+                              fontSize: "11px",
+                              marginTop: "6px",
+                              whiteSpace: "pre-wrap",
+                            }}
+                          >
+                            {drone.codeError}
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {personalExpanded && !codeModeEnabled && (
                       <DndContext
                         collisionDetection={pointerWithin}
                         onDragStart={handleDragStart}
@@ -701,48 +728,58 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
                 <div
                   style={{ borderTop: "1px solid #1e3a5f", paddingTop: "8px" }}
                 >
-                  <DndContext
-                    collisionDetection={pointerWithin}
-                    onDragStart={handleDragStart}
-                    onDragEnd={handleDragEnd}
-                  >
-                    <SortableContext
-                      items={editingProgram.instructions.map((_, i) =>
-                        String(i),
-                      )}
-                      strategy={verticalListSortingStrategy}
+                  {codeModeEnabled ? (
+                    <CodeEditor
+                      value={editingProgram.codeSource ?? ""}
+                      onChange={(code) =>
+                        setProgramCodeSource(editingProgramId!, code)
+                      }
+                      height="240px"
+                    />
+                  ) : (
+                    <DndContext
+                      collisionDetection={pointerWithin}
+                      onDragStart={handleDragStart}
+                      onDragEnd={handleDragEnd}
                     >
-                      <DropSlot
-                        programId={editingProgramId!}
-                        containerPath={[]}
-                        insertIndex={0}
-                        isDragging={activeDragData !== null}
-                      />
-                      {editingProgram.instructions.map((instr, i) => (
-                        <React.Fragment key={String(i)}>
-                          <InstructionBlock
-                            instruction={instr}
-                            programId={editingProgramId!}
-                            path={[i]}
-                            entities={entities}
-                            programIds={programIds}
-                            activeInstructionPath={null}
-                            isDragging={activeDragData !== null}
-                          />
-                          <DropSlot
-                            programId={editingProgramId!}
-                            containerPath={[]}
-                            insertIndex={i + 1}
-                            isDragging={activeDragData !== null}
-                          />
-                        </React.Fragment>
-                      ))}
-                    </SortableContext>
-                    <AddInstructionMenu onAdd={handleAddToEditing} />
-                    <DragOverlay dropAnimation={null}>
-                      {renderDragOverlay()}
-                    </DragOverlay>
-                  </DndContext>
+                      <SortableContext
+                        items={editingProgram.instructions.map((_, i) =>
+                          String(i),
+                        )}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        <DropSlot
+                          programId={editingProgramId!}
+                          containerPath={[]}
+                          insertIndex={0}
+                          isDragging={activeDragData !== null}
+                        />
+                        {editingProgram.instructions.map((instr, i) => (
+                          <React.Fragment key={String(i)}>
+                            <InstructionBlock
+                              instruction={instr}
+                              programId={editingProgramId!}
+                              path={[i]}
+                              entities={entities}
+                              programIds={programIds}
+                              activeInstructionPath={null}
+                              isDragging={activeDragData !== null}
+                            />
+                            <DropSlot
+                              programId={editingProgramId!}
+                              containerPath={[]}
+                              insertIndex={i + 1}
+                              isDragging={activeDragData !== null}
+                            />
+                          </React.Fragment>
+                        ))}
+                      </SortableContext>
+                      <AddInstructionMenu onAdd={handleAddToEditing} />
+                      <DragOverlay dropAnimation={null}>
+                        {renderDragOverlay()}
+                      </DragOverlay>
+                    </DndContext>
+                  )}
                 </div>
               </>
             )}
