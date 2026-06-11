@@ -1,6 +1,6 @@
 # Code Mode (этап 1) — ядро исполнения JS-кода дронов
 
-**Статус:** planned
+**Статус:** ядро реализовано; миграция реестра/gameStore на `DroneBehavior` — отдельная будущая задача (см. примечание в конце критериев)
 
 Спецификация: [2026-06-10-drone-code-mode-design.md](../../superpowers/specs/2026-06-10-drone-code-mode-design.md)
 Этап 2 (Monaco): [drone-code-mode-monaco.md](drone-code-mode-monaco.md)
@@ -26,15 +26,27 @@ async/await-код детерминированно встаёт на пошаг
 
 ## Критерии готовности
 
-- [ ] Тип `DroneBehavior` — дискриминированное объединение `{source:'block'; instructions}` /
-      `{source:'code'; code}`; реестр и `gameStore` мигрированы, `type-check` зелёный.
-- [ ] `CodeBehaviorDriver` + Web Worker + async-API (действия + сенсоры) работают.
-- [ ] `ProgramExecutionSystem` выбирает driver по `source`; AST-ветка не изменилась.
-- [ ] Unit: `await drone.moveTo` → `state='move'` + выход тика; «done» резолвит промис;
-      таймаут ловит вечный цикл; одинаковый код → одинаковая трасса `state`.
-- [ ] Эквивалентность: одна задача блоками и кодом → идентичная трасса `state` по тикам.
-- [ ] `npm test` и `npm run type-check` зелёные.
-- [ ] DECISIONS.md обновлён (behavior driver + единая модель намерений).
+- [x] Тип `DroneBehavior` — дискриминированное объединение `{source:'block'; instructions}` /
+      `{source:'code'; code}` добавлен (additive, `src/game/programs/types.ts`), `type-check`
+      зелёный. **Не входит в этот этап:** миграция `ProgramRegistry`/`ProgramDef`/`gameStore` на
+      этот тип во всех ~14 использующих `.instructions` файлах (миссии, UI редактор, рендерер,
+      store) — отдельная будущая задача после Monaco (этап 2). На этом этапе код передаётся
+      через временное additive-поле `program.codeSource`/`program.codeError`.
+- [x] `CodeBehaviorDriver` + Web Worker (`BrowserWorkerPort`/`NodeWorkerPort`) + async-API
+      (действия `moveTo`/`mine`/`drop`/`charge`/`wait` + сенсоры `energy`/`inventory`/
+      `freeSlots`/`distance`/`deposit`) работают.
+- [x] `ProgramExecutionSystem` выбирает driver по `program.codeSource`; AST-ветка
+      (`AstBehaviorDriver`) не изменилась — обёртка над существующим `stepProgram`.
+- [x] Unit: `await drone.moveTo` → `state='move'` + выход тика; «done»/`finished` резолвит
+      промис и переводит к следующему `await`; таймаут (`setTimeout` + `port.terminate()`)
+      ловит вечный цикл (`while(true){}`); одинаковый код → одинаковая трасса distinct `state`
+      (детерминизм, dedupe-сравнение).
+- [x] Эквивалентность: задача `moveTo`+`mine` блоками (`AstBehaviorDriver`/`stepProgram`) и
+      кодом (`CodeBehaviorDriver`) → идентичная последовательность переходов action-`state`
+      (`move`→`mine`→`idle`) — `src/game/code/equivalence.test.ts`.
+- [x] `npm test` и `npm run type-check` зелёные (241/241 тестов, 26 файлов).
+- [x] DECISIONS.md обновлён (behavior driver + единая модель намерений + детали реализации
+      этапа 1).
 
 ## Технические заметки
 

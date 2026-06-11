@@ -18,7 +18,7 @@ docs/features/
 |---|---|---|
 | [congestion-metric.md](planned/congestion-metric.md) | Метрика Congestion (затор дронов) | planned |
 | [drone-modifiers.md](planned/drone-modifiers.md) | Система модификаторов дрона | planned |
-| [drone-code-mode-core.md](planned/drone-code-mode-core.md) | Code Mode (этап 1) — ядро исполнения JS-кода | planned |
+| [drone-code-mode-core.md](planned/drone-code-mode-core.md) | Code Mode (этап 1) — ядро исполнения JS-кода | ядро готово; миграция реестра — будущая задача |
 | [drone-code-mode-monaco.md](planned/drone-code-mode-monaco.md) | Code Mode (этап 2) — редактор Monaco + переключатель | planned |
 
 
