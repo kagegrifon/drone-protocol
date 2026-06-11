@@ -1,17 +1,17 @@
 import type { CodeWorkerPort } from "../CodeWorkerPort.js";
 import type { DriverMessage, WorkerMessage } from "../types.js";
+// Vite-нативный импорт воркера: `?worker` надёжно создаёт worker-бандл и не
+// зависит от import.meta.url, который под HMR приходит с ?t=<timestamp> и ломает
+// трансформацию `new Worker(new URL(...))` (воркер тогда грузится как обычный
+// модуль и его onmessage не срабатывает).
+import BrowserWorkerEntry from "./browserWorkerEntry.ts?worker";
 
 /** CodeWorkerPort поверх браузерного Worker — используется в проде (Vite). */
 export class BrowserWorkerPort implements CodeWorkerPort {
   private readonly worker: Worker;
 
   constructor() {
-    this.worker = new Worker(
-      new URL("./browserWorkerEntry.ts", import.meta.url),
-      {
-        type: "module",
-      },
-    );
+    this.worker = new BrowserWorkerEntry();
   }
 
   postMessage(msg: DriverMessage): void {

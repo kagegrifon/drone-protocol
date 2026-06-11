@@ -7,7 +7,11 @@ import type { CodeWorkerPort } from "./CodeWorkerPort.js";
 import { collectSensors } from "./sensors.js";
 import type { WorkerMessage } from "./types.js";
 
-const DEFAULT_TIMEOUT_MS = 1000;
+// Бюджет на ответ воркера. Большой запас нужен из-за холодного старта в dev:
+// первый запуск worker-модуля под Vite (компиляция + конкуренция с Monaco
+// TS-воркером) может занять до нескольких секунд, хотя последующие ответы
+// приходят за ~15ms.
+const DEFAULT_TIMEOUT_MS = 10000;
 
 type Phase = "idle" | "action-pending" | "waiting" | "done";
 

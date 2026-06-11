@@ -173,6 +173,7 @@ export function AudioSettingsModal({
             <input
               type="radio"
               name="code-mode"
+              data-testid="code-mode-toggle-code"
               checked={codeModeEnabled}
               disabled={codeModeLocked}
               onChange={() => setCodeModeEnabled(true)}
