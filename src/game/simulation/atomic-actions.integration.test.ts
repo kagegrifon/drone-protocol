@@ -21,6 +21,7 @@ function setup() {
         id: "loop-mine",
         name: "Loop Mine",
         instructions: [{ type: "LOOP", body: [{ type: "MINE" }] }] as never,
+        behaviorMode: "block",
       },
     ],
   ]);

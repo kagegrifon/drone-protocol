@@ -9,7 +9,15 @@ const GRID = new Grid();
 
 function makeRegistry(instructions: object[] = []): ProgramRegistry {
   return new Map([
-    ["prog", { id: "prog", name: "Prog", instructions: instructions as never }],
+    [
+      "prog",
+      {
+        id: "prog",
+        name: "Prog",
+        instructions: instructions as never,
+        behaviorMode: "block",
+      },
+    ],
   ]);
 }
 
@@ -123,6 +131,7 @@ describe("ProgramExecutionSystem", () => {
           instructions: [
             { type: "MOVE_TO", targetEntityId: targetId },
           ] as never,
+          behaviorMode: "block" as const,
         },
       ],
     ]);

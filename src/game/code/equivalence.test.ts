@@ -69,7 +69,7 @@ describe("block vs code equivalence", () => {
       { type: "MINE" },
     ];
     const registry: ProgramRegistry = new Map([
-      ["prog", { id: "prog", name: "Prog", instructions }],
+      ["prog", { id: "prog", name: "Prog", instructions, behaviorMode: "block" }],
     ]);
     w1.addComponent(d1, "Program", {
       currentProgramId: "prog",

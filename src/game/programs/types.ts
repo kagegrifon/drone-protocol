@@ -66,6 +66,10 @@ export interface ProgramDef {
   name: string;
   instructions: Instruction[];
   personal?: boolean; // если true — скрыть из списка библиотеки
+  /** Режим программы: блоки или код. Фиксируется при создании (этап 2). */
+  behaviorMode: "block" | "code";
+  /** Исходный код игрока, если behaviorMode === "code". */
+  codeSource?: string;
 }
 
 export type ProgramRegistry = Map<string, ProgramDef>;

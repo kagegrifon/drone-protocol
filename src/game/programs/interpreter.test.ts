@@ -50,7 +50,10 @@ function addDrone(
 
   const programId = "prog_main";
   const registry: ProgramRegistry = new Map([
-    [programId, { id: programId, name: "Main", instructions }],
+    [
+      programId,
+      { id: programId, name: "Main", instructions, behaviorMode: "block" },
+    ],
   ]);
   world.addComponent(id, "Program", {
     currentProgramId: programId,
@@ -313,9 +316,18 @@ describe("stepProgram — RUN_PROGRAM", () => {
           id: "main",
           name: "Main",
           instructions: [{ type: "RUN_PROGRAM", programId: subId }],
+          behaviorMode: "block",
         },
       ],
-      [subId, { id: subId, name: "Sub", instructions: [{ type: "MINE" }] }],
+      [
+        subId,
+        {
+          id: subId,
+          name: "Sub",
+          instructions: [{ type: "MINE" }],
+          behaviorMode: "block",
+        },
+      ],
     ]);
     const id = world.createEntity();
     world.addComponent(id, "Position", { x: 0, y: 0 });
@@ -359,9 +371,18 @@ describe("stepProgram — RUN_PROGRAM", () => {
             { type: "RUN_PROGRAM", programId: subId },
             { type: "CHARGE" },
           ],
+          behaviorMode: "block",
         },
       ],
-      [subId, { id: subId, name: "Sub", instructions: [{ type: "DROP" }] }],
+      [
+        subId,
+        {
+          id: subId,
+          name: "Sub",
+          instructions: [{ type: "DROP" }],
+          behaviorMode: "block",
+        },
+      ],
     ]);
     const id = world.createEntity();
     world.addComponent(id, "Position", { x: 0, y: 0 });

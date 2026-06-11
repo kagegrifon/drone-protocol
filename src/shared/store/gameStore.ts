@@ -31,6 +31,25 @@ export interface DroneState {
   personalProgramId: string;
   assignedProgramId?: string;
   localPaused: boolean;
+  codeError?: string;
+}
+
+const CODE_MODE_STORAGE_KEY = "droneloop.codeModeEnabled";
+
+function loadCodeModeEnabled(): boolean {
+  try {
+    return localStorage.getItem(CODE_MODE_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function saveCodeModeEnabled(v: boolean): void {
+  try {
+    localStorage.setItem(CODE_MODE_STORAGE_KEY, String(v));
+  } catch {
+    // localStorage недоступен — игнорируем
+  }
 }
 
 export function computeActivePath(
@@ -90,10 +109,12 @@ interface GameStore {
   isRunning: boolean;
   gameStatus: GameStatus;
   statusMessage: string | null;
+  codeModeEnabled: boolean;
   _systems: Systems | null;
   _tickCount: number;
 
   init(world: World, grid: Grid, registry: ProgramRegistry): void;
+  setCodeModeEnabled(v: boolean): void;
   tick(): void;
   selectDrone(id: EntityId | null): void;
   setRunning(v: boolean): void;
@@ -173,6 +194,16 @@ function getInstructionList(
   return current;
 }
 
+function filterPrograms(
+  registry: ProgramRegistry,
+  codeModeEnabled: boolean,
+): ProgramDef[] {
+  const mode = codeModeEnabled ? "code" : "block";
+  return Array.from(registry.values()).filter(
+    (p) => !p.personal && p.behaviorMode === mode,
+  );
+}
+
 function resetDroneProgram(world: World, droneId: EntityId): void {
   const program = world.getComponent(droneId, "Program");
   if (!program || !program.currentProgramId) return;
@@ -231,6 +262,7 @@ function snapshotDrones(world: World, registry: ProgramRegistry): DroneState[] {
       personalProgramId: program.personalProgramId,
       assignedProgramId: program.assignedProgramId,
       localPaused: program.localPaused ?? false,
+      codeError: program.codeError,
     };
   });
 }
@@ -248,6 +280,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   isRunning: false,
   gameStatus: "idle" as GameStatus,
   statusMessage: null,
+  codeModeEnabled: loadCodeModeEnabled(),
   _systems: null,
   _tickCount: 0,
 
@@ -273,7 +306,25 @@ export const useGameStore = create<GameStore>((set, get) => ({
       energy,
       statistics,
     };
-    const programs = Array.from(registry.values()).filter((p) => !p.personal);
+
+    const codeModeEnabled = get().codeModeEnabled;
+    for (const droneId of world.query(
+      "Position",
+      "Energy",
+      "Inventory",
+      "Program",
+    )) {
+      const program = world.getComponent(droneId, "Program")!;
+      const personalDef = registry.get(program.personalProgramId);
+      if (!personalDef) continue;
+      if (codeModeEnabled) {
+        personalDef.behaviorMode = "code";
+        personalDef.instructions = [];
+        personalDef.codeSource = "";
+      }
+    }
+
+    const programs = filterPrograms(registry, codeModeEnabled);
     const drones = snapshotDrones(world, registry);
 
     set({
@@ -343,6 +394,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({ gameStatus: status, statusMessage: message ?? null });
   },
 
+  setCodeModeEnabled(v) {
+    const status = get().gameStatus;
+    if (status !== "idle" && status !== "won" && status !== "failed") return;
+    saveCodeModeEnabled(v);
+    set({ codeModeEnabled: v });
+  },
+
   addInstruction(programId, instruction, parentPath = []) {
     const { registry } = get();
     const prog = registry.get(programId);
@@ -351,7 +409,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const list = getInstructionList(prog.instructions, parentPath);
     list.push(instruction);
 
-    set({ programs: Array.from(registry.values()).filter((p) => !p.personal) });
+    set({ programs: filterPrograms(registry, get().codeModeEnabled) });
   },
 
   removeInstruction(programId, path) {
@@ -364,7 +422,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const list = getInstructionList(prog.instructions, parentPath);
     list.splice(idx, 1);
 
-    set({ programs: Array.from(registry.values()).filter((p) => !p.personal) });
+    set({ programs: filterPrograms(registry, get().codeModeEnabled) });
   },
 
   updateInstruction(programId, path, updated) {
@@ -375,7 +433,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const idx = path[path.length - 1];
     const list = getInstructionList(prog.instructions, parentPath);
     list[idx] = updated;
-    set({ programs: Array.from(registry.values()).filter((p) => !p.personal) });
+    set({ programs: filterPrograms(registry, get().codeModeEnabled) });
   },
 
   moveInstruction(programId, fromPath, toContainerPath, toIndex) {
@@ -407,15 +465,24 @@ export const useGameStore = create<GameStore>((set, get) => ({
     );
     toList.splice(toIndex, 0, instr);
 
-    set({ programs: Array.from(registry.values()).filter((p) => !p.personal) });
+    set({ programs: filterPrograms(registry, get().codeModeEnabled) });
   },
 
   createProgram(name) {
-    const { registry } = get();
+    const { registry, codeModeEnabled } = get();
     const id = `program_${_programIdCounter++}`;
-    const prog: ProgramDef = { id, name, instructions: [] };
+    const behaviorMode: ProgramDef["behaviorMode"] = codeModeEnabled
+      ? "code"
+      : "block";
+    const prog: ProgramDef = {
+      id,
+      name,
+      instructions: [],
+      behaviorMode,
+      ...(behaviorMode === "code" ? { codeSource: "" } : {}),
+    };
     registry.set(id, prog);
-    set({ programs: Array.from(registry.values()).filter((p) => !p.personal) });
+    set({ programs: filterPrograms(registry, codeModeEnabled) });
   },
 
   assignProgram(droneId, programId) {

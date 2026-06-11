@@ -43,6 +43,7 @@ export const mission4: MissionDef = {
     const loop1: ProgramDef = {
       id: "loop-m4-d1",
       name: "mine-no-charge",
+      behaviorMode: "block",
       instructions: [
         {
           type: "LOOP",
@@ -139,6 +140,7 @@ export const mission4: MissionDef = {
     const loop2: ProgramDef = {
       id: "loop-m4-d2",
       name: "mine-no-charge",
+      behaviorMode: "block",
       instructions: [
         {
           type: "LOOP",
@@ -247,6 +249,7 @@ export const mission4: MissionDef = {
       name: `drone-${drone1Id}`,
       personal: true,
       instructions: [],
+      behaviorMode: "block",
     };
     registry.set(personal1.id, personal1);
     const p1 = world.getComponent(drone1Id, "Program")!;
@@ -259,6 +262,7 @@ export const mission4: MissionDef = {
       name: `drone-${drone2Id}`,
       personal: true,
       instructions: [],
+      behaviorMode: "block",
     };
     registry.set(personal2.id, personal2);
     const p2 = world.getComponent(drone2Id, "Program")!;

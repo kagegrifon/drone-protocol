@@ -26,7 +26,10 @@ function addDrone(world: World, instructions: Instruction[]) {
   });
   const programId = "prog_main";
   const registry: ProgramRegistry = new Map([
-    [programId, { id: programId, name: "Main", instructions }],
+    [
+      programId,
+      { id: programId, name: "Main", instructions, behaviorMode: "block" },
+    ],
   ]);
   world.addComponent(id, "Program", {
     currentProgramId: programId,

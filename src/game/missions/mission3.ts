@@ -41,6 +41,7 @@ export const mission3: MissionDef = {
     const sharedLoop: ProgramDef = {
       id: "shared-loop-m3",
       name: "mine-loop",
+      behaviorMode: "block",
       instructions: [
         {
           type: "LOOP",
@@ -374,6 +375,7 @@ export const mission3: MissionDef = {
         name: `drone-${droneId}`,
         personal: true,
         instructions: [],
+        behaviorMode: "block",
       };
       registry.set(personalProg.id, personalProg);
       const prog = world.getComponent(droneId, "Program")!;
