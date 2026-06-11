@@ -42,4 +42,8 @@ export class ProgramExecutionSystem {
       driver.step(id, ctx);
     }
   }
+
+  dispose(): void {
+    this.codeDriver?.disposeAll();
+  }
 }

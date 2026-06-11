@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { useGameStore } from "./gameStore.js";
 import { World } from "../../game/simulation/world/World.js";
 import { Grid } from "../../game/simulation/world/Grid.js";
+import type { ProgramState } from "../../game/simulation/components/Program.js";
 import type {
   ProgramRegistry,
   ProgramDef,
@@ -504,4 +505,51 @@ describe("store.init() — personal-программа под codeModeEnabled", 
     expect(personal.behaviorMode).toBe("block");
     expect(personal.instructions).toEqual([{ type: "MINE" }]);
   });
+});
+
+// ─── init() — подключение CodeBehaviorDriver ─────────────────────────────────
+
+describe("store.init() — CodeBehaviorDriver подключён через ProgramExecutionSystem", () => {
+  it("дрон с personal-программой behaviorMode='code' выполняет код через store.tick()", async () => {
+    const { NodeWorkerPort } = await import(
+      "../../game/code/worker/NodeWorkerPort.js"
+    );
+
+    const prog: ProgramDef = {
+      id: "p1",
+      name: "Personal",
+      personal: true,
+      instructions: [],
+      behaviorMode: "code",
+      codeSource: "await drone.mine();",
+    };
+    const { world, registry } = makeWorldWithDrone("p1", prog);
+    const depositId = world.createEntity();
+    world.addComponent(depositId, "Position", { x: 0, y: 0 });
+    world.addComponent(depositId, "Deposit", { oreRemaining: 10, mineRate: 1 });
+
+    const program = world.getComponent(
+      world.query("Position", "Energy", "Inventory", "Program")[0],
+      "Program",
+    )!;
+    program.personalProgramId = "p1";
+    program.currentProgramId = null;
+
+    useGameStore
+      .getState()
+      .init(world, new Grid(), registry, { createPort: () => new NodeWorkerPort() });
+
+    let state: ProgramState = "idle";
+    for (let i = 0; i < 50; i++) {
+      useGameStore.getState().tick();
+      state = world.getComponent(
+        world.query("Position", "Energy", "Inventory", "Program")[0],
+        "Program",
+      )!.state;
+      if (state === "mine") break;
+      await new Promise((r) => setTimeout(r, 10));
+    }
+
+    expect(state).toBe("mine");
+  }, 5000);
 });

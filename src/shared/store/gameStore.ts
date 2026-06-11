@@ -18,6 +18,9 @@ import { MovementSystem } from "../../game/simulation/systems/MovementSystem.js"
 import { MiningSystem } from "../../game/simulation/systems/MiningSystem.js";
 import { EnergySystem } from "../../game/simulation/systems/EnergySystem.js";
 import { StatisticsSystem } from "../../game/simulation/systems/StatisticsSystem.js";
+import { CodeBehaviorDriver } from "../../game/code/CodeBehaviorDriver.js";
+import { BrowserWorkerPort } from "../../game/code/worker/BrowserWorkerPort.js";
+import type { CodeWorkerPort } from "../../game/code/CodeWorkerPort.js";
 
 export interface DroneState {
   id: EntityId;
@@ -113,7 +116,12 @@ interface GameStore {
   _systems: Systems | null;
   _tickCount: number;
 
-  init(world: World, grid: Grid, registry: ProgramRegistry): void;
+  init(
+    world: World,
+    grid: Grid,
+    registry: ProgramRegistry,
+    options?: { createPort?: () => CodeWorkerPort },
+  ): void;
   setCodeModeEnabled(v: boolean): void;
   tick(): void;
   selectDrone(id: EntityId | null): void;
@@ -284,14 +292,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
   _systems: null,
   _tickCount: 0,
 
-  init(world, grid, registry) {
+  init(world, grid, registry, options) {
     get()._systems?.statistics.destroy();
+    get()._systems?.programExecution.dispose();
     const collision = new CollisionSystem(world);
+    const codeDriver = new CodeBehaviorDriver({
+      createPort: options?.createPort ?? (() => new BrowserWorkerPort()),
+    });
     const programExecution = new ProgramExecutionSystem(
       world,
       grid,
       collision,
       registry,
+      codeDriver,
     );
     const movement = new MovementSystem(world);
     const mining = new MiningSystem(world);
