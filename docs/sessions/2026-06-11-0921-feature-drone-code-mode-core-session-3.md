@@ -51,8 +51,22 @@
 ```
 2a5824a test: добавить тест эквивалентности трассы state блоки vs код (Phase 1)
 8d59115 docs: добавить drone-api.d.ts — типовой контракт Code Mode API (Phase 1)
-<этот коммит> docs: зафиксировать реализацию ядра Code Mode и обновить статус фичи (Phase 1)
+705a692 docs: зафиксировать реализацию ядра Code Mode и обновить статус фичи (Phase 1)
+8b0498c docs: зафиксировать открытые вопросы для этапа 2 Code Mode (Phase 1)
 ```
+
+### Финальный review и push
+- Spec compliance review всех 3 задач (Tasks 10-12) → ✅ Compliant (без замечаний)
+- Code quality review Tasks 10-12 → ✅ Ready to merge: Yes (только minor пометки: индекс фич, потенциальная flakiness на slow CI, loop asymmetry — не требуют fixes)
+- Final review всей реализации (Tasks 1-12, диапазон `3d7d30b^..705a692`, 16 коммитов) → ✅ Ready to merge: Yes
+  - Архитектура чистая (BehaviorDriver → AstBehaviorDriver/CodeBehaviorDriver)
+  - Протокол последователен (types.ts используется everywhere в воркерах и driver)
+  - planAstarMove рефакторинг верифицирован (interpreter.test.ts все 36 зелёные)
+  - Главное замечание: CodeBehaviorDriver ещё не подключён в gameStore.ts (это граница Phase 1/2) — явно задокументировано в feature doc и DECISIONS.md
+  - Второе замечание: очистка worker-сессии при смене режима code→block требует внимания на этапе 2
+  - Тесты 241/241 ✅, type-check ✅, BrowserWorkerPort не покрыт (ожидаемо, Vitest не поднимает реальные Workers)
+- Добавлен коммит 8b0498c с явной фиксацией открытых вопросов для фичи (Phase 2 TODO)
+- **Pushed to origin/main** (24 commits, range 9bdd553..8b0498c)
 
 ## Что дальше
 
