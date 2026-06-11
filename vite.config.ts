@@ -17,6 +17,10 @@ export default defineConfig(({ command }) => ({
     __BUNDLED_DEV__: "true",
     __SERVER_FORWARD_CONSOLE__: "false",
   },
+
+  optimizeDeps: {
+    exclude: ["monaco-editor"],
+  },
   test: {
     environment: "node",
     exclude: ["**/node_modules/**", "e2e/**", ".claude/**"],

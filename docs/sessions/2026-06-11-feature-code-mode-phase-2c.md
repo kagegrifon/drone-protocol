@@ -36,3 +36,10 @@
 Phase D): добавить `@monaco-editor/react` и `monaco-editor` в зависимости,
 проверить резолв `?worker`-импортов под `base: "/drone-protocol/"`, создать
 `src/ui/editor/CodeEditor/monacoSetup.ts`.
+
+## Метрики сессии
+- Модель: claude-sonnet-4-6
+- Input: 3,980 токенов (кеш: 8,865,252 / запись в кеш: 316,344)
+- Output: 44,120 токенов
+- Контекст: 102,141 / 200,000 токенов (51.1%)
+- Стоимость: $4.520
