@@ -8,3 +8,6 @@ test-results
 
 .superpowers
 .claude
+.cursor
+.codegraph
+.mcp.json
