@@ -1,6 +1,6 @@
 # Code Mode (этап 1) — ядро исполнения JS-кода дронов
 
-**Статус:** ядро реализовано; миграция реестра/gameStore на `DroneBehavior` — отдельная будущая задача (см. примечание в конце критериев)
+**Статус:** ядро реализовано; миграция реестра/gameStore на `ProgramDef.behavior: DroneBehavior` завершена (см. [DECISIONS.md](../../../DECISIONS.md), запись от 15-06-2026)
 
 Спецификация: [2026-06-10-drone-code-mode-design.md](../../superpowers/specs/2026-06-10-drone-code-mode-design.md)
 Этап 2 (Monaco): [drone-code-mode-monaco.md](drone-code-mode-monaco.md)
@@ -26,12 +26,12 @@ async/await-код детерминированно встаёт на пошаг
 
 ## Критерии готовности
 
-- [x] Тип `DroneBehavior` — дискриминированное объединение `{source:'block'; instructions}` /
-      `{source:'code'; code}` добавлен (additive, `src/game/programs/types.ts`), `type-check`
-      зелёный. **Не входит в этот этап:** миграция `ProgramRegistry`/`ProgramDef`/`gameStore` на
-      этот тип во всех ~14 использующих `.instructions` файлах (миссии, UI редактор, рендерер,
-      store) — отдельная будущая задача после Monaco (этап 2). На этом этапе код передаётся
-      через временное additive-поле `program.codeSource`/`program.codeError`.
+- [x] Тип `DroneBehavior` — дискриминированное объединение `{sourceForm:'block'; instructions}` /
+      `{sourceForm:'code'; code}` добавлен в `src/game/programs/types.ts`, `type-check`
+      зелёный. Миграция `ProgramRegistry`/`ProgramDef`/`gameStore` на `behavior: DroneBehavior`
+      во всех использующих файлах (миссии, UI редактор, store, тесты) выполнена отдельной задачей
+      после Monaco (этап 2) — см. [DECISIONS.md](../../../DECISIONS.md), запись от 15-06-2026.
+      `program.codeError` остался в `ProgramComponent` как runtime-состояние, миграции не подлежал.
 - [x] `CodeBehaviorDriver` + Web Worker (`BrowserWorkerPort`/`NodeWorkerPort`) + async-API
       (действия `moveTo`/`mine`/`drop`/`charge`/`wait` + сенсоры `energy`/`inventory`/
       `freeSlots`/`distance`/`deposit`) работают.
