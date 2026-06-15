@@ -38,9 +38,7 @@ function addDrone(world: World, codeSource: string, x = 0, y = 0) {
       {
         id: "personal",
         name: "Personal",
-        instructions: [],
-        behaviorMode: "code",
-        codeSource,
+        behavior: { sourceForm: "code", code: codeSource },
       },
     ],
   ]);
@@ -159,19 +157,13 @@ describe("CodeBehaviorDriver", () => {
       });
       const trace: string[] = [];
       try {
-        await tickUntil(
-          d,
-          drone,
-          w,
-          registry,
-          () => {
-            trace.push(w.getComponent(drone, "Program")!.state);
-            if (w.getComponent(drone, "Program")!.state === "mine") {
-              w.getComponent(drone, "Program")!.state = "running";
-            }
-            return w.getComponent(drone, "Program")!.state === "charge";
-          },
-        );
+        await tickUntil(d, drone, w, registry, () => {
+          trace.push(w.getComponent(drone, "Program")!.state);
+          if (w.getComponent(drone, "Program")!.state === "mine") {
+            w.getComponent(drone, "Program")!.state = "running";
+          }
+          return w.getComponent(drone, "Program")!.state === "charge";
+        });
       } finally {
         d.disposeAll();
       }

@@ -69,7 +69,14 @@ describe("block vs code equivalence", () => {
       { type: "MINE" },
     ];
     const registry: ProgramRegistry = new Map([
-      ["prog", { id: "prog", name: "Prog", instructions, behaviorMode: "block" }],
+      [
+        "prog",
+        {
+          id: "prog",
+          name: "Prog",
+          behavior: { sourceForm: "block", instructions },
+        },
+      ],
     ]);
     w1.addComponent(d1, "Program", {
       currentProgramId: "prog",
@@ -88,7 +95,12 @@ describe("block vs code equivalence", () => {
         if (program.state === "idle") break;
         continue;
       }
-      astDriver.step(d1, { world: w1, grid: GRID, registry, occupied: OCCUPIED });
+      astDriver.step(d1, {
+        world: w1,
+        grid: GRID,
+        registry,
+        occupied: OCCUPIED,
+      });
       traceAst.push(w1.getComponent(d1, "Program")!.state);
       if (w1.getComponent(d1, "Program")!.state === "idle") break;
     }
@@ -108,9 +120,10 @@ describe("block vs code equivalence", () => {
         {
           id: "personal",
           name: "Personal",
-          instructions: [],
-          behaviorMode: "code",
-          codeSource: "await drone.moveTo(ore); await drone.mine();",
+          behavior: {
+            sourceForm: "code",
+            code: "await drone.moveTo(ore); await drone.mine();",
+          },
         },
       ],
     ]);
@@ -152,7 +165,9 @@ describe("block vs code equivalence", () => {
     // синхронизация воркера может занимать разное число тиков ожидания, но
     // порядок переходов между состояниями должен совпасть.
     const actionTransitions = (trace: string[]): string[] => {
-      const actions = trace.filter((s) => s === "move" || s === "mine" || s === "idle");
+      const actions = trace.filter(
+        (s) => s === "move" || s === "mine" || s === "idle",
+      );
       return actions.filter((s, i) => i === 0 || s !== actions[i - 1]);
     };
 

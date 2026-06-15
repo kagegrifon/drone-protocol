@@ -120,8 +120,7 @@ describe("store.pauseDrone / startDrone / resetDrone", () => {
     const prog: ProgramDef = {
       id: "p1",
       name: "Test",
-      instructions: [{ type: "MINE" }],
-      behaviorMode: "block",
+      behavior: { sourceForm: "block", instructions: [{ type: "MINE" }] },
     };
     const { world, registry, droneId } = makeWorldWithDrone("p1", prog);
     useGameStore.getState().init(world, new Grid(), registry);
@@ -180,8 +179,7 @@ describe("store.restartProgram()", () => {
     const prog: ProgramDef = {
       id: "p1",
       name: "Test",
-      instructions: [{ type: "MINE" }],
-      behaviorMode: "block",
+      behavior: { sourceForm: "block", instructions: [{ type: "MINE" }] },
     };
     const { world, registry, droneId } = makeWorldWithDrone("p1", prog);
     useGameStore.getState().init(world, new Grid(), registry);
@@ -203,8 +201,10 @@ describe("store.restartProgram()", () => {
     const prog: ProgramDef = {
       id: "p1",
       name: "Test",
-      instructions: [{ type: "MOVE_TO", targetEntityId: 99 }],
-      behaviorMode: "block",
+      behavior: {
+        sourceForm: "block",
+        instructions: [{ type: "MOVE_TO", targetEntityId: 99 }],
+      },
     };
     const { world, registry, droneId } = makeWorldWithDrone("p1", prog);
     useGameStore.getState().init(world, new Grid(), registry);
@@ -230,8 +230,7 @@ describe("store.restartProgram()", () => {
     const prog: ProgramDef = {
       id: "p1",
       name: "Test",
-      instructions: [],
-      behaviorMode: "block",
+      behavior: { sourceForm: "block", instructions: [] },
     };
     const { world, registry, droneId } = makeWorldWithDrone("p1", prog);
     useGameStore.getState().init(world, new Grid(), registry);
@@ -256,19 +255,25 @@ describe("store.moveInstruction()", () => {
     const prog: ProgramDef = {
       id: "p1",
       name: "Test",
-      instructions,
-      behaviorMode: "block",
+      behavior: { sourceForm: "block", instructions },
     };
     const registry: ProgramRegistry = new Map([["p1", prog]]);
     useGameStore.getState().init(makeWorld(), makeGrid(), registry);
     return "p1";
   }
 
+  function getInstructions(prog: ProgramDef): Instruction[] {
+    if (prog.behavior.sourceForm !== "block") {
+      throw new Error("expected block behavior");
+    }
+    return prog.behavior.instructions;
+  }
+
   it("перемещает блок в том же списке: root[2] → позиция 0", () => {
     const id = setup([{ type: "MINE" }, { type: "DROP" }, { type: "CHARGE" }]);
     useGameStore.getState().moveInstruction(id, [2], [], 0);
     const prog = useGameStore.getState().programs.find((p) => p.id === id)!;
-    expect(prog.instructions.map((i) => i.type)).toEqual([
+    expect(getInstructions(prog).map((i) => i.type)).toEqual([
       "CHARGE",
       "MINE",
       "DROP",
@@ -279,7 +284,7 @@ describe("store.moveInstruction()", () => {
     const id = setup([{ type: "MINE" }, { type: "DROP" }, { type: "CHARGE" }]);
     useGameStore.getState().moveInstruction(id, [0], [], 2);
     const prog = useGameStore.getState().programs.find((p) => p.id === id)!;
-    expect(prog.instructions.map((i) => i.type)).toEqual([
+    expect(getInstructions(prog).map((i) => i.type)).toEqual([
       "DROP",
       "CHARGE",
       "MINE",
@@ -293,8 +298,9 @@ describe("store.moveInstruction()", () => {
     ]);
     useGameStore.getState().moveInstruction(id, [1], [0], 0);
     const prog = useGameStore.getState().programs.find((p) => p.id === id)!;
-    expect(prog.instructions).toHaveLength(1);
-    const loop = prog.instructions[0] as Extract<Instruction, { type: "LOOP" }>;
+    const instructions = getInstructions(prog);
+    expect(instructions).toHaveLength(1);
+    const loop = instructions[0] as Extract<Instruction, { type: "LOOP" }>;
     expect(loop.body.map((i) => i.type)).toEqual(["MINE", "DROP"]);
   });
 
@@ -305,12 +311,9 @@ describe("store.moveInstruction()", () => {
     ]);
     useGameStore.getState().moveInstruction(id, [0, 0], [], 1);
     const prog = useGameStore.getState().programs.find((p) => p.id === id)!;
-    expect(prog.instructions.map((i) => i.type)).toEqual([
-      "LOOP",
-      "DROP",
-      "CHARGE",
-    ]);
-    const loop = prog.instructions[0] as Extract<Instruction, { type: "LOOP" }>;
+    const instructions = getInstructions(prog);
+    expect(instructions.map((i) => i.type)).toEqual(["LOOP", "DROP", "CHARGE"]);
+    const loop = instructions[0] as Extract<Instruction, { type: "LOOP" }>;
     expect(loop.body.map((i) => i.type)).toEqual(["MINE"]);
   });
 
@@ -321,11 +324,9 @@ describe("store.moveInstruction()", () => {
     ]);
     useGameStore.getState().moveInstruction(id, [1, 0], [0], 0);
     const prog = useGameStore.getState().programs.find((p) => p.id === id)!;
-    const loop = prog.instructions[0] as Extract<Instruction, { type: "LOOP" }>;
-    const repeat = prog.instructions[1] as Extract<
-      Instruction,
-      { type: "REPEAT" }
-    >;
+    const instructions = getInstructions(prog);
+    const loop = instructions[0] as Extract<Instruction, { type: "LOOP" }>;
+    const repeat = instructions[1] as Extract<Instruction, { type: "REPEAT" }>;
     expect(loop.body.map((i) => i.type)).toEqual(["DROP", "CHARGE"]);
     expect(repeat.body).toHaveLength(0);
   });
@@ -338,8 +339,9 @@ describe("store.moveInstruction()", () => {
     // Move root[0] (MINE) inside root[1].body (LOOP) — after removal root[1] becomes root[0]
     useGameStore.getState().moveInstruction(id, [0], [1], 0);
     const prog = useGameStore.getState().programs.find((p) => p.id === id)!;
-    expect(prog.instructions).toHaveLength(1);
-    const loop = prog.instructions[0] as Extract<Instruction, { type: "LOOP" }>;
+    const instructions = getInstructions(prog);
+    expect(instructions).toHaveLength(1);
+    const loop = instructions[0] as Extract<Instruction, { type: "LOOP" }>;
     expect(loop.body.map((i) => i.type)).toEqual(["MINE", "CHARGE"]);
   });
 });
@@ -398,7 +400,7 @@ describe("store.createProgram() — behaviorMode", () => {
     const prog = useGameStore
       .getState()
       .programs.find((p) => p.name === "Test program")!;
-    expect(prog.behaviorMode).toBe("block");
+    expect(prog.behavior.sourceForm).toBe("block");
   });
 
   it("создаёт программу с behaviorMode='code', когда codeModeEnabled=true", () => {
@@ -410,7 +412,7 @@ describe("store.createProgram() — behaviorMode", () => {
     const prog = useGameStore
       .getState()
       .programs.find((p) => p.name === "Test program 2")!;
-    expect(prog.behaviorMode).toBe("code");
+    expect(prog.behavior.sourceForm).toBe("code");
   });
 });
 
@@ -422,15 +424,12 @@ describe("store.programs — фильтрация по codeModeEnabled", () => {
     registry.set("block-prog", {
       id: "block-prog",
       name: "Block program",
-      instructions: [],
-      behaviorMode: "block",
+      behavior: { sourceForm: "block", instructions: [] },
     });
     registry.set("code-prog", {
       id: "code-prog",
       name: "Code program",
-      instructions: [],
-      behaviorMode: "code",
-      codeSource: "",
+      behavior: { sourceForm: "code", code: "" },
     });
     return registry;
   }
@@ -464,8 +463,7 @@ describe("store.init() — personal-программа под codeModeEnabled", 
       id: "p1",
       name: "Personal",
       personal: true,
-      instructions: [{ type: "MINE" }],
-      behaviorMode: "block",
+      behavior: { sourceForm: "block", instructions: [{ type: "MINE" }] },
     };
     const { world, registry } = makeWorldWithDrone("p1", prog);
     world.getComponent(
@@ -478,9 +476,8 @@ describe("store.init() — personal-программа под codeModeEnabled", 
     useGameStore.getState().init(world, new Grid(), registry);
 
     const personal = registry.get("p1")!;
-    expect(personal.behaviorMode).toBe("code");
-    expect(personal.instructions).toEqual([]);
-    expect(personal.codeSource).toBe("");
+    expect(personal.behavior.sourceForm).toBe("code");
+    expect(personal.behavior).toEqual({ sourceForm: "code", code: "" });
   });
 
   it("при codeModeEnabled=false личная программа дрона остаётся behaviorMode='block'", () => {
@@ -488,8 +485,7 @@ describe("store.init() — personal-программа под codeModeEnabled", 
       id: "p1",
       name: "Personal",
       personal: true,
-      instructions: [{ type: "MINE" }],
-      behaviorMode: "block",
+      behavior: { sourceForm: "block", instructions: [{ type: "MINE" }] },
     };
     const { world, registry } = makeWorldWithDrone("p1", prog);
     world.getComponent(
@@ -502,8 +498,11 @@ describe("store.init() — personal-программа под codeModeEnabled", 
     useGameStore.getState().init(world, new Grid(), registry);
 
     const personal = registry.get("p1")!;
-    expect(personal.behaviorMode).toBe("block");
-    expect(personal.instructions).toEqual([{ type: "MINE" }]);
+    expect(personal.behavior.sourceForm).toBe("block");
+    expect(personal.behavior).toEqual({
+      sourceForm: "block",
+      instructions: [{ type: "MINE" }],
+    });
   });
 });
 
@@ -511,17 +510,14 @@ describe("store.init() — personal-программа под codeModeEnabled", 
 
 describe("store.init() — CodeBehaviorDriver подключён через ProgramExecutionSystem", () => {
   it("дрон с personal-программой behaviorMode='code' выполняет код через store.tick()", async () => {
-    const { NodeWorkerPort } = await import(
-      "../../game/code/worker/NodeWorkerPort.js"
-    );
+    const { NodeWorkerPort } =
+      await import("../../game/code/worker/NodeWorkerPort.js");
 
     const prog: ProgramDef = {
       id: "p1",
       name: "Personal",
       personal: true,
-      instructions: [],
-      behaviorMode: "code",
-      codeSource: "await drone.mine();",
+      behavior: { sourceForm: "code", code: "await drone.mine();" },
     };
     const { world, registry } = makeWorldWithDrone("p1", prog);
     const depositId = world.createEntity();
@@ -535,9 +531,9 @@ describe("store.init() — CodeBehaviorDriver подключён через Prog
     program.personalProgramId = "p1";
     program.currentProgramId = null;
 
-    useGameStore
-      .getState()
-      .init(world, new Grid(), registry, { createPort: () => new NodeWorkerPort() });
+    useGameStore.getState().init(world, new Grid(), registry, {
+      createPort: () => new NodeWorkerPort(),
+    });
 
     let state: ProgramState = "idle";
     for (let i = 0; i < 50; i++) {

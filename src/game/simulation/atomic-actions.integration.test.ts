@@ -20,8 +20,10 @@ function setup() {
       {
         id: "loop-mine",
         name: "Loop Mine",
-        instructions: [{ type: "LOOP", body: [{ type: "MINE" }] }] as never,
-        behaviorMode: "block",
+        behavior: {
+          sourceForm: "block",
+          instructions: [{ type: "LOOP", body: [{ type: "MINE" }] }] as never,
+        },
       },
     ],
   ]);

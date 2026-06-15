@@ -14,8 +14,10 @@ function makeRegistry(instructions: object[] = []): ProgramRegistry {
       {
         id: "prog",
         name: "Prog",
-        instructions: instructions as never,
-        behaviorMode: "block",
+        behavior: {
+          sourceForm: "block",
+          instructions: instructions as never,
+        },
       },
     ],
   ]);
@@ -128,10 +130,12 @@ describe("ProgramExecutionSystem", () => {
         {
           id: "prog",
           name: "Prog",
-          instructions: [
-            { type: "MOVE_TO", targetEntityId: targetId },
-          ] as never,
-          behaviorMode: "block" as const,
+          behavior: {
+            sourceForm: "block" as const,
+            instructions: [
+              { type: "MOVE_TO", targetEntityId: targetId },
+            ] as never,
+          },
         },
       ],
     ]);
@@ -147,8 +151,10 @@ describe("ProgramExecutionSystem", () => {
   });
 
   it("uses CodeBehaviorDriver when active program has behaviorMode='code'", async () => {
-    const { CodeBehaviorDriver } = await import("../../code/CodeBehaviorDriver.js");
-    const { NodeWorkerPort } = await import("../../code/worker/NodeWorkerPort.js");
+    const { CodeBehaviorDriver } =
+      await import("../../code/CodeBehaviorDriver.js");
+    const { NodeWorkerPort } =
+      await import("../../code/worker/NodeWorkerPort.js");
 
     const registry: ProgramRegistry = new Map([
       [
@@ -156,9 +162,7 @@ describe("ProgramExecutionSystem", () => {
         {
           id: "prog",
           name: "Prog",
-          instructions: [],
-          behaviorMode: "code",
-          codeSource: "await drone.mine();",
+          behavior: { sourceForm: "code", code: "await drone.mine();" },
         },
       ],
     ]);
@@ -166,7 +170,13 @@ describe("ProgramExecutionSystem", () => {
       createPort: () => new NodeWorkerPort(),
       timeoutMs: 1000,
     });
-    system = new ProgramExecutionSystem(world, GRID, collision, registry, codeDriver);
+    system = new ProgramExecutionSystem(
+      world,
+      GRID,
+      collision,
+      registry,
+      codeDriver,
+    );
 
     const id = addDrone(world, "running");
 
@@ -182,15 +192,23 @@ describe("ProgramExecutionSystem", () => {
   }, 5000);
 
   it("uses AstBehaviorDriver when active program has behaviorMode='block', even if codeDriver is provided", async () => {
-    const { CodeBehaviorDriver } = await import("../../code/CodeBehaviorDriver.js");
-    const { NodeWorkerPort } = await import("../../code/worker/NodeWorkerPort.js");
+    const { CodeBehaviorDriver } =
+      await import("../../code/CodeBehaviorDriver.js");
+    const { NodeWorkerPort } =
+      await import("../../code/worker/NodeWorkerPort.js");
 
     const registry = makeRegistry([{ type: "MINE" }]);
     const codeDriver = new CodeBehaviorDriver({
       createPort: () => new NodeWorkerPort(),
       timeoutMs: 1000,
     });
-    system = new ProgramExecutionSystem(world, GRID, collision, registry, codeDriver);
+    system = new ProgramExecutionSystem(
+      world,
+      GRID,
+      collision,
+      registry,
+      codeDriver,
+    );
 
     const id = addDrone(world, "running");
     collision.update();

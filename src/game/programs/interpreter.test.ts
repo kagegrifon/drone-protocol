@@ -52,7 +52,11 @@ function addDrone(
   const registry: ProgramRegistry = new Map([
     [
       programId,
-      { id: programId, name: "Main", instructions, behaviorMode: "block" },
+      {
+        id: programId,
+        name: "Main",
+        behavior: { sourceForm: "block", instructions },
+      },
     ],
   ]);
   world.addComponent(id, "Program", {
@@ -315,8 +319,10 @@ describe("stepProgram — RUN_PROGRAM", () => {
         {
           id: "main",
           name: "Main",
-          instructions: [{ type: "RUN_PROGRAM", programId: subId }],
-          behaviorMode: "block",
+          behavior: {
+            sourceForm: "block",
+            instructions: [{ type: "RUN_PROGRAM", programId: subId }],
+          },
         },
       ],
       [
@@ -324,8 +330,10 @@ describe("stepProgram — RUN_PROGRAM", () => {
         {
           id: subId,
           name: "Sub",
-          instructions: [{ type: "MINE" }],
-          behaviorMode: "block",
+          behavior: {
+            sourceForm: "block",
+            instructions: [{ type: "MINE" }],
+          },
         },
       ],
     ]);
@@ -367,11 +375,13 @@ describe("stepProgram — RUN_PROGRAM", () => {
         {
           id: "main",
           name: "Main",
-          instructions: [
-            { type: "RUN_PROGRAM", programId: subId },
-            { type: "CHARGE" },
-          ],
-          behaviorMode: "block",
+          behavior: {
+            sourceForm: "block",
+            instructions: [
+              { type: "RUN_PROGRAM", programId: subId },
+              { type: "CHARGE" },
+            ],
+          },
         },
       ],
       [
@@ -379,8 +389,10 @@ describe("stepProgram — RUN_PROGRAM", () => {
         {
           id: subId,
           name: "Sub",
-          instructions: [{ type: "DROP" }],
-          behaviorMode: "block",
+          behavior: {
+            sourceForm: "block",
+            instructions: [{ type: "DROP" }],
+          },
         },
       ],
     ]);

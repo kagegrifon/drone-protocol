@@ -7,7 +7,10 @@ describe("mission3 — shared program structure", () => {
     const scene = mission3.buildScene();
     const prog = scene.registry.get("shared-loop-m3")!;
     expect(prog).toBeDefined();
-    const loop = prog.instructions[0] as any;
+    expect(prog.behavior.sourceForm).toBe("block");
+    const instructions =
+      prog.behavior.sourceForm === "block" ? prog.behavior.instructions : [];
+    const loop = instructions[0] as any;
     expect(loop.type).toBe("LOOP");
     const body: any[] = loop.body;
     expect(body).toHaveLength(6);
@@ -22,7 +25,10 @@ describe("mission4 — demo program structure", () => {
     const scene = mission4.buildScene();
     const prog = scene.registry.get("loop-m4-d1")!;
     expect(prog).toBeDefined();
-    const loop = prog.instructions[0] as any;
+    expect(prog.behavior.sourceForm).toBe("block");
+    const instructions =
+      prog.behavior.sourceForm === "block" ? prog.behavior.instructions : [];
+    const loop = instructions[0] as any;
     expect(loop.type).toBe("LOOP");
     const body: any[] = loop.body;
     expect(body).toHaveLength(4);
@@ -35,7 +41,10 @@ describe("mission4 — demo program structure", () => {
     const scene = mission4.buildScene();
     const prog = scene.registry.get("loop-m4-d2")!;
     expect(prog).toBeDefined();
-    const loop = prog.instructions[0] as any;
+    expect(prog.behavior.sourceForm).toBe("block");
+    const instructions =
+      prog.behavior.sourceForm === "block" ? prog.behavior.instructions : [];
+    const loop = instructions[0] as any;
     expect(loop.type).toBe("LOOP");
     const body: any[] = loop.body;
     expect(body).toHaveLength(4);
