@@ -61,19 +61,15 @@ export type ConditionBlock = {
 
 export type Instruction = ActionBlock | FlowBlock | ConditionBlock;
 
+export type DroneBehavior =
+  | { sourceForm: "block"; instructions: Instruction[] }
+  | { sourceForm: "code"; code: string };
+
 export interface ProgramDef {
   id: string;
   name: string;
-  instructions: Instruction[];
-  personal?: boolean; // если true — скрыть из списка библиотеки
-  /** Режим программы: блоки или код. Фиксируется при создании (этап 2). */
-  behaviorMode: "block" | "code";
-  /** Исходный код игрока, если behaviorMode === "code". */
-  codeSource?: string;
+  personal?: boolean;
+  behavior: DroneBehavior;
 }
 
 export type ProgramRegistry = Map<string, ProgramDef>;
-
-export type DroneBehavior =
-  | { source: "block"; instructions: Instruction[] }
-  | { source: "code"; code: string };
