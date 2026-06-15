@@ -333,7 +333,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if (!personalDef) continue;
       if (codeModeEnabled) {
         personalDef.behavior = { sourceForm: "code", code: "" };
-      } else if (personalDef.behavior.sourceForm !== "block") {
+      } else if (personalDef.behavior.sourceForm === "code") {
         personalDef.behavior = { sourceForm: "block", instructions: [] };
       }
     }
@@ -517,14 +517,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
   createProgram(name) {
     const { registry, codeModeEnabled } = get();
     const id = `program_${_programIdCounter++}`;
-    const behaviorMode: "block" | "code" = codeModeEnabled ? "code" : "block";
     const prog: ProgramDef = {
       id,
       name,
-      behavior:
-        behaviorMode === "code"
-          ? { sourceForm: "code", code: "" }
-          : { sourceForm: "block", instructions: [] },
+      behavior: codeModeEnabled
+        ? { sourceForm: "code", code: "" }
+        : { sourceForm: "block", instructions: [] },
     };
     registry.set(id, prog);
     set({ programs: filterPrograms(registry, codeModeEnabled) });
