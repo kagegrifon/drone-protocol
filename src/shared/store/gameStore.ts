@@ -333,8 +333,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if (!personalDef) continue;
       if (codeModeEnabled) {
         personalDef.behavior = { sourceForm: "code", code: "" };
-      } else if (personalDef.behavior.sourceForm === "code") {
-        personalDef.behavior = { sourceForm: "block", instructions: [] };
       }
     }
 
