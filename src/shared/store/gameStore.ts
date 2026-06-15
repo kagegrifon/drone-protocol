@@ -209,7 +209,7 @@ function filterPrograms(
 ): ProgramDef[] {
   const mode = codeModeEnabled ? "code" : "block";
   return Array.from(registry.values()).filter(
-    (p) => !p.personal && p.behaviorMode === mode,
+    (p) => !p.personal && p.behavior.sourceForm === mode,
   );
 }
 
@@ -249,8 +249,8 @@ function snapshotDrones(world: World, registry: ProgramRegistry): DroneState[] {
         : frame.instructionIndex;
       if (idx >= 0) {
         const prog = registry.get(frame.programId);
-        if (prog) {
-          const instr = prog.instructions[idx];
+        if (prog?.behavior.sourceForm === "block") {
+          const instr = prog.behavior.instructions[idx];
           if (instr) currentInstruction = describeInstruction(instr);
         }
       }
@@ -332,9 +332,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const personalDef = registry.get(program.personalProgramId);
       if (!personalDef) continue;
       if (codeModeEnabled) {
-        personalDef.behaviorMode = "code";
-        personalDef.instructions = [];
-        personalDef.codeSource = "";
+        personalDef.behavior = { sourceForm: "code", code: "" };
+      } else if (personalDef.behavior.sourceForm !== "block") {
+        personalDef.behavior = { sourceForm: "block", instructions: [] };
       }
     }
 
@@ -418,8 +418,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   setProgramCodeSource(programId, code) {
     const { registry, world, _systems } = get();
     const prog = registry.get(programId);
-    if (!prog) return;
-    prog.codeSource = code;
+    if (!prog || prog.behavior.sourceForm !== "code") return;
+    prog.behavior.code = code;
 
     if (world && _systems) {
       for (const droneId of world.query(
@@ -444,9 +444,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   addInstruction(programId, instruction, parentPath = []) {
     const { registry } = get();
     const prog = registry.get(programId);
-    if (!prog) return;
+    if (!prog || prog.behavior.sourceForm !== "block") return;
 
-    const list = getInstructionList(prog.instructions, parentPath);
+    const list = getInstructionList(prog.behavior.instructions, parentPath);
     list.push(instruction);
 
     set({ programs: filterPrograms(registry, get().codeModeEnabled) });
@@ -455,11 +455,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
   removeInstruction(programId, path) {
     const { registry } = get();
     const prog = registry.get(programId);
-    if (!prog || path.length === 0) return;
+    if (!prog || prog.behavior.sourceForm !== "block" || path.length === 0)
+      return;
 
     const parentPath = path.slice(0, -1);
     const idx = path[path.length - 1];
-    const list = getInstructionList(prog.instructions, parentPath);
+    const list = getInstructionList(prog.behavior.instructions, parentPath);
     list.splice(idx, 1);
 
     set({ programs: filterPrograms(registry, get().codeModeEnabled) });
@@ -468,10 +469,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
   updateInstruction(programId, path, updated) {
     const { registry } = get();
     const prog = registry.get(programId);
-    if (!prog || path.length === 0) return;
+    if (!prog || prog.behavior.sourceForm !== "block" || path.length === 0)
+      return;
     const parentPath = path.slice(0, -1);
     const idx = path[path.length - 1];
-    const list = getInstructionList(prog.instructions, parentPath);
+    const list = getInstructionList(prog.behavior.instructions, parentPath);
     list[idx] = updated;
     set({ programs: filterPrograms(registry, get().codeModeEnabled) });
   },
@@ -479,7 +481,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   moveInstruction(programId, fromPath, toContainerPath, toIndex) {
     const { registry } = get();
     const prog = registry.get(programId);
-    if (!prog || fromPath.length === 0) return;
+    if (!prog || prog.behavior.sourceForm !== "block" || fromPath.length === 0)
+      return;
 
     const fromContainerPath = fromPath.slice(0, -1);
     const fromIndex = fromPath[fromPath.length - 1];
@@ -494,13 +497,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
       adjustedToContainerPath[fromContainerPath.length]--;
     }
 
-    const fromList = getInstructionList(prog.instructions, fromContainerPath);
+    const fromList = getInstructionList(
+      prog.behavior.instructions,
+      fromContainerPath,
+    );
     const instr = fromList[fromIndex];
     if (!instr) return;
 
     fromList.splice(fromIndex, 1);
     const toList = getInstructionList(
-      prog.instructions,
+      prog.behavior.instructions,
       adjustedToContainerPath,
     );
     toList.splice(toIndex, 0, instr);
@@ -511,15 +517,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
   createProgram(name) {
     const { registry, codeModeEnabled } = get();
     const id = `program_${_programIdCounter++}`;
-    const behaviorMode: ProgramDef["behaviorMode"] = codeModeEnabled
-      ? "code"
-      : "block";
+    const behaviorMode: "block" | "code" = codeModeEnabled ? "code" : "block";
     const prog: ProgramDef = {
       id,
       name,
-      instructions: [],
-      behaviorMode,
-      ...(behaviorMode === "code" ? { codeSource: "" } : {}),
+      behavior:
+        behaviorMode === "code"
+          ? { sourceForm: "code", code: "" }
+          : { sourceForm: "block", instructions: [] },
     };
     registry.set(id, prog);
     set({ programs: filterPrograms(registry, codeModeEnabled) });
