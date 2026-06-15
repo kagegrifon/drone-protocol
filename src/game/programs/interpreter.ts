@@ -43,9 +43,10 @@ export function stepProgram(
     }
 
     const frame = program.callStack[program.callStack.length - 1];
+    const def = registry.get(frame.programId);
     const instructions =
       (frame.inlineInstructions as Instruction[] | undefined) ??
-      registry.get(frame.programId)?.instructions ??
+      (def?.behavior.sourceForm === "block" ? def.behavior.instructions : undefined) ??
       [];
 
     if (frame.instructionIndex >= instructions.length) {

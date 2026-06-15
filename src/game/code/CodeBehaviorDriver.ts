@@ -52,7 +52,8 @@ export class CodeBehaviorDriver implements BehaviorDriver {
     if (!session) {
       const activeProgramId =
         program.currentProgramId ?? program.personalProgramId;
-      const code = ctx.registry.get(activeProgramId)?.codeSource;
+      const activeDef = ctx.registry.get(activeProgramId);
+      const code = activeDef?.behavior.sourceForm === "code" ? activeDef.behavior.code : undefined;
       if (!code) return;
       const entities = this.options.entities?.(droneId, ctx) ?? {};
       const port = this.options.createPort();

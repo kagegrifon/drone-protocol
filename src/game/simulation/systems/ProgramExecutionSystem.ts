@@ -36,7 +36,7 @@ export class ProgramExecutionSystem {
         program.currentProgramId ?? program.personalProgramId;
       const activeDef = this.registry.get(activeProgramId);
       const driver: BehaviorDriver =
-        activeDef?.behaviorMode === "code" && this.codeDriver
+        activeDef?.behavior.sourceForm === "code" && this.codeDriver
           ? this.codeDriver
           : this.astDriver;
 
