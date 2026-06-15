@@ -43,191 +43,195 @@ export const mission4: MissionDef = {
     const loop1: ProgramDef = {
       id: "loop-m4-d1",
       name: "mine-no-charge",
-      behaviorMode: "block",
-      instructions: [
-        {
-          type: "LOOP",
-          body: [
-            // у базы И есть руда → DROP
-            {
-              type: "IF",
-              conditions: [
-                {
-                  left: {
-                    fn: "Distance",
-                    args: [{ kind: "self" }, { kind: "entity", id: baseId }],
+      behavior: {
+        sourceForm: "block",
+        instructions: [
+          {
+            type: "LOOP",
+            body: [
+              // у базы И есть руда → DROP
+              {
+                type: "IF",
+                conditions: [
+                  {
+                    left: {
+                      fn: "Distance",
+                      args: [{ kind: "self" }, { kind: "entity", id: baseId }],
+                    },
+                    operator: "<=",
+                    right: { kind: "number", value: 0 },
                   },
-                  operator: "<=",
-                  right: { kind: "number", value: 0 },
-                },
-                {
-                  left: { fn: "Inventory", args: [{ kind: "self" }] },
-                  operator: ">",
-                  right: { kind: "number", value: 0 },
-                },
-              ],
-              operators: ["AND"],
-              then: [{ type: "DROP" }],
-            },
-            // есть руда И не у базы → MOVE_TO(base)
-            {
-              type: "IF",
-              conditions: [
-                {
-                  left: { fn: "Inventory", args: [{ kind: "self" }] },
-                  operator: ">",
-                  right: { kind: "number", value: 0 },
-                },
-                {
-                  left: {
-                    fn: "Distance",
-                    args: [{ kind: "self" }, { kind: "entity", id: baseId }],
+                  {
+                    left: { fn: "Inventory", args: [{ kind: "self" }] },
+                    operator: ">",
+                    right: { kind: "number", value: 0 },
                   },
-                  operator: ">",
-                  right: { kind: "number", value: 0 },
-                },
-              ],
-              operators: ["AND"],
-              then: [{ type: "MOVE_TO", targetEntityId: baseId }],
-            },
-            // трюм пуст И у шахты → MINE
-            {
-              type: "IF",
-              conditions: [
-                {
-                  left: { fn: "Inventory", args: [{ kind: "self" }] },
-                  operator: "=",
-                  right: { kind: "number", value: 0 },
-                },
-                {
-                  left: {
-                    fn: "Distance",
-                    args: [{ kind: "self" }, { kind: "entity", id: mine1Id }],
+                ],
+                operators: ["AND"],
+                then: [{ type: "DROP" }],
+              },
+              // есть руда И не у базы → MOVE_TO(base)
+              {
+                type: "IF",
+                conditions: [
+                  {
+                    left: { fn: "Inventory", args: [{ kind: "self" }] },
+                    operator: ">",
+                    right: { kind: "number", value: 0 },
                   },
-                  operator: "<=",
-                  right: { kind: "number", value: 0 },
-                },
-              ],
-              operators: ["AND"],
-              then: [{ type: "MINE" }],
-            },
-            // трюм пуст И не у шахты → MOVE_TO(mine1)
-            {
-              type: "IF",
-              conditions: [
-                {
-                  left: { fn: "Inventory", args: [{ kind: "self" }] },
-                  operator: "=",
-                  right: { kind: "number", value: 0 },
-                },
-                {
-                  left: {
-                    fn: "Distance",
-                    args: [{ kind: "self" }, { kind: "entity", id: mine1Id }],
+                  {
+                    left: {
+                      fn: "Distance",
+                      args: [{ kind: "self" }, { kind: "entity", id: baseId }],
+                    },
+                    operator: ">",
+                    right: { kind: "number", value: 0 },
                   },
-                  operator: ">",
-                  right: { kind: "number", value: 0 },
-                },
-              ],
-              operators: ["AND"],
-              then: [{ type: "MOVE_TO", targetEntityId: mine1Id }],
-            },
-          ],
-        },
-      ],
+                ],
+                operators: ["AND"],
+                then: [{ type: "MOVE_TO", targetEntityId: baseId }],
+              },
+              // трюм пуст И у шахты → MINE
+              {
+                type: "IF",
+                conditions: [
+                  {
+                    left: { fn: "Inventory", args: [{ kind: "self" }] },
+                    operator: "=",
+                    right: { kind: "number", value: 0 },
+                  },
+                  {
+                    left: {
+                      fn: "Distance",
+                      args: [{ kind: "self" }, { kind: "entity", id: mine1Id }],
+                    },
+                    operator: "<=",
+                    right: { kind: "number", value: 0 },
+                  },
+                ],
+                operators: ["AND"],
+                then: [{ type: "MINE" }],
+              },
+              // трюм пуст И не у шахты → MOVE_TO(mine1)
+              {
+                type: "IF",
+                conditions: [
+                  {
+                    left: { fn: "Inventory", args: [{ kind: "self" }] },
+                    operator: "=",
+                    right: { kind: "number", value: 0 },
+                  },
+                  {
+                    left: {
+                      fn: "Distance",
+                      args: [{ kind: "self" }, { kind: "entity", id: mine1Id }],
+                    },
+                    operator: ">",
+                    right: { kind: "number", value: 0 },
+                  },
+                ],
+                operators: ["AND"],
+                then: [{ type: "MOVE_TO", targetEntityId: mine1Id }],
+              },
+            ],
+          },
+        ],
+      },
     };
 
     const loop2: ProgramDef = {
       id: "loop-m4-d2",
       name: "mine-no-charge",
-      behaviorMode: "block",
-      instructions: [
-        {
-          type: "LOOP",
-          body: [
-            {
-              type: "IF",
-              conditions: [
-                {
-                  left: {
-                    fn: "Distance",
-                    args: [{ kind: "self" }, { kind: "entity", id: baseId }],
+      behavior: {
+        sourceForm: "block",
+        instructions: [
+          {
+            type: "LOOP",
+            body: [
+              {
+                type: "IF",
+                conditions: [
+                  {
+                    left: {
+                      fn: "Distance",
+                      args: [{ kind: "self" }, { kind: "entity", id: baseId }],
+                    },
+                    operator: "<=",
+                    right: { kind: "number", value: 0 },
                   },
-                  operator: "<=",
-                  right: { kind: "number", value: 0 },
-                },
-                {
-                  left: { fn: "Inventory", args: [{ kind: "self" }] },
-                  operator: ">",
-                  right: { kind: "number", value: 0 },
-                },
-              ],
-              operators: ["AND"],
-              then: [{ type: "DROP" }],
-            },
-            {
-              type: "IF",
-              conditions: [
-                {
-                  left: { fn: "Inventory", args: [{ kind: "self" }] },
-                  operator: ">",
-                  right: { kind: "number", value: 0 },
-                },
-                {
-                  left: {
-                    fn: "Distance",
-                    args: [{ kind: "self" }, { kind: "entity", id: baseId }],
+                  {
+                    left: { fn: "Inventory", args: [{ kind: "self" }] },
+                    operator: ">",
+                    right: { kind: "number", value: 0 },
                   },
-                  operator: ">",
-                  right: { kind: "number", value: 0 },
-                },
-              ],
-              operators: ["AND"],
-              then: [{ type: "MOVE_TO", targetEntityId: baseId }],
-            },
-            {
-              type: "IF",
-              conditions: [
-                {
-                  left: { fn: "Inventory", args: [{ kind: "self" }] },
-                  operator: "=",
-                  right: { kind: "number", value: 0 },
-                },
-                {
-                  left: {
-                    fn: "Distance",
-                    args: [{ kind: "self" }, { kind: "entity", id: mine2Id }],
+                ],
+                operators: ["AND"],
+                then: [{ type: "DROP" }],
+              },
+              {
+                type: "IF",
+                conditions: [
+                  {
+                    left: { fn: "Inventory", args: [{ kind: "self" }] },
+                    operator: ">",
+                    right: { kind: "number", value: 0 },
                   },
-                  operator: "<=",
-                  right: { kind: "number", value: 0 },
-                },
-              ],
-              operators: ["AND"],
-              then: [{ type: "MINE" }],
-            },
-            {
-              type: "IF",
-              conditions: [
-                {
-                  left: { fn: "Inventory", args: [{ kind: "self" }] },
-                  operator: "=",
-                  right: { kind: "number", value: 0 },
-                },
-                {
-                  left: {
-                    fn: "Distance",
-                    args: [{ kind: "self" }, { kind: "entity", id: mine2Id }],
+                  {
+                    left: {
+                      fn: "Distance",
+                      args: [{ kind: "self" }, { kind: "entity", id: baseId }],
+                    },
+                    operator: ">",
+                    right: { kind: "number", value: 0 },
                   },
-                  operator: ">",
-                  right: { kind: "number", value: 0 },
-                },
-              ],
-              operators: ["AND"],
-              then: [{ type: "MOVE_TO", targetEntityId: mine2Id }],
-            },
-          ],
-        },
-      ],
+                ],
+                operators: ["AND"],
+                then: [{ type: "MOVE_TO", targetEntityId: baseId }],
+              },
+              {
+                type: "IF",
+                conditions: [
+                  {
+                    left: { fn: "Inventory", args: [{ kind: "self" }] },
+                    operator: "=",
+                    right: { kind: "number", value: 0 },
+                  },
+                  {
+                    left: {
+                      fn: "Distance",
+                      args: [{ kind: "self" }, { kind: "entity", id: mine2Id }],
+                    },
+                    operator: "<=",
+                    right: { kind: "number", value: 0 },
+                  },
+                ],
+                operators: ["AND"],
+                then: [{ type: "MINE" }],
+              },
+              {
+                type: "IF",
+                conditions: [
+                  {
+                    left: { fn: "Inventory", args: [{ kind: "self" }] },
+                    operator: "=",
+                    right: { kind: "number", value: 0 },
+                  },
+                  {
+                    left: {
+                      fn: "Distance",
+                      args: [{ kind: "self" }, { kind: "entity", id: mine2Id }],
+                    },
+                    operator: ">",
+                    right: { kind: "number", value: 0 },
+                  },
+                ],
+                operators: ["AND"],
+                then: [{ type: "MOVE_TO", targetEntityId: mine2Id }],
+              },
+            ],
+          },
+        ],
+      },
     };
 
     registry.set(loop1.id, loop1);
@@ -248,8 +252,7 @@ export const mission4: MissionDef = {
       id: String(drone1Id),
       name: `drone-${drone1Id}`,
       personal: true,
-      instructions: [],
-      behaviorMode: "block",
+      behavior: { sourceForm: "block", instructions: [] },
     };
     registry.set(personal1.id, personal1);
     const p1 = world.getComponent(drone1Id, "Program")!;
@@ -261,8 +264,7 @@ export const mission4: MissionDef = {
       id: String(drone2Id),
       name: `drone-${drone2Id}`,
       personal: true,
-      instructions: [],
-      behaviorMode: "block",
+      behavior: { sourceForm: "block", instructions: [] },
     };
     registry.set(personal2.id, personal2);
     const p2 = world.getComponent(drone2Id, "Program")!;

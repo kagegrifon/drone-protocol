@@ -39,8 +39,7 @@ export const mission1: MissionDef = {
       id: String(droneId),
       name: `drone-${droneId}`,
       personal: true,
-      instructions: [],
-      behaviorMode: "block",
+      behavior: { sourceForm: "block", instructions: [] },
     };
     registry.set(personalProg.id, personalProg);
     const prog = world.getComponent(droneId, "Program")!;
