@@ -28,7 +28,10 @@ export interface CodeBehaviorDriverOptions {
   createPort: () => CodeWorkerPort;
   timeoutMs?: number;
   /** Именованные сущности, доступные коду игрока как глобальные переменные. */
-  entities?: (droneId: EntityId, ctx: BehaviorTickContext) => Record<string, EntityId>;
+  entities?: (
+    droneId: EntityId,
+    ctx: BehaviorTickContext,
+  ) => Record<string, EntityId>;
 }
 
 /**
@@ -53,7 +56,10 @@ export class CodeBehaviorDriver implements BehaviorDriver {
       const activeProgramId =
         program.currentProgramId ?? program.personalProgramId;
       const activeDef = ctx.registry.get(activeProgramId);
-      const code = activeDef?.behavior.sourceForm === "code" ? activeDef.behavior.code : undefined;
+      const code =
+        activeDef?.behavior.sourceForm === "code"
+          ? activeDef.behavior.code
+          : undefined;
       if (!code) return;
       const entities = this.options.entities?.(droneId, ctx) ?? {};
       const port = this.options.createPort();
@@ -124,7 +130,13 @@ export class CodeBehaviorDriver implements BehaviorDriver {
       case "intent": {
         if (msg.action === "moveTo") {
           if (msg.targetId !== undefined) {
-            planAstarMove(droneId, msg.targetId, ctx.world, ctx.grid, ctx.occupied);
+            planAstarMove(
+              droneId,
+              msg.targetId,
+              ctx.world,
+              ctx.grid,
+              ctx.occupied,
+            );
           }
           program.state = "move";
         } else if (msg.action === "mine") {
