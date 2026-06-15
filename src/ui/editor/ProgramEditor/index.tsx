@@ -56,7 +56,8 @@ const RADIO_STYLE = (checked: boolean): React.CSSProperties => ({
 });
 
 function getInstructionByPath(prog: ProgramDef, path: number[]) {
-  let list = prog.instructions;
+  if (prog.behavior.sourceForm !== "block") return null;
+  let list = prog.behavior.instructions;
   for (let i = 0; i < path.length - 1; i++) {
     const node = list[path[i]];
     if (!node) return null;
@@ -103,6 +104,11 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
     ? registry.get(drone.assignedProgramId)
     : undefined;
 
+  const personalInstructions =
+    personalProgram?.behavior.sourceForm === "block"
+      ? personalProgram.behavior.instructions
+      : [];
+
   // Дрон занят action-командой (не idle и не running) — показываем «⚡».
   const isDroneBusy =
     !!drone &&
@@ -121,6 +127,11 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
   const editingProgram = editingProgramId
     ? (registry.get(editingProgramId) ?? null)
     : null;
+
+  const editingInstructions =
+    editingProgram?.behavior.sourceForm === "block"
+      ? editingProgram.behavior.instructions
+      : [];
 
   function handleDragStart({ active }: DragStartEvent) {
     setActiveDragData(active.data.current as DragItemData);
@@ -345,7 +356,11 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
                     {personalExpanded && codeModeEnabled && (
                       <>
                         <CodeEditor
-                          value={personalProgram.codeSource ?? ""}
+                          value={
+                            personalProgram.behavior.sourceForm === "code"
+                              ? personalProgram.behavior.code
+                              : ""
+                          }
                           onChange={(code) =>
                             setProgramCodeSource(personalProgram.id, code)
                           }
@@ -373,9 +388,7 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
                         onDragEnd={handleDragEnd}
                       >
                         <SortableContext
-                          items={personalProgram.instructions.map((_, i) =>
-                            String(i),
-                          )}
+                          items={personalInstructions.map((_, i) => String(i))}
                           strategy={verticalListSortingStrategy}
                         >
                           <DropSlot
@@ -384,7 +397,7 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
                             insertIndex={0}
                             isDragging={activeDragData !== null}
                           />
-                          {personalProgram.instructions.map((instr, i) => (
+                          {personalInstructions.map((instr, i) => (
                             <React.Fragment key={String(i)}>
                               <InstructionBlock
                                 instruction={instr}
@@ -730,7 +743,11 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
                 >
                   {codeModeEnabled ? (
                     <CodeEditor
-                      value={editingProgram.codeSource ?? ""}
+                      value={
+                        editingProgram.behavior.sourceForm === "code"
+                          ? editingProgram.behavior.code
+                          : ""
+                      }
                       onChange={(code) =>
                         setProgramCodeSource(editingProgramId!, code)
                       }
@@ -743,9 +760,7 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
                       onDragEnd={handleDragEnd}
                     >
                       <SortableContext
-                        items={editingProgram.instructions.map((_, i) =>
-                          String(i),
-                        )}
+                        items={editingInstructions.map((_, i) => String(i))}
                         strategy={verticalListSortingStrategy}
                       >
                         <DropSlot
@@ -754,7 +769,7 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
                           insertIndex={0}
                           isDragging={activeDragData !== null}
                         />
-                        {editingProgram.instructions.map((instr, i) => (
+                        {editingInstructions.map((instr, i) => (
                           <React.Fragment key={String(i)}>
                             <InstructionBlock
                               instruction={instr}
