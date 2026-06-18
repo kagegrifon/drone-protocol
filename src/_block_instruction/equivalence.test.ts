@@ -1,10 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { World } from "../simulation/world/World.js";
-import { Grid } from "../simulation/world/Grid.js";
+import { World } from "../game/simulation/world/World.js";
+import { Grid } from "../game/simulation/world/Grid.js";
 import { AstBehaviorDriver } from "./AstBehaviorDriver.js";
-import { CodeBehaviorDriver } from "./CodeBehaviorDriver.js";
-import { NodeWorkerPort } from "./worker/NodeWorkerPort.js";
-import type { ProgramRegistry, Instruction } from "../programs/types.js";
+import { CodeBehaviorDriver } from "../game/code/CodeBehaviorDriver.js";
+import { NodeWorkerPort } from "../game/code/worker/NodeWorkerPort.js";
+import type { ProgramRegistry } from "../game/programs/types.js";
+import { Instruction } from "./types.js";
 
 const GRID = new Grid();
 const OCCUPIED = new Set<string>();
