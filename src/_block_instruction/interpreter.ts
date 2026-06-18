@@ -1,15 +1,11 @@
-import type { EntityId } from "../../shared/types/index.js";
-import type { World } from "../simulation/world/World.js";
-import { DT, EPSILON } from "../simulation/constants.js";
-import type { Grid } from "../simulation/world/Grid.js";
-import type {
-  Instruction,
-  ProgramRegistry,
-  ConditionLeaf,
-  ConditionLogic,
-} from "./types.js";
-import { astar } from "../pathfinding/astar.js";
-import { evaluateFunctionCall } from "./functions.js";
+import type { EntityId } from "@/shared/types/index.js";
+import type { World } from "@/game/simulation/world/World.js";
+import { DT, EPSILON } from "@/game/simulation/constants.js";
+import type { Instruction, ConditionLeaf, ConditionLogic } from "./types.js";
+import { Grid } from "@/game/simulation/world/Grid.js";
+import { ProgramRegistry } from "@/game/programs/types.js";
+import { evaluateFunctionCall } from "@/game/programs/functions.js";
+import { astar } from "@/game/pathfinding/astar.js";
 
 // Защита от бесконечных циклов из чистого control-flow (например, LOOP {}).
 // Любая программа с реальными yield-инструкциями (MOVE_TO/MINE/DROP/CHARGE/WAIT)
@@ -46,8 +42,8 @@ export function stepProgram(
     const def = registry.get(frame.programId);
     const instructions =
       (frame.inlineInstructions as Instruction[] | undefined) ??
-      (def?.behavior.sourceForm === "block"
-        ? def.behavior.instructions
+      (def?.behavior.sourceForm === ("block" as any) // убрать все as any при возврате кода
+        ? ((def as any).behavior as any).instructions
         : undefined) ??
       [];
 

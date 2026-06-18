@@ -1,5 +1,3 @@
-import type { EntityId } from "../../shared/types/index.js";
-
 export type DroneBehavior = { sourceForm: "code"; code: string };
 // на текущем моменте работаем только с кодом. Логику с блоком дорабатываем
 // после завершения работы с кодом

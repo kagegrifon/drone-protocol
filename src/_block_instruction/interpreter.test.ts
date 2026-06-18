@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { World } from "../simulation/world/World.js";
-import { Grid } from "../simulation/world/Grid.js";
 import { stepProgram } from "./interpreter.js";
-import type { ProgramRegistry, Instruction } from "./types.js";
+import type { Instruction } from "./types.js";
+import { Grid } from "@/game/simulation/world/Grid.js";
+import { World } from "@/game/simulation/world/World.js";
+import { ProgramRegistry } from "@/game/programs/types.js";
 
 const EMPTY_GRID = new Grid();
 const EMPTY_OCCUPIED = new Set<string>();
