@@ -135,7 +135,7 @@ function resetDroneProgram(world: World, droneId: EntityId): void {
   }
 }
 
-function snapshotDrones(world: World, registry: ProgramRegistry): DroneState[] {
+function snapshotDrones(world: World): DroneState[] {
   const ids = world.query("Position", "Energy", "Inventory", "Program");
   return ids.map((id) => {
     const pos = world.getComponent(id, "Position")!;
@@ -234,7 +234,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
 
     const programs = filterPrograms(registry);
-    const drones = snapshotDrones(world, registry);
+    const drones = snapshotDrones(world);
 
     set({
       world,
@@ -258,7 +258,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   tick() {
-    const { world, registry, _systems } = get();
+    const { world, _systems } = get();
     if (!world || !_systems) return;
 
     _systems.collision.update();
@@ -272,7 +272,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const tickCount = get()._tickCount + 1;
 
     set({
-      drones: snapshotDrones(world, registry),
+      drones: snapshotDrones(world),
       stats: {
         orePerMin: Math.round(s.orePerMinute * 10) / 10,
         congestion:
@@ -352,11 +352,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
     program.callStack = [{ programId, instructionIndex: 0 }];
     program.state = "running";
 
-    set({ drones: snapshotDrones(world, get().registry) });
+    set({ drones: snapshotDrones(world) });
   },
 
   unassignProgram(droneId) {
-    const { world, registry } = get();
+    const { world } = get();
     if (!world) return;
     const program = world.getComponent(droneId, "Program");
     if (!program) return;
@@ -374,40 +374,40 @@ export const useGameStore = create<GameStore>((set, get) => ({
       movement.progress = 0;
     }
 
-    set({ drones: snapshotDrones(world, registry) });
+    set({ drones: snapshotDrones(world) });
   },
 
   restartProgram(droneId) {
-    const { world, registry } = get();
+    const { world } = get();
     if (!world) return;
     resetDroneProgram(world, droneId);
-    set({ drones: snapshotDrones(world, registry) });
+    set({ drones: snapshotDrones(world) });
   },
 
   startDrone(droneId) {
-    const { world, registry } = get();
+    const { world } = get();
     if (!world) return;
     const program = world.getComponent(droneId, "Program");
     if (!program) return;
     program.localPaused = false;
-    set({ drones: snapshotDrones(world, registry) });
+    set({ drones: snapshotDrones(world) });
   },
 
   pauseDrone(droneId) {
-    const { world, registry } = get();
+    const { world } = get();
     if (!world) return;
     const program = world.getComponent(droneId, "Program");
     if (!program) return;
     program.localPaused = true;
-    set({ drones: snapshotDrones(world, registry) });
+    set({ drones: snapshotDrones(world) });
   },
 
   resetDrone(droneId) {
-    const { world, registry } = get();
+    const { world } = get();
     if (!world) return;
     resetDroneProgram(world, droneId);
     const program = world.getComponent(droneId, "Program");
     if (program) program.localPaused = false;
-    set({ drones: snapshotDrones(world, registry) });
+    set({ drones: snapshotDrones(world) });
   },
 }));
