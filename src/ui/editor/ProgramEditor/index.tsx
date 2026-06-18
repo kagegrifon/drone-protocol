@@ -1,29 +1,6 @@
 import React, { useState } from "react";
-import {
-  DndContext,
-  DragOverlay,
-  pointerWithin,
-  type DragStartEvent,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
 import { useGameStore } from "../../../shared/store/gameStore.js";
-import {
-  InstructionBlock,
-  type DragItemData,
-  ICONS,
-} from "./InstructionBlock.js";
-import {
-  makeDefaultInstruction,
-  AddInstructionMenu,
-} from "./instructionUtils.js";
-import { DropSlot, type SlotData } from "./DropSlot.js";
 import { CodeEditor } from "../CodeEditor/CodeEditor.js";
-import type { Instruction, ProgramDef } from "../../../game/programs/types.js";
-import type { EntityMeta } from "../../../game/missions/types.js";
 
 const TAB_BTN = (active: boolean): React.CSSProperties => ({
   background: active ? "#0d2040" : "transparent",
@@ -55,21 +32,7 @@ const RADIO_STYLE = (checked: boolean): React.CSSProperties => ({
   flexShrink: 0,
 });
 
-function getInstructionByPath(prog: ProgramDef, path: number[]) {
-  if (prog.behavior.sourceForm !== "block") return null;
-  let list = prog.behavior.instructions;
-  for (let i = 0; i < path.length - 1; i++) {
-    const node = list[path[i]];
-    if (!node) return null;
-    if (node.type === "LOOP" || node.type === "REPEAT" || node.type === "WHILE")
-      list = node.body;
-    else if (node.type === "IF") list = node.then;
-    else return null;
-  }
-  return list[path[path.length - 1]] ?? null;
-}
-
-export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
+export function ProgramEditor() {
   const [tab, setTab] = useState<"drone" | "library" | "program">("drone");
   const [editingProgramId, setEditingProgramId] = useState<string | null>(null);
   const [newProgramName, setNewProgramName] = useState("");
@@ -82,20 +45,13 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
   const drones = useGameStore((s) => s.drones);
   const programs = useGameStore((s) => s.programs);
   const registry = useGameStore((s) => s.registry);
-  const addInstruction = useGameStore((s) => s.addInstruction);
   const createProgram = useGameStore((s) => s.createProgram);
   const assignProgram = useGameStore((s) => s.assignProgram);
   const unassignProgram = useGameStore((s) => s.unassignProgram);
   const selectDrone = useGameStore((s) => s.selectDrone);
-  const moveInstruction = useGameStore((s) => s.moveInstruction);
-  const codeModeEnabled = useGameStore((s) => s.codeModeEnabled);
   const setProgramCodeSource = useGameStore((s) => s.setProgramCodeSource);
-  const [activeDragData, setActiveDragData] = useState<DragItemData | null>(
-    null,
-  );
 
   const drone = drones.find((d) => d.id === selectedId);
-  const programIds = programs.map((p) => p.id);
 
   const personalProgram = drone
     ? registry.get(drone.personalProgramId)
@@ -104,22 +60,11 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
     ? registry.get(drone.assignedProgramId)
     : undefined;
 
-  const personalInstructions =
-    personalProgram?.behavior.sourceForm === "block"
-      ? personalProgram.behavior.instructions
-      : [];
-
   // Дрон занят action-командой (не idle и не running) — показываем «⚡».
   const isDroneBusy =
     !!drone &&
     drone.programState !== "idle" &&
     drone.programState !== "running";
-
-  const handleAddPersonal = (type: Instruction["type"]) => {
-    if (!personalProgram) return;
-    const instr = makeDefaultInstruction(type, entities, programIds);
-    addInstruction(personalProgram.id, instr);
-  };
 
   // suppress unused warning — will be used in Phase 5 for scroll/highlight in library
   void highlightedProgramId;
@@ -127,84 +72,6 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
   const editingProgram = editingProgramId
     ? (registry.get(editingProgramId) ?? null)
     : null;
-
-  const editingInstructions =
-    editingProgram?.behavior.sourceForm === "block"
-      ? editingProgram.behavior.instructions
-      : [];
-
-  function handleDragStart({ active }: DragStartEvent) {
-    setActiveDragData(active.data.current as DragItemData);
-  }
-
-  function handleDragEnd({ active, over }: DragEndEvent) {
-    setActiveDragData(null);
-    if (!over || active.id === over.id) return;
-
-    const { programId, path: fromPath } = active.data.current as DragItemData;
-    const overData = over.data.current;
-
-    if (overData?.type === "slot") {
-      const { containerPath, insertIndex } = overData as SlotData;
-      const fromContainerPath = fromPath.slice(0, -1);
-      const fromIndex = fromPath[fromPath.length - 1];
-      if (
-        containerPath.join() === fromContainerPath.join() &&
-        (insertIndex === fromIndex || insertIndex === fromIndex + 1)
-      )
-        return;
-      moveInstruction(programId, fromPath, containerPath, insertIndex);
-      return;
-    }
-
-    // Fallback: drop на инструкцию
-    const { path: overPath } = overData as DragItemData;
-    const toContainerPath = overPath.slice(0, -1);
-    const toIndex = overPath[overPath.length - 1];
-    const fromContainerPath = fromPath.slice(0, -1);
-    const fromIndex = fromPath[fromPath.length - 1];
-    if (
-      toContainerPath.join() !== fromContainerPath.join() ||
-      toIndex !== fromIndex
-    ) {
-      moveInstruction(programId, fromPath, toContainerPath, toIndex);
-    }
-  }
-
-  function renderDragOverlay() {
-    if (!activeDragData) return null;
-    const prog = registry.get(activeDragData.programId);
-    if (!prog) return null;
-    const instr = getInstructionByPath(prog, activeDragData.path);
-    if (!instr) return null;
-    return (
-      <div
-        style={{
-          background: "#060f1e",
-          border: "1px solid #00d4ff",
-          borderRadius: "4px",
-          padding: "6px 8px",
-          fontFamily: "monospace",
-          fontSize: "12px",
-          color: "#00d4ff",
-          opacity: 0.85,
-          boxShadow: "0 0 8px #00d4ff44",
-          display: "flex",
-          alignItems: "center",
-          gap: "6px",
-        }}
-      >
-        <span style={{ color: "#4488ff" }}>{ICONS[instr.type] ?? "•"}</span>
-        <span>{instr.type}</span>
-      </div>
-    );
-  }
-
-  const handleAddToEditing = (type: Instruction["type"]) => {
-    if (!editingProgramId) return;
-    const instr = makeDefaultInstruction(type, entities, programIds);
-    addInstruction(editingProgramId, instr);
-  };
 
   return (
     <div
@@ -353,14 +220,10 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
                         {personalExpanded ? "▲" : "▼"}
                       </button>
                     </div>
-                    {personalExpanded && codeModeEnabled && (
+                    {personalExpanded && (
                       <>
                         <CodeEditor
-                          value={
-                            personalProgram.behavior.sourceForm === "code"
-                              ? personalProgram.behavior.code
-                              : ""
-                          }
+                          value={personalProgram.behavior.code}
                           onChange={(code) =>
                             setProgramCodeSource(personalProgram.id, code)
                           }
@@ -380,52 +243,6 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
                           </div>
                         )}
                       </>
-                    )}
-                    {personalExpanded && !codeModeEnabled && (
-                      <DndContext
-                        collisionDetection={pointerWithin}
-                        onDragStart={handleDragStart}
-                        onDragEnd={handleDragEnd}
-                      >
-                        <SortableContext
-                          items={personalInstructions.map((_, i) => String(i))}
-                          strategy={verticalListSortingStrategy}
-                        >
-                          <DropSlot
-                            programId={personalProgram.id}
-                            containerPath={[]}
-                            insertIndex={0}
-                            isDragging={activeDragData !== null}
-                          />
-                          {personalInstructions.map((instr, i) => (
-                            <React.Fragment key={String(i)}>
-                              <InstructionBlock
-                                instruction={instr}
-                                programId={personalProgram.id}
-                                path={[i]}
-                                entities={entities}
-                                programIds={programIds}
-                                activeInstructionPath={
-                                  !assignedProgram
-                                    ? (drone.currentInstructionPath ?? null)
-                                    : null
-                                }
-                                isDragging={activeDragData !== null}
-                              />
-                              <DropSlot
-                                programId={personalProgram.id}
-                                containerPath={[]}
-                                insertIndex={i + 1}
-                                isDragging={activeDragData !== null}
-                              />
-                            </React.Fragment>
-                          ))}
-                        </SortableContext>
-                        <AddInstructionMenu onAdd={handleAddPersonal} />
-                        <DragOverlay dropAnimation={null}>
-                          {renderDragOverlay()}
-                        </DragOverlay>
-                      </DndContext>
                     )}
                   </div>
                 )}
@@ -741,60 +558,13 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
                 <div
                   style={{ borderTop: "1px solid #1e3a5f", paddingTop: "8px" }}
                 >
-                  {codeModeEnabled ? (
-                    <CodeEditor
-                      value={
-                        editingProgram.behavior.sourceForm === "code"
-                          ? editingProgram.behavior.code
-                          : ""
-                      }
-                      onChange={(code) =>
-                        setProgramCodeSource(editingProgramId!, code)
-                      }
-                      height="240px"
-                    />
-                  ) : (
-                    <DndContext
-                      collisionDetection={pointerWithin}
-                      onDragStart={handleDragStart}
-                      onDragEnd={handleDragEnd}
-                    >
-                      <SortableContext
-                        items={editingInstructions.map((_, i) => String(i))}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        <DropSlot
-                          programId={editingProgramId!}
-                          containerPath={[]}
-                          insertIndex={0}
-                          isDragging={activeDragData !== null}
-                        />
-                        {editingInstructions.map((instr, i) => (
-                          <React.Fragment key={String(i)}>
-                            <InstructionBlock
-                              instruction={instr}
-                              programId={editingProgramId!}
-                              path={[i]}
-                              entities={entities}
-                              programIds={programIds}
-                              activeInstructionPath={null}
-                              isDragging={activeDragData !== null}
-                            />
-                            <DropSlot
-                              programId={editingProgramId!}
-                              containerPath={[]}
-                              insertIndex={i + 1}
-                              isDragging={activeDragData !== null}
-                            />
-                          </React.Fragment>
-                        ))}
-                      </SortableContext>
-                      <AddInstructionMenu onAdd={handleAddToEditing} />
-                      <DragOverlay dropAnimation={null}>
-                        {renderDragOverlay()}
-                      </DragOverlay>
-                    </DndContext>
-                  )}
+                  <CodeEditor
+                    value={editingProgram.behavior.code}
+                    onChange={(code) =>
+                      setProgramCodeSource(editingProgramId!, code)
+                    }
+                    height="240px"
+                  />
                 </div>
               </>
             )}

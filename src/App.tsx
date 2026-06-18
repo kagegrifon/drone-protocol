@@ -16,7 +16,6 @@ import { IntroScreen } from "./ui/screens/IntroScreen.js";
 import { StartScreen } from "./ui/screens/StartScreen.js";
 import { LoadingScreen } from "./ui/screens/LoadingScreen.js";
 import { AudioSettingsModal } from "./ui/modals/AudioSettingsModal.js";
-import type { EntityMeta } from "./game/missions/types.js";
 import type { AudioManager } from "./renderer/audio/AudioManager.js";
 import { preloadUiSounds } from "./ui/audio/uiAudio.js";
 import "./global.css";
@@ -28,7 +27,6 @@ const SIDEBAR_WIDTH = 280;
 export default function App() {
   const containerRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef<GameController | null>(null);
-  const entityMetasRef = useRef<EntityMeta[]>([]);
   const wasRunningRef = useRef<boolean>(false);
   const selectDrone = useGameStore((s) => s.selectDrone);
 
@@ -87,7 +85,6 @@ export default function App() {
         setAudioManager(am);
       },
     });
-    entityMetasRef.current = ctrl.entities;
     controllerRef.current = ctrl;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gamePhase, missionIndex]);
@@ -207,7 +204,7 @@ export default function App() {
               isLastMission={isLastMission}
             />
             <BottomPanel>
-              <ProgramEditor entities={entityMetasRef.current} />
+              <ProgramEditor />
             </BottomPanel>
           </>
         )}

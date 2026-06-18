@@ -1,13 +1,9 @@
 import { create } from "zustand";
 import type { EntityId } from "../types/index.js";
-import type { GameStatus } from "../../game/types.js";
-import type { World } from "../../game/simulation/world/World.js";
-import type { Grid } from "../../game/simulation/world/Grid.js";
-import type {
-  ProgramRegistry,
-  ProgramDef,
-  Instruction,
-} from "../../game/programs/types.js";
+import type { GameStatus } from "@/game/types.js";
+import type { World } from "@/game/simulation/world/World.js";
+import type { Grid } from "@/game/simulation/world/Grid.js";
+import type { ProgramRegistry, ProgramDef } from "@/game/programs/types.js";
 import type {
   ProgramState,
   CallFrame,
@@ -35,24 +31,6 @@ export interface DroneState {
   assignedProgramId?: string;
   localPaused: boolean;
   codeError?: string;
-}
-
-const CODE_MODE_STORAGE_KEY = "droneloop.codeModeEnabled";
-
-function loadCodeModeEnabled(): boolean {
-  try {
-    return localStorage.getItem(CODE_MODE_STORAGE_KEY) === "true";
-  } catch {
-    return false;
-  }
-}
-
-function saveCodeModeEnabled(v: boolean): void {
-  try {
-    localStorage.setItem(CODE_MODE_STORAGE_KEY, String(v));
-  } catch {
-    // localStorage недоступен — игнорируем
-  }
 }
 
 export function computeActivePath(
@@ -112,7 +90,6 @@ interface GameStore {
   isRunning: boolean;
   gameStatus: GameStatus;
   statusMessage: string | null;
-  codeModeEnabled: boolean;
   _systems: Systems | null;
   _tickCount: number;
 
@@ -122,30 +99,12 @@ interface GameStore {
     registry: ProgramRegistry,
     options?: { createPort?: () => CodeWorkerPort },
   ): void;
-  setCodeModeEnabled(v: boolean): void;
   setProgramCodeSource(programId: string, code: string): void;
   tick(): void;
   selectDrone(id: EntityId | null): void;
   setRunning(v: boolean): void;
   stepOnce(): void;
   setGameStatus(status: GameStatus, message?: string): void;
-  addInstruction(
-    programId: string,
-    instruction: Instruction,
-    parentPath?: number[],
-  ): void;
-  removeInstruction(programId: string, path: number[]): void;
-  updateInstruction(
-    programId: string,
-    path: number[],
-    updated: Instruction,
-  ): void;
-  moveInstruction(
-    programId: string,
-    fromPath: number[],
-    toContainerPath: number[],
-    toIndex: number,
-  ): void;
   createProgram(name: string): void;
   assignProgram(droneId: EntityId, programId: string): void;
   unassignProgram(droneId: EntityId): void;
@@ -155,62 +114,8 @@ interface GameStore {
   resetDrone(droneId: EntityId): void;
 }
 
-function describeInstruction(instr: Instruction): string {
-  switch (instr.type) {
-    case "MOVE_TO":
-      return `MOVE → #${instr.targetEntityId}`;
-    case "MINE":
-      return "MINE";
-    case "DROP":
-      return "DROP";
-    case "CHARGE":
-      return "CHARGE";
-    case "WAIT":
-      return `WAIT ${instr.seconds}s`;
-    case "LOOP":
-      return "LOOP ∞";
-    case "REPEAT":
-      return `REPEAT ×${instr.count}`;
-    case "WHILE":
-      return `WHILE (${instr.conditions.length} cond)`;
-    case "RUN_PROGRAM":
-      return `RUN ${instr.programId}`;
-    case "IF":
-      return `IF (${instr.conditions.length} condition${instr.conditions.length !== 1 ? "s" : ""})`;
-  }
-}
-
-function getInstructionList(
-  instructions: Instruction[],
-  path: number[],
-): Instruction[] {
-  let current = instructions;
-  for (const idx of path) {
-    const node = current[idx];
-    if (!node) return current;
-    if (
-      node.type === "LOOP" ||
-      node.type === "REPEAT" ||
-      node.type === "WHILE"
-    ) {
-      current = node.body;
-    } else if (node.type === "IF") {
-      current = node.then;
-    } else {
-      break;
-    }
-  }
-  return current;
-}
-
-function filterPrograms(
-  registry: ProgramRegistry,
-  codeModeEnabled: boolean,
-): ProgramDef[] {
-  const mode = codeModeEnabled ? "code" : "block";
-  return Array.from(registry.values()).filter(
-    (p) => !p.personal && p.behavior.sourceForm === mode,
-  );
+function filterPrograms(registry: ProgramRegistry): ProgramDef[] {
+  return Array.from(registry.values()).filter((p) => !p.personal);
 }
 
 function resetDroneProgram(world: World, droneId: EntityId): void {
@@ -230,7 +135,7 @@ function resetDroneProgram(world: World, droneId: EntityId): void {
   }
 }
 
-function snapshotDrones(world: World, registry: ProgramRegistry): DroneState[] {
+function snapshotDrones(world: World): DroneState[] {
   const ids = world.query("Position", "Energy", "Inventory", "Program");
   return ids.map((id) => {
     const pos = world.getComponent(id, "Position")!;
@@ -248,11 +153,7 @@ function snapshotDrones(world: World, registry: ProgramRegistry): DroneState[] {
         ? frame.instructionIndex - 1
         : frame.instructionIndex;
       if (idx >= 0) {
-        const prog = registry.get(frame.programId);
-        if (prog?.behavior.sourceForm === "block") {
-          const instr = prog.behavior.instructions[idx];
-          if (instr) currentInstruction = describeInstruction(instr);
-        }
+        currentInstruction = "-TODO-"; // понять что тут выводить
       }
     }
 
@@ -289,7 +190,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
   isRunning: false,
   gameStatus: "idle" as GameStatus,
   statusMessage: null,
-  codeModeEnabled: loadCodeModeEnabled(),
   _systems: null,
   _tickCount: 0,
 
@@ -321,23 +221,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       statistics,
     };
 
-    const codeModeEnabled = get().codeModeEnabled;
-    for (const droneId of world.query(
-      "Position",
-      "Energy",
-      "Inventory",
-      "Program",
-    )) {
-      const program = world.getComponent(droneId, "Program")!;
-      const personalDef = registry.get(program.personalProgramId);
-      if (!personalDef) continue;
-      if (codeModeEnabled) {
-        personalDef.behavior = { sourceForm: "code", code: "" };
-      }
-    }
-
-    const programs = filterPrograms(registry, codeModeEnabled);
-    const drones = snapshotDrones(world, registry);
+    const programs = filterPrograms(registry);
+    const drones = snapshotDrones(world);
 
     set({
       world,
@@ -361,7 +246,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   tick() {
-    const { world, registry, _systems } = get();
+    const { world, _systems } = get();
     if (!world || !_systems) return;
 
     _systems.collision.update();
@@ -375,7 +260,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const tickCount = get()._tickCount + 1;
 
     set({
-      drones: snapshotDrones(world, registry),
+      drones: snapshotDrones(world),
       stats: {
         orePerMin: Math.round(s.orePerMinute * 10) / 10,
         congestion:
@@ -406,13 +291,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({ gameStatus: status, statusMessage: message ?? null });
   },
 
-  setCodeModeEnabled(v) {
-    const status = get().gameStatus;
-    if (status !== "idle" && status !== "won" && status !== "failed") return;
-    saveCodeModeEnabled(v);
-    set({ codeModeEnabled: v });
-  },
-
   setProgramCodeSource(programId, code) {
     const { registry, world, _systems } = get();
     const prog = registry.get(programId);
@@ -436,94 +314,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
     }
 
-    set({ programs: filterPrograms(registry, get().codeModeEnabled) });
-  },
-
-  addInstruction(programId, instruction, parentPath = []) {
-    const { registry } = get();
-    const prog = registry.get(programId);
-    if (!prog || prog.behavior.sourceForm !== "block") return;
-
-    const list = getInstructionList(prog.behavior.instructions, parentPath);
-    list.push(instruction);
-
-    set({ programs: filterPrograms(registry, get().codeModeEnabled) });
-  },
-
-  removeInstruction(programId, path) {
-    const { registry } = get();
-    const prog = registry.get(programId);
-    if (!prog || prog.behavior.sourceForm !== "block" || path.length === 0)
-      return;
-
-    const parentPath = path.slice(0, -1);
-    const idx = path[path.length - 1];
-    const list = getInstructionList(prog.behavior.instructions, parentPath);
-    list.splice(idx, 1);
-
-    set({ programs: filterPrograms(registry, get().codeModeEnabled) });
-  },
-
-  updateInstruction(programId, path, updated) {
-    const { registry } = get();
-    const prog = registry.get(programId);
-    if (!prog || prog.behavior.sourceForm !== "block" || path.length === 0)
-      return;
-    const parentPath = path.slice(0, -1);
-    const idx = path[path.length - 1];
-    const list = getInstructionList(prog.behavior.instructions, parentPath);
-    list[idx] = updated;
-    set({ programs: filterPrograms(registry, get().codeModeEnabled) });
-  },
-
-  moveInstruction(programId, fromPath, toContainerPath, toIndex) {
-    const { registry } = get();
-    const prog = registry.get(programId);
-    if (!prog || prog.behavior.sourceForm !== "block" || fromPath.length === 0)
-      return;
-
-    const fromContainerPath = fromPath.slice(0, -1);
-    const fromIndex = fromPath[fromPath.length - 1];
-
-    // Если удаление fromPath сдвигает сегмент в toContainerPath — скорректировать
-    const adjustedToContainerPath = toContainerPath.slice();
-    if (
-      adjustedToContainerPath.length > fromContainerPath.length &&
-      fromContainerPath.every((v, i) => v === adjustedToContainerPath[i]) &&
-      adjustedToContainerPath[fromContainerPath.length] > fromIndex
-    ) {
-      adjustedToContainerPath[fromContainerPath.length]--;
-    }
-
-    const fromList = getInstructionList(
-      prog.behavior.instructions,
-      fromContainerPath,
-    );
-    const instr = fromList[fromIndex];
-    if (!instr) return;
-
-    fromList.splice(fromIndex, 1);
-    const toList = getInstructionList(
-      prog.behavior.instructions,
-      adjustedToContainerPath,
-    );
-    toList.splice(toIndex, 0, instr);
-
-    set({ programs: filterPrograms(registry, get().codeModeEnabled) });
+    set({ programs: filterPrograms(registry) });
   },
 
   createProgram(name) {
-    const { registry, codeModeEnabled } = get();
+    const { registry } = get();
     const id = `program_${_programIdCounter++}`;
     const prog: ProgramDef = {
       id,
       name,
-      behavior: codeModeEnabled
-        ? { sourceForm: "code", code: "" }
-        : { sourceForm: "block", instructions: [] },
+      behavior: { sourceForm: "code", code: "" },
     };
     registry.set(id, prog);
-    set({ programs: filterPrograms(registry, codeModeEnabled) });
+    set({ programs: filterPrograms(registry) });
   },
 
   assignProgram(droneId, programId) {
@@ -537,11 +340,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
     program.callStack = [{ programId, instructionIndex: 0 }];
     program.state = "running";
 
-    set({ drones: snapshotDrones(world, get().registry) });
+    set({ drones: snapshotDrones(world) });
   },
 
   unassignProgram(droneId) {
-    const { world, registry } = get();
+    const { world } = get();
     if (!world) return;
     const program = world.getComponent(droneId, "Program");
     if (!program) return;
@@ -559,40 +362,40 @@ export const useGameStore = create<GameStore>((set, get) => ({
       movement.progress = 0;
     }
 
-    set({ drones: snapshotDrones(world, registry) });
+    set({ drones: snapshotDrones(world) });
   },
 
   restartProgram(droneId) {
-    const { world, registry } = get();
+    const { world } = get();
     if (!world) return;
     resetDroneProgram(world, droneId);
-    set({ drones: snapshotDrones(world, registry) });
+    set({ drones: snapshotDrones(world) });
   },
 
   startDrone(droneId) {
-    const { world, registry } = get();
+    const { world } = get();
     if (!world) return;
     const program = world.getComponent(droneId, "Program");
     if (!program) return;
     program.localPaused = false;
-    set({ drones: snapshotDrones(world, registry) });
+    set({ drones: snapshotDrones(world) });
   },
 
   pauseDrone(droneId) {
-    const { world, registry } = get();
+    const { world } = get();
     if (!world) return;
     const program = world.getComponent(droneId, "Program");
     if (!program) return;
     program.localPaused = true;
-    set({ drones: snapshotDrones(world, registry) });
+    set({ drones: snapshotDrones(world) });
   },
 
   resetDrone(droneId) {
-    const { world, registry } = get();
+    const { world } = get();
     if (!world) return;
     resetDroneProgram(world, droneId);
     const program = world.getComponent(droneId, "Program");
     if (program) program.localPaused = false;
-    set({ drones: snapshotDrones(world, registry) });
+    set({ drones: snapshotDrones(world) });
   },
 }));

@@ -1,5 +1,3 @@
-import type { ConditionLeaf, ConditionLogic } from "../../programs/types.js";
-
 export type ProgramState =
   | "idle"
   | "running"
@@ -15,8 +13,6 @@ export interface CallFrame {
   repeatRemaining?: number;
   isLoop?: boolean;
   inlineInstructions?: readonly unknown[];
-  whileConditions?: ConditionLeaf[];
-  whileOperators?: ConditionLogic[];
 }
 
 export interface ProgramComponent {

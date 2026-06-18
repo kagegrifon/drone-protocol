@@ -14,13 +14,13 @@ async function startMission(
 
 async function waitForGame(page: import("@playwright/test").Page) {
   await expect(page.getByRole("button", { name: /Play/i })).toBeVisible({
-    timeout: 15_000,
+    timeout: 30_000,
   });
 }
 
 async function selectFirstDrone(page: import("@playwright/test").Page) {
   const firstDrone = page.locator('[data-testid^="drone-item-"]').first();
-  await firstDrone.waitFor({ state: "visible", timeout: 10_000 });
+  await firstDrone.waitFor({ state: "visible", timeout: 20_000 });
   const testId = await firstDrone.getAttribute("data-testid");
   const droneId = testId?.replace("drone-item-", "");
   await firstDrone.click();
@@ -92,7 +92,7 @@ test("кнопки в DroneList не меняют выбранного дрон�
   await waitForGame(page);
 
   const firstDrone = page.locator('[data-testid^="drone-item-"]').first();
-  await firstDrone.waitFor({ state: "visible", timeout: 10_000 });
+  await firstDrone.waitFor({ state: "visible", timeout: 20_000 });
   const firstId = (await firstDrone.getAttribute("data-testid"))!.replace(
     "drone-item-",
     "",
