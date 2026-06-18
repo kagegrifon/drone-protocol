@@ -11,3 +11,4 @@ test-results
 .cursor
 .codegraph
 .mcp.json
+.tmp_review

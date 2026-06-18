@@ -1,7 +1,7 @@
 import type { EntityId } from "../../shared/types/index.js";
 import { DT } from "../simulation/constants.js";
 import type { ProgramComponent } from "../simulation/components/Program.js";
-import { planAstarMove } from "../programs/interpreter.js";
+import { planAstarMove } from "../pathfinding/planMove.js";
 import type { BehaviorDriver, BehaviorTickContext } from "./BehaviorDriver.js";
 import type { CodeWorkerPort } from "./CodeWorkerPort.js";
 import { collectSensors } from "./sensors.js";
@@ -28,7 +28,10 @@ export interface CodeBehaviorDriverOptions {
   createPort: () => CodeWorkerPort;
   timeoutMs?: number;
   /** Именованные сущности, доступные коду игрока как глобальные переменные. */
-  entities?: (droneId: EntityId, ctx: BehaviorTickContext) => Record<string, EntityId>;
+  entities?: (
+    droneId: EntityId,
+    ctx: BehaviorTickContext,
+  ) => Record<string, EntityId>;
 }
 
 /**
@@ -52,7 +55,11 @@ export class CodeBehaviorDriver implements BehaviorDriver {
     if (!session) {
       const activeProgramId =
         program.currentProgramId ?? program.personalProgramId;
-      const code = ctx.registry.get(activeProgramId)?.codeSource;
+      const activeDef = ctx.registry.get(activeProgramId);
+      const code =
+        activeDef?.behavior.sourceForm === "code"
+          ? activeDef.behavior.code
+          : undefined;
       if (!code) return;
       const entities = this.options.entities?.(droneId, ctx) ?? {};
       const port = this.options.createPort();
@@ -123,7 +130,13 @@ export class CodeBehaviorDriver implements BehaviorDriver {
       case "intent": {
         if (msg.action === "moveTo") {
           if (msg.targetId !== undefined) {
-            planAstarMove(droneId, msg.targetId, ctx.world, ctx.grid, ctx.occupied);
+            planAstarMove(
+              droneId,
+              msg.targetId,
+              ctx.world,
+              ctx.grid,
+              ctx.occupied,
+            );
           }
           program.state = "move";
         } else if (msg.action === "mine") {

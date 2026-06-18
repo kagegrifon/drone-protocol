@@ -1,6 +1,5 @@
-import type { AudioManager } from "../../renderer/audio/AudioManager.js";
-import { useAudioStore } from "../../shared/store/audioStore.js";
-import { useGameStore } from "../../shared/store/gameStore.js";
+import type { AudioManager } from "@/renderer/audio/AudioManager.js";
+import { useAudioStore } from "@/shared/store/audioStore.js";
 
 interface AudioSettingsModalProps {
   isOpen: boolean;
@@ -70,22 +69,6 @@ const VAL: React.CSSProperties = {
   flexShrink: 0,
 };
 
-const RADIO_ROW: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "6px",
-  cursor: "pointer",
-  fontSize: "11px",
-  color: "#c0cfe0",
-};
-
-const HINT: React.CSSProperties = {
-  fontSize: "10px",
-  color: "#445566",
-  marginTop: "4px",
-  marginBottom: "8px",
-};
-
 const CLOSE_BTN: React.CSSProperties = {
   marginTop: "16px",
   width: "100%",
@@ -107,11 +90,6 @@ export function AudioSettingsModal({
   onBackToMissions,
 }: AudioSettingsModalProps) {
   const { musicVol, sfxVol, setMusicVol, setSfxVol } = useAudioStore();
-  const codeModeEnabled = useGameStore((s) => s.codeModeEnabled);
-  const setCodeModeEnabled = useGameStore((s) => s.setCodeModeEnabled);
-  const gameStatus = useGameStore((s) => s.gameStatus);
-  const codeModeLocked =
-    gameStatus === "running" || gameStatus === "paused";
 
   if (!isOpen) return null;
 
@@ -154,36 +132,7 @@ export function AudioSettingsModal({
           />
           <span style={VAL}>{sfxVol}%</span>
         </div>
-        <div style={{ ...SECTION, marginTop: "16px" }}>
-          РЕЖИМ ПРОГРАММИРОВАНИЯ
-        </div>
-        <div style={ROW}>
-          <label style={RADIO_ROW}>
-            <input
-              type="radio"
-              name="code-mode"
-              data-testid="code-mode-toggle"
-              checked={!codeModeEnabled}
-              disabled={codeModeLocked}
-              onChange={() => setCodeModeEnabled(false)}
-            />
-            БЛОКИ
-          </label>
-          <label style={RADIO_ROW}>
-            <input
-              type="radio"
-              name="code-mode"
-              data-testid="code-mode-toggle-code"
-              checked={codeModeEnabled}
-              disabled={codeModeLocked}
-              onChange={() => setCodeModeEnabled(true)}
-            />
-            КОД
-          </label>
-        </div>
-        {codeModeLocked && (
-          <div style={HINT}>режим фиксируется на время миссии</div>
-        )}
+
         {onBackToMissions && (
           <button
             style={{

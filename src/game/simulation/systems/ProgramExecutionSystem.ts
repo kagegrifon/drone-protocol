@@ -2,20 +2,17 @@ import type { World } from "../world/World.js";
 import type { Grid } from "../world/Grid.js";
 import type { CollisionSystem } from "./CollisionSystem.js";
 import type { ProgramRegistry } from "../../programs/types.js";
-import type { EntityId } from "../../../shared/types/index.js";
-import { AstBehaviorDriver } from "../../code/AstBehaviorDriver.js";
+import type { EntityId } from "@/shared/types/index.js";
 import type { BehaviorDriver } from "../../code/BehaviorDriver.js";
 import type { CodeBehaviorDriver } from "../../code/CodeBehaviorDriver.js";
 
 export class ProgramExecutionSystem {
-  private readonly astDriver: BehaviorDriver = new AstBehaviorDriver();
-
   constructor(
     private readonly world: World,
     private readonly grid: Grid,
     private readonly collision: CollisionSystem,
     private readonly registry: ProgramRegistry,
-    private readonly codeDriver?: CodeBehaviorDriver,
+    private readonly codeDriver: CodeBehaviorDriver,
   ) {}
 
   update(): void {
@@ -32,24 +29,18 @@ export class ProgramExecutionSystem {
         occupied: this.collision.occupied,
       };
 
-      const activeProgramId =
-        program.currentProgramId ?? program.personalProgramId;
-      const activeDef = this.registry.get(activeProgramId);
-      const driver: BehaviorDriver =
-        activeDef?.behaviorMode === "code" && this.codeDriver
-          ? this.codeDriver
-          : this.astDriver;
+      const driver: BehaviorDriver = this.codeDriver;
 
       driver.step(id, ctx);
     }
   }
 
   dispose(): void {
-    this.codeDriver?.disposeAll();
+    this.codeDriver.disposeAll();
   }
 
   /** Сбрасывает воркер-сессию дрона, чтобы новый код применился на следующем тике. */
   disposeDrone(droneId: EntityId): void {
-    this.codeDriver?.dispose(droneId);
+    this.codeDriver.dispose(droneId);
   }
 }

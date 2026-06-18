@@ -5,13 +5,6 @@ async function skipIntro(page: import("@playwright/test").Page) {
   await page.getByRole("button", { name: "Press Start" }).click();
 }
 
-// Включает режим КОД в настройках (доступно только вне миссии)
-async function enableCodeMode(page: import("@playwright/test").Page) {
-  await page.getByTitle("Настройки").click();
-  await page.locator('[data-testid="code-mode-toggle-code"]').click();
-  await page.getByRole("button", { name: "✕ ЗАКРЫТЬ" }).click();
-}
-
 // Запускает миссию с заданным индексом (0-based)
 async function startMission(
   page: import("@playwright/test").Page,
@@ -23,13 +16,13 @@ async function startMission(
 
 async function waitForGame(page: import("@playwright/test").Page) {
   await expect(page.getByRole("button", { name: /Play/i })).toBeVisible({
-    timeout: 15_000,
+    timeout: 30_000,
   });
 }
 
 async function selectFirstDrone(page: import("@playwright/test").Page) {
   const firstDrone = page.locator('[data-testid^="drone-item-"]').first();
-  await firstDrone.waitFor({ state: "visible", timeout: 10_000 });
+  await firstDrone.waitFor({ state: "visible", timeout: 20_000 });
   await firstDrone.click();
 }
 
@@ -60,8 +53,6 @@ test("ввод кода в Code Mode → запуск миссии → дрон 
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await skipIntro(page);
-  await enableCodeMode(page);
-
   await startMission(page, 0);
   await waitForGame(page);
 

@@ -1,6 +1,6 @@
 # Code Mode (этап 1) — ядро исполнения JS-кода дронов
 
-**Статус:** ядро реализовано; миграция реестра/gameStore на `DroneBehavior` — отдельная будущая задача (см. примечание в конце критериев)
+**Статус:** ядро реализовано; миграция реестра/gameStore на `ProgramDef.behavior: DroneBehavior` завершена (см. [DECISIONS.md](../../../DECISIONS.md), запись от 15-06-2026)
 
 Спецификация: [2026-06-10-drone-code-mode-design.md](../../superpowers/specs/2026-06-10-drone-code-mode-design.md)
 Этап 2 (Monaco): [drone-code-mode-monaco.md](drone-code-mode-monaco.md)
@@ -14,28 +14,28 @@ async/await-код детерминированно встаёт на пошаг
 
 ## Поведение
 
-- Дрон с `behavior.source === 'code'` исполняет JS-код игрока через Web Worker.
+- Дрон с `behavior.sourceForm === 'code'` исполняет JS-код игрока через Web Worker.
 - Код пишется в async/await-стиле: `await drone.moveTo(ore); await drone.mine(); ...`.
 - Одно действие (`await drone.moveTo`) = одно атомарное намерение: driver выставляет
   `program.state` и выходит из тика; существующие системы доводят действие; по завершении
   (`state → idle`) промис в воркере резолвится и код едет дальше.
 - Сенсоры (`drone.energy`, `drone.freeSlots`, `distance(a,b)` и т.д.) — синхронны, снапшот тика.
 - `while(true){}` без `await` ловится таймаутом воркера, не вешает игру.
-- AST-режим (`source === 'block'`) продолжает работать без изменений поведения.
+- AST-режим (`sourceForm === 'block'`) продолжает работать без изменений поведения.
 - На этом этапе код задаётся временно (textarea/фикстура в dev), полноценного редактора нет.
 
 ## Критерии готовности
 
-- [x] Тип `DroneBehavior` — дискриминированное объединение `{source:'block'; instructions}` /
-      `{source:'code'; code}` добавлен (additive, `src/game/programs/types.ts`), `type-check`
-      зелёный. **Не входит в этот этап:** миграция `ProgramRegistry`/`ProgramDef`/`gameStore` на
-      этот тип во всех ~14 использующих `.instructions` файлах (миссии, UI редактор, рендерер,
-      store) — отдельная будущая задача после Monaco (этап 2). На этом этапе код передаётся
-      через временное additive-поле `program.codeSource`/`program.codeError`.
+- [x] Тип `DroneBehavior` — дискриминированное объединение `{sourceForm:'block'; instructions}` /
+      `{sourceForm:'code'; code}` добавлен в `src/game/programs/types.ts`, `type-check`
+      зелёный. Миграция `ProgramRegistry`/`ProgramDef`/`gameStore` на `behavior: DroneBehavior`
+      во всех использующих файлах (миссии, UI редактор, store, тесты) выполнена отдельной задачей
+      после Monaco (этап 2) — см. [DECISIONS.md](../../../DECISIONS.md), запись от 15-06-2026.
+      `program.codeError` остался в `ProgramComponent` как runtime-состояние, миграции не подлежал.
 - [x] `CodeBehaviorDriver` + Web Worker (`BrowserWorkerPort`/`NodeWorkerPort`) + async-API
       (действия `moveTo`/`mine`/`drop`/`charge`/`wait` + сенсоры `energy`/`inventory`/
       `freeSlots`/`distance`/`deposit`) работают.
-- [x] `ProgramExecutionSystem` выбирает driver по `program.codeSource`; AST-ветка
+- [x] `ProgramExecutionSystem` выбирает driver по `behavior.sourceForm`; AST-ветка
       (`AstBehaviorDriver`) не изменилась — обёртка над существующим `stepProgram`.
 - [x] Unit: `await drone.moveTo` → `state='move'` + выход тика; «done»/`finished` резолвит
       промис и переводит к следующему `await`; таймаут (`setTimeout` + `port.terminate()`)
