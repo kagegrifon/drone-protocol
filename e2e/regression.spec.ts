@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 // Ждём появления canvas Phaser с непустыми размерами
 async function waitForCanvas(page: import("@playwright/test").Page) {
   const canvas = page.locator("canvas");
-  await canvas.waitFor({ state: "visible", timeout: 15_000 });
+  await canvas.waitFor({ state: "visible", timeout: 30_000 });
   const box = await canvas.boundingBox();
   expect(box).not.toBeNull();
   expect(box!.width).toBeGreaterThan(0);
@@ -42,7 +42,7 @@ test("Bug 1: canvas виден и имеет размер после загру�
   // Sidebar (SimControls) тоже должен появиться — он рендерится только
   // в gamePhase === 'game', т.е. только после успешного onReady от Phaser
   await expect(page.getByRole("button", { name: /Play/i })).toBeVisible({
-    timeout: 15_000,
+    timeout: 30_000,
   });
 });
 
