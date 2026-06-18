@@ -3,24 +3,30 @@ import { World } from "../world/World.js";
 import { Grid } from "../world/Grid.js";
 import { CollisionSystem } from "./CollisionSystem.js";
 import { ProgramExecutionSystem } from "./ProgramExecutionSystem.js";
+import { CodeBehaviorDriver } from "../../code/CodeBehaviorDriver.js";
+import { NodeWorkerPort } from "../../code/worker/NodeWorkerPort.js";
 import type { ProgramRegistry } from "../../programs/types.js";
 
 const GRID = new Grid();
 
-function makeRegistry(instructions: object[] = []): ProgramRegistry {
+function makeRegistry(code = ""): ProgramRegistry {
   return new Map([
     [
       "prog",
       {
         id: "prog",
         name: "Prog",
-        behavior: {
-          sourceForm: "block",
-          instructions: instructions as never,
-        },
+        behavior: { sourceForm: "code" as const, code },
       },
     ],
   ]);
+}
+
+function makeCodeDriver() {
+  return new CodeBehaviorDriver({
+    createPort: () => new NodeWorkerPort(),
+    timeoutMs: 1000,
+  });
 }
 
 function addDrone(
@@ -54,127 +60,66 @@ function addDrone(
   return id;
 }
 
-describe("ProgramExecutionSystem", () => {
+describe("ProgramExecutionSystem — update gating", () => {
   let world: World;
   let collision: CollisionSystem;
   let system: ProgramExecutionSystem;
 
   beforeEach(() => {
-    world = makeWorld();
+    world = new World();
     collision = new CollisionSystem(world);
   });
 
-  function makeWorld() {
-    return new World();
-  }
-
-  function makeSystem(registry: ProgramRegistry) {
-    return new ProgramExecutionSystem(world, GRID, collision, registry);
-  }
-
-  it("executes MINE instruction for running drone on update", () => {
-    const registry = makeRegistry([{ type: "MINE" }]);
-    system = makeSystem(registry);
-    const id = addDrone(world, "running");
-    collision.update();
-    system.update();
-    const prog = world.getComponent(id, "Program")!;
-    expect(prog.state).toBe("mine");
-  });
-
-  it("skips drone already in an action state", () => {
-    const registry = makeRegistry([{ type: "MINE" }]);
-    system = makeSystem(registry);
-    const id = addDrone(world, "mine");
-    collision.update();
-    system.update();
-    expect(world.getComponent(id, "Program")!.state).toBe("mine");
-  });
-
-  it("skips idle drone", () => {
-    const registry = makeRegistry([]);
-    system = makeSystem(registry);
-    const id = addDrone(world, "idle");
-    collision.update();
-    system.update();
-    expect(world.getComponent(id, "Program")!.state).toBe("idle");
-  });
-
-  it("processes multiple drones independently", () => {
-    const registry = makeRegistry([{ type: "DROP" }]);
-    system = makeSystem(registry);
-    const id1 = addDrone(world, "running");
-    const id2 = addDrone(world, "running");
-    collision.update();
-    system.update();
-    expect(world.getComponent(id1, "Program")!.state).toBe("drop");
-    expect(world.getComponent(id2, "Program")!.state).toBe("drop");
-  });
-
-  it("drone with empty program becomes idle after update", () => {
-    const registry = makeRegistry([]);
-    system = makeSystem(registry);
-    const id = addDrone(world, "running");
-    collision.update();
-    system.update();
-    expect(world.getComponent(id, "Program")!.state).toBe("idle");
-  });
-
-  it("uses collision occupied set for MOVE_TO pathfinding", () => {
-    const targetId = world.createEntity();
-    world.addComponent(targetId, "Position", { x: 2, y: 0 });
-
-    const registry = new Map([
-      [
-        "prog",
-        {
-          id: "prog",
-          name: "Prog",
-          behavior: {
-            sourceForm: "block" as const,
-            instructions: [
-              { type: "MOVE_TO", targetEntityId: targetId },
-            ] as never,
-          },
-        },
-      ],
-    ]);
-    system = new ProgramExecutionSystem(world, GRID, collision, registry);
-
-    const id = addDrone(world, "running");
-    collision.update();
-    system.update();
-
-    const movement = world.getComponent(id, "Movement")!;
-    expect(movement.targetX).toBe(2);
-    expect(movement.targetY).toBe(0);
-  });
-
-  it("uses CodeBehaviorDriver when active program has behaviorMode='code'", async () => {
-    const { CodeBehaviorDriver } =
-      await import("../../code/CodeBehaviorDriver.js");
-    const { NodeWorkerPort } =
-      await import("../../code/worker/NodeWorkerPort.js");
-
-    const registry: ProgramRegistry = new Map([
-      [
-        "prog",
-        {
-          id: "prog",
-          name: "Prog",
-          behavior: { sourceForm: "code", code: "await drone.mine();" },
-        },
-      ],
-    ]);
-    const codeDriver = new CodeBehaviorDriver({
-      createPort: () => new NodeWorkerPort(),
-      timeoutMs: 1000,
-    });
+  function makeSystem(code = "await drone.mine();") {
     system = new ProgramExecutionSystem(
       world,
       GRID,
       collision,
-      registry,
+      makeRegistry(code),
+      makeCodeDriver(),
+    );
+    return system;
+  }
+
+  it("skips drone already in an action state", () => {
+    makeSystem();
+    const id = addDrone(world, "mine");
+    collision.update();
+    system.update();
+    expect(world.getComponent(id, "Program")!.state).toBe("mine");
+    system.dispose();
+  });
+
+  it("skips idle drone", () => {
+    makeSystem();
+    const id = addDrone(world, "idle");
+    collision.update();
+    system.update();
+    expect(world.getComponent(id, "Program")!.state).toBe("idle");
+    system.dispose();
+  });
+
+  it("skips locally paused drone", () => {
+    makeSystem();
+    const id = addDrone(world, "running");
+    world.getComponent(id, "Program")!.localPaused = true;
+    collision.update();
+    system.update();
+    expect(world.getComponent(id, "Program")!.state).toBe("running");
+    system.dispose();
+  });
+});
+
+describe("ProgramExecutionSystem — code execution", () => {
+  it("executes a code program via CodeBehaviorDriver", async () => {
+    const world = new World();
+    const collision = new CollisionSystem(world);
+    const codeDriver = makeCodeDriver();
+    const system = new ProgramExecutionSystem(
+      world,
+      GRID,
+      collision,
+      makeRegistry("await drone.mine();"),
       codeDriver,
     );
 
@@ -190,31 +135,4 @@ describe("ProgramExecutionSystem", () => {
     expect(world.getComponent(id, "Program")!.state).toBe("mine");
     codeDriver.disposeAll();
   }, 5000);
-
-  it("uses AstBehaviorDriver when active program has behaviorMode='block', even if codeDriver is provided", async () => {
-    const { CodeBehaviorDriver } =
-      await import("../../code/CodeBehaviorDriver.js");
-    const { NodeWorkerPort } =
-      await import("../../code/worker/NodeWorkerPort.js");
-
-    const registry = makeRegistry([{ type: "MINE" }]);
-    const codeDriver = new CodeBehaviorDriver({
-      createPort: () => new NodeWorkerPort(),
-      timeoutMs: 1000,
-    });
-    system = new ProgramExecutionSystem(
-      world,
-      GRID,
-      collision,
-      registry,
-      codeDriver,
-    );
-
-    const id = addDrone(world, "running");
-    collision.update();
-    system.update();
-
-    expect(world.getComponent(id, "Program")!.state).toBe("mine");
-    codeDriver.disposeAll();
-  });
 });

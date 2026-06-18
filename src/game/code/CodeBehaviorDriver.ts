@@ -1,7 +1,7 @@
 import type { EntityId } from "../../shared/types/index.js";
 import { DT } from "../simulation/constants.js";
 import type { ProgramComponent } from "../simulation/components/Program.js";
-import { planAstarMove } from "../programs/interpreter.js";
+import { planAstarMove } from "../pathfinding/planMove.js";
 import type { BehaviorDriver, BehaviorTickContext } from "./BehaviorDriver.js";
 import type { CodeWorkerPort } from "./CodeWorkerPort.js";
 import { collectSensors } from "./sensors.js";

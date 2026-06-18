@@ -221,18 +221,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
       statistics,
     };
 
-    for (const droneId of world.query(
-      "Position",
-      "Energy",
-      "Inventory",
-      "Program",
-    )) {
-      const program = world.getComponent(droneId, "Program")!;
-      const personalDef = registry.get(program.personalProgramId);
-      if (!personalDef) continue;
-      personalDef.behavior = { sourceForm: "code", code: "" };
-    }
-
     const programs = filterPrograms(registry);
     const drones = snapshotDrones(world);
 
