@@ -6,7 +6,7 @@ import { useAudioStore } from "./shared/store/audioStore.js";
 import { SimControls } from "./ui/controls/SimControls.js";
 import { DroneList } from "./ui/panels/DroneList.js";
 import { DroneInspector } from "./ui/panels/DroneInspector/index.js";
-import { ProgramEditor } from "./ui/editor/ProgramEditor/index.js";
+import { ProgramEditor } from "./_block_instruction/ProgramEditor/index.js";
 import { StatsPanel } from "./ui/panels/StatsPanel/index.js";
 import { OreHud } from "./ui/overlays/OreHud.js";
 import { MissionGoalButton } from "./ui/overlays/MissionGoalButton.js";

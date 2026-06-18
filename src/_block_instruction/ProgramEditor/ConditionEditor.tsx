@@ -5,8 +5,8 @@ import type {
   ConditionOperator,
   FunctionCall,
   Operand,
-} from "../../../game/programs/types.js";
-import type { EntityMeta } from "../../../game/missions/types.js";
+} from "../../game/programs/types.js";
+import type { EntityMeta } from "../../game/missions/types.js";
 import { FunctionCallEditor } from "./FunctionCallEditor.js";
 import { formatConditions } from "./conditionFormat.js";
 

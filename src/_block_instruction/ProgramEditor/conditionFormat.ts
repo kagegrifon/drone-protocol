@@ -4,8 +4,8 @@ import type {
   FunctionCall,
   ObjectRef,
   Operand,
-} from "../../../game/programs/types.js";
-import type { EntityMeta } from "../../../game/missions/types.js";
+} from "../../game/programs/types.js";
+import type { EntityMeta } from "../../game/missions/types.js";
 
 export function formatObjectRef(
   ref: ObjectRef,

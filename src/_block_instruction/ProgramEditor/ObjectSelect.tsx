@@ -1,5 +1,5 @@
-import type { ObjectRef } from "../../../game/programs/types.js";
-import type { EntityMeta } from "../../../game/missions/types.js";
+import type { ObjectRef } from "../../game/programs/types.js";
+import type { EntityMeta } from "../../game/missions/types.js";
 
 const selectStyle: React.CSSProperties = {
   background: "#0a1628",

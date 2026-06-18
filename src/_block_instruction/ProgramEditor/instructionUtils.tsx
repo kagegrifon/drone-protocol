@@ -1,6 +1,6 @@
 import { useState } from "react";
-import type { Instruction } from "../../../game/programs/types.js";
-import type { EntityMeta } from "../../../game/missions/types.js";
+import type { Instruction } from "../../game/programs/types.js";
+import type { EntityMeta } from "../../game/missions/types.js";
 
 export const NEW_INSTRUCTION_TYPES: Instruction["type"][] = [
   "MOVE_TO",

@@ -9,9 +9,9 @@ import type {
   FlowBlock,
   ConditionLeaf,
   ConditionLogic,
-} from "../../../game/programs/types.js";
-import type { EntityMeta } from "../../../game/missions/types.js";
-import { useGameStore } from "../../../shared/store/gameStore.js";
+} from "../../game/programs/types.js";
+import type { EntityMeta } from "../../game/missions/types.js";
+import { useGameStore } from "../../shared/store/gameStore.js";
 import {
   makeDefaultInstruction,
   AddInstructionMenu,

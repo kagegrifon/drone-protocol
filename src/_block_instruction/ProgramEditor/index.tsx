@@ -10,7 +10,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { useGameStore } from "../../../shared/store/gameStore.js";
+import { useGameStore } from "../../shared/store/gameStore.js";
 import {
   InstructionBlock,
   type DragItemData,
@@ -21,9 +21,9 @@ import {
   AddInstructionMenu,
 } from "./instructionUtils.js";
 import { DropSlot, type SlotData } from "./DropSlot.js";
-import { CodeEditor } from "../CodeEditor/CodeEditor.js";
-import type { Instruction, ProgramDef } from "../../../game/programs/types.js";
-import type { EntityMeta } from "../../../game/missions/types.js";
+import { CodeEditor } from "../../ui/editor/CodeEditor/CodeEditor.js";
+import type { Instruction, ProgramDef } from "../../game/programs/types.js";
+import type { EntityMeta } from "../../game/missions/types.js";
 
 const TAB_BTN = (active: boolean): React.CSSProperties => ({
   background: active ? "#0d2040" : "transparent",
@@ -55,19 +55,19 @@ const RADIO_STYLE = (checked: boolean): React.CSSProperties => ({
   flexShrink: 0,
 });
 
-function getInstructionByPath(prog: ProgramDef, path: number[]) {
-  if (prog.behavior.sourceForm !== "block") return null;
-  let list = prog.behavior.instructions;
-  for (let i = 0; i < path.length - 1; i++) {
-    const node = list[path[i]];
-    if (!node) return null;
-    if (node.type === "LOOP" || node.type === "REPEAT" || node.type === "WHILE")
-      list = node.body;
-    else if (node.type === "IF") list = node.then;
-    else return null;
-  }
-  return list[path[path.length - 1]] ?? null;
-}
+// function getInstructionByPath(prog: ProgramDef, path: number[]) {
+//   if (prog.behavior.sourceForm !== "block") return null;
+//   let list = prog.behavior.instructions;
+//   for (let i = 0; i < path.length - 1; i++) {
+//     const node = list[path[i]];
+//     if (!node) return null;
+//     if (node.type === "LOOP" || node.type === "REPEAT" || node.type === "WHILE")
+//       list = node.body;
+//     else if (node.type === "IF") list = node.then;
+//     else return null;
+//   }
+//   return list[path[path.length - 1]] ?? null;
+// }
 
 export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
   const [tab, setTab] = useState<"drone" | "library" | "program">("drone");
@@ -356,11 +356,7 @@ export function ProgramEditor({ entities }: { entities: EntityMeta[] }) {
                     {personalExpanded && codeModeEnabled && (
                       <>
                         <CodeEditor
-                          value={
-                            personalProgram.behavior.sourceForm === "code"
-                              ? personalProgram.behavior.code
-                              : ""
-                          }
+                          value={personalProgram.behavior.code}
                           onChange={(code) =>
                             setProgramCodeSource(personalProgram.id, code)
                           }

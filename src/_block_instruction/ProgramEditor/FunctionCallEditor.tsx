@@ -2,9 +2,9 @@ import type {
   FunctionCall,
   FunctionName,
   ObjectRef,
-} from "../../../game/programs/types.js";
-import type { EntityMeta } from "../../../game/missions/types.js";
-import { FUNCTIONS } from "../../../game/programs/functions.js";
+} from "../../game/programs/types.js";
+import type { EntityMeta } from "../../game/missions/types.js";
+import { FUNCTIONS } from "../../game/programs/functions.js";
 import { ObjectSelect } from "./ObjectSelect.js";
 
 const FUNCTION_ORDER: FunctionName[] = [
