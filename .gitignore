@@ -13,3 +13,4 @@ playwright-report
 .codegraph
 .mcp.json
 .tmp_review
+.worktrees/

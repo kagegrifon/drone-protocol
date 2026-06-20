@@ -75,6 +75,26 @@ A feature stays in `planned/` until complete; update status inside the file and 
 
 ## Git rules
 
+### Branch workflow
+
+- All feature/fix work happens in a dedicated branch, **never directly on `main`**.
+- Branch naming: `feat/<slug>`, `fix/<slug>`, `chore/<slug>`.
+- At the start of each session, check the current branch. If on `main`, create a feature branch first:
+  ```
+  git checkout -b feat/<slug>
+  ```
+- When the feature is complete, stop — the **user pushes the branch and creates the PR themselves**.
+- Do not push branches or create PRs unless explicitly asked.
+
+### Git Worktrees (parallel agents)
+
+- When running multiple agents in parallel, each agent works in its own git worktree under `.worktrees/`.
+- Use the `EnterWorktree` tool (or `using-git-worktrees` skill) to set up an isolated workspace before starting parallel work.
+- `node_modules` is symlinked automatically — no need to run `npm install` in each worktree.
+- Each worktree has its own branch; merging back is the user's responsibility via PR.
+
+### Commits
+
 - Each phase — a separate commit after completion. Do not commit unfinished work.
 - Commit message format: `<type>: <description> (Phase N)`
   - `feat:` — new functionality
