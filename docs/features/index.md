@@ -21,7 +21,6 @@ docs/features/
 | [drone-code-mode-core.md](planned/drone-code-mode-core.md) | Code Mode (этап 1) — ядро исполнения JS-кода | ядро и миграция реестра на `behavior: DroneBehavior` готовы |
 | [drone-code-mode-monaco.md](planned/drone-code-mode-monaco.md) | Code Mode (этап 2) — редактор Monaco + переключатель | planned |
 | [drone-tab-assigned-program-editor.md](planned/drone-tab-assigned-program-editor.md) | Вкладка DRONE: редактор кода назначенной программы (дебаггинг, этап 1) | planned |
-| [code-debugging-line-highlight.md](planned/code-debugging-line-highlight.md) | Дебаггинг кода: подсветка текущей исполняемой строки (этап 2) | planned |
 
 
 ### done
@@ -36,3 +35,4 @@ docs/features/
 | [missions-atomic-migration.md](done/missions-atomic-migration.md) | Миграция миссий под атомарную семантику |
 | [drag-drop-blocks.md](done/drag-drop-blocks.md) | Drag & Drop блоков + визуальный рефактор редактора |
 | [work-slots-and-collisions.md](done/work-slots-and-collisions.md) | Эксклюзивные слоты работы и физическая непроходимость дронов |
+| [code-debugging-line-highlight.md](done/code-debugging-line-highlight.md) | Дебаггинг кода: подсветка текущей исполняемой строки (этап 2) |
