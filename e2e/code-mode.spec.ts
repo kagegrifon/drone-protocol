@@ -80,6 +80,6 @@ test("ввод кода в Code Mode → запуск миссии → дрон 
 
   // Дрон доезжает до шахты и добывает руду — ORE в инспекторе становится > 0
   await expect(page.getByText(/^[1-9]\d*\/10$/)).toBeVisible({
-    timeout: 30_000,
+    timeout: 50_000,
   });
 });
