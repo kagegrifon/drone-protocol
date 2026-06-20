@@ -18,6 +18,7 @@ export interface SceneResult {
   registry: ProgramRegistry;
   baseId: EntityId;
   staticEntities: Array<{ id: EntityId; type: EntityType }>;
+  focusPoint: { x: number; y: number };
 }
 
 export interface MissionDef {
