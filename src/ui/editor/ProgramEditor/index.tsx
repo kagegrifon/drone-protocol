@@ -74,6 +74,10 @@ export function ProgramEditor() {
     ? (registry.get(editingProgramId) ?? null)
     : null;
 
+  const activeProgramId = drone
+    ? (drone.assignedProgramId ?? drone.personalProgramId)
+    : null;
+
   return (
     <div
       style={{
@@ -194,6 +198,11 @@ export function ProgramEditor() {
                             setProgramCodeSource(assignedProgram.id, code)
                           }
                           height="240px"
+                          highlightLine={
+                            drone.assignedProgramId === activeProgramId
+                              ? (drone.currentLine ?? null)
+                              : null
+                          }
                         />
                         {drone.codeError && (
                           <div
@@ -268,6 +277,11 @@ export function ProgramEditor() {
                             setProgramCodeSource(personalProgram.id, code)
                           }
                           height="240px"
+                          highlightLine={
+                            drone.personalProgramId === activeProgramId
+                              ? (drone.currentLine ?? null)
+                              : null
+                          }
                         />
                         {!assignedProgram && drone.codeError && (
                           <div
