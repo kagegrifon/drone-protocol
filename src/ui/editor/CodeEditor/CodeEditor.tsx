@@ -28,7 +28,20 @@ export function CodeEditor({
 
   const handleMount: OnMount = (editor) => {
     editorRef.current = editor;
-    decorationsRef.current = editor.createDecorationsCollection([]);
+    const col = editor.createDecorationsCollection([]);
+    decorationsRef.current = col;
+    if (highlightLine != null && monaco) {
+      col.set([
+        {
+          range: new monaco.Range(highlightLine, 1, highlightLine, 1),
+          options: {
+            isWholeLine: true,
+            className: "drone-line-highlight",
+            glyphMarginClassName: "drone-line-glyph",
+          },
+        },
+      ]);
+    }
   };
 
   useEffect(() => {
