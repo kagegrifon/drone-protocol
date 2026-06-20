@@ -146,17 +146,20 @@ export class CodeBehaviorDriver implements BehaviorDriver {
         } else if (msg.action === "charge") {
           program.state = "charge";
         }
+        program.currentLine = msg.line;
         session.phase = "action-pending";
         return;
       }
       case "wait": {
         session.waitRemaining = msg.seconds;
+        program.currentLine = msg.line;
         session.phase = "waiting";
         return;
       }
       case "finished": {
         session.phase = "done";
         program.state = "idle";
+        program.currentLine = null;
         this.clearTimeout(session);
         session.port.terminate();
         return;
@@ -165,6 +168,7 @@ export class CodeBehaviorDriver implements BehaviorDriver {
         session.phase = "done";
         program.state = "idle";
         program.codeError = msg.message;
+        program.currentLine = null;
         this.clearTimeout(session);
         session.port.terminate();
         return;
