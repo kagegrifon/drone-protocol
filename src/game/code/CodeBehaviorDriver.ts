@@ -196,6 +196,7 @@ export class CodeBehaviorDriver implements BehaviorDriver {
       session.phase = "done";
       program.state = "idle";
       program.codeError = `code execution timeout (${timeoutMs}ms) — likely an infinite loop without await`;
+      program.currentLine = null;
     }, timeoutMs);
   }
 
