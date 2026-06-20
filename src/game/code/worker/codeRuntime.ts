@@ -5,6 +5,7 @@ import type {
   WorkerMessage,
 } from "../types.js";
 import type { EntityId } from "../../../shared/types/index.js";
+import { instrument } from "./instrument.js";
 
 type Post = (msg: WorkerMessage) => void;
 type OnDriverMessage = (cb: (msg: DriverMessage) => void) => void;
@@ -22,6 +23,7 @@ export function runCode(
 ): Promise<void> {
   let sensors: SensorsSnapshot = start.sensors;
   let resolveResume: (() => void) | null = null;
+  let currentLine = 0;
 
   onDriverMessage((msg) => {
     if (msg.type === "resume") {
@@ -38,11 +40,15 @@ export function runCode(
     });
   }
 
+  function __line(n: number): void {
+    currentLine = n;
+  }
+
   async function sendAction(action: CodeAction, targetId?: EntityId): Promise<void> {
     post(
       targetId === undefined
-        ? { type: "intent", action }
-        : { type: "intent", action, targetId },
+        ? { type: "intent", action, line: currentLine }
+        : { type: "intent", action, targetId, line: currentLine },
     );
     await awaitResume();
   }
@@ -82,10 +88,12 @@ export function runCode(
     drop: () => sendAction("drop"),
     charge: () => sendAction("charge"),
     async wait(seconds: number): Promise<void> {
-      post({ type: "wait", seconds });
+      post({ type: "wait", seconds, line: currentLine });
       await awaitResume();
     },
   };
+
+  const instrumentedCode = instrument(start.code);
 
   const entityNames = Object.keys(start.entities);
   const entityValues = entityNames.map((name) => start.entities[name]);
@@ -96,13 +104,14 @@ export function runCode(
 
   const fn = new AsyncFunction(
     "drone",
+    "__line",
     "distance",
     "deposit",
     ...entityNames,
-    start.code,
+    instrumentedCode,
   );
 
-  return fn(drone, distance, deposit, ...entityValues)
+  return fn(drone, __line, distance, deposit, ...entityValues)
     .then(() => {
       post({ type: "finished" });
     })

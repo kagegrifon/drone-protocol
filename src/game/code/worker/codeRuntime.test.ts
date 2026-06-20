@@ -40,11 +40,11 @@ describe("runCode", () => {
 
     // даём микротаскам прокрутиться до первого intent
     await vi.waitFor(() => expect(ch.sent.length).toBe(1));
-    expect(ch.sent[0]).toEqual({ type: "intent", action: "moveTo", targetId: 2 });
+    expect(ch.sent[0]).toEqual({ type: "intent", action: "moveTo", targetId: 2, line: 1 });
 
     ch.deliver({ type: "resume", sensors: SENSORS });
     await vi.waitFor(() => expect(ch.sent.length).toBe(2));
-    expect(ch.sent[1]).toEqual({ type: "intent", action: "mine" });
+    expect(ch.sent[1]).toEqual({ type: "intent", action: "mine", line: 1 });
 
     ch.deliver({ type: "resume", sensors: SENSORS });
     await done;
@@ -62,7 +62,7 @@ describe("runCode", () => {
     };
     runCode(start, ch.post, ch.onDriverMessage);
     await vi.waitFor(() => expect(ch.sent.length).toBe(1));
-    expect(ch.sent[0]).toEqual({ type: "intent", action: "charge" });
+    expect(ch.sent[0]).toEqual({ type: "intent", action: "charge", line: 1 });
   });
 
   it("sends error message on synchronous throw", async () => {
@@ -89,7 +89,7 @@ describe("runCode", () => {
     };
     runCode(start, ch.post, ch.onDriverMessage);
     await vi.waitFor(() => expect(ch.sent.length).toBe(1));
-    expect(ch.sent[0]).toEqual({ type: "wait", seconds: 2 });
+    expect(ch.sent[0]).toEqual({ type: "wait", seconds: 2, line: 1 });
   });
 
   it("computes distance() and deposit() from the snapshot", async () => {
@@ -107,6 +107,6 @@ describe("runCode", () => {
     };
     runCode(start, ch.post, ch.onDriverMessage);
     await vi.waitFor(() => expect(ch.sent.length).toBe(1));
-    expect(ch.sent[0]).toEqual({ type: "intent", action: "mine" });
+    expect(ch.sent[0]).toEqual({ type: "intent", action: "mine", line: 4 });
   });
 });
