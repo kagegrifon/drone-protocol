@@ -187,13 +187,28 @@ export function ProgramEditor() {
                       </button>
                     </div>
                     {assignedExpanded && (
-                      <CodeEditor
-                        value={assignedProgram.behavior.code}
-                        onChange={(code) =>
-                          setProgramCodeSource(assignedProgram.id, code)
-                        }
-                        height="240px"
-                      />
+                      <>
+                        <CodeEditor
+                          value={assignedProgram.behavior.code}
+                          onChange={(code) =>
+                            setProgramCodeSource(assignedProgram.id, code)
+                          }
+                          height="240px"
+                        />
+                        {drone.codeError && (
+                          <div
+                            style={{
+                              color: "#ff4444",
+                              fontFamily: "monospace",
+                              fontSize: "11px",
+                              marginTop: "6px",
+                              whiteSpace: "pre-wrap",
+                            }}
+                          >
+                            {drone.codeError}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 )}
@@ -254,7 +269,7 @@ export function ProgramEditor() {
                           }
                           height="240px"
                         />
-                        {drone.codeError && (
+                        {!assignedProgram && drone.codeError && (
                           <div
                             style={{
                               color: "#ff4444",
