@@ -37,6 +37,7 @@ export function ProgramEditor() {
   const [editingProgramId, setEditingProgramId] = useState<string | null>(null);
   const [newProgramName, setNewProgramName] = useState("");
   const [personalExpanded, setPersonalExpanded] = useState(true);
+  const [assignedExpanded, setAssignedExpanded] = useState(true);
   const [highlightedProgramId, setHighlightedProgramId] = useState<
     string | null
   >(null);
@@ -135,6 +136,7 @@ export function ProgramEditor() {
                         display: "flex",
                         alignItems: "center",
                         gap: "6px",
+                        marginBottom: assignedExpanded ? "8px" : 0,
                       }}
                     >
                       <div
@@ -151,6 +153,20 @@ export function ProgramEditor() {
                       >
                         {assignedProgram.name}
                       </span>
+                      <button
+                        onClick={() => setAssignedExpanded(!assignedExpanded)}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          color: "#445566",
+                          cursor: "pointer",
+                          fontFamily: "monospace",
+                          fontSize: "11px",
+                          padding: "0 4px",
+                        }}
+                      >
+                        {assignedExpanded ? "▲" : "▼"}
+                      </button>
                       <button
                         onClick={() => {
                           setHighlightedProgramId(drone.assignedProgramId!);
@@ -170,6 +186,30 @@ export function ProgramEditor() {
                         ↗
                       </button>
                     </div>
+                    {assignedExpanded && (
+                      <>
+                        <CodeEditor
+                          value={assignedProgram.behavior.code}
+                          onChange={(code) =>
+                            setProgramCodeSource(assignedProgram.id, code)
+                          }
+                          height="240px"
+                        />
+                        {drone.codeError && (
+                          <div
+                            style={{
+                              color: "#ff4444",
+                              fontFamily: "monospace",
+                              fontSize: "11px",
+                              marginTop: "6px",
+                              whiteSpace: "pre-wrap",
+                            }}
+                          >
+                            {drone.codeError}
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -229,7 +269,7 @@ export function ProgramEditor() {
                           }
                           height="240px"
                         />
-                        {drone.codeError && (
+                        {!assignedProgram && drone.codeError && (
                           <div
                             style={{
                               color: "#ff4444",
