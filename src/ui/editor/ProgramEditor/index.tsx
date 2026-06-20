@@ -186,6 +186,15 @@ export function ProgramEditor() {
                         ↗
                       </button>
                     </div>
+                    {assignedExpanded && (
+                      <CodeEditor
+                        value={assignedProgram.behavior.code}
+                        onChange={(code) =>
+                          setProgramCodeSource(assignedProgram.id, code)
+                        }
+                        height="240px"
+                      />
+                    )}
                   </div>
                 )}
 
