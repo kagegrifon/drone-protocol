@@ -30,7 +30,7 @@ async function selectFirstDrone(page: import("@playwright/test").Page) {
 test("per-drone pause останавливает дрона, start продолжает", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("");
   await skipIntro(page);
   await startMission(page, 0);
   await waitForGame(page);
@@ -67,7 +67,7 @@ test("per-drone pause останавливает дрона, start продол�
 });
 
 test("per-drone reset перезапускает программу дрона", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("");
   await skipIntro(page);
   await startMission(page, 0);
   await waitForGame(page);
@@ -86,7 +86,7 @@ test("per-drone reset перезапускает программу дрона",
 });
 
 test("кнопки в DroneList не меняют выбранного дрона", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("");
   await skipIntro(page);
   await startMission(page, 0);
   await waitForGame(page);

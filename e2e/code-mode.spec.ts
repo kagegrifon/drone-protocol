@@ -49,7 +49,7 @@ test("ввод кода в Code Mode → запуск миссии → дрон 
   page,
 }) => {
   test.setTimeout(60_000);
-  await page.goto("/");
+  await page.goto("");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await skipIntro(page);
