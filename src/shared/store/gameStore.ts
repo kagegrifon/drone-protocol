@@ -31,6 +31,7 @@ export interface DroneState {
   assignedProgramId?: string;
   localPaused: boolean;
   codeError?: string;
+  currentLine: number | null;
 }
 
 export function computeActivePath(
@@ -173,6 +174,7 @@ function snapshotDrones(world: World): DroneState[] {
       assignedProgramId: program.assignedProgramId,
       localPaused: program.localPaused ?? false,
       codeError: program.codeError,
+      currentLine: program.currentLine ?? null,
     };
   });
 }

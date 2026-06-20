@@ -1,6 +1,6 @@
 # Дебаггинг кода: подсветка текущей исполняемой строки
 
-**Статус:** planned
+**Статус:** done
 
 > Этап 2 из 2. Строится поверх этапа 1 —
 > [drone-tab-assigned-program-editor.md](drone-tab-assigned-program-editor.md)

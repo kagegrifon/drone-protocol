@@ -44,6 +44,7 @@ describe("NodeWorkerPort", () => {
       type: "intent",
       action: "moveTo",
       targetId: 2,
+      line: 1,
     });
 
     port.postMessage({ type: "resume", sensors: SENSORS });
@@ -56,7 +57,7 @@ describe("NodeWorkerPort", () => {
       check();
     });
 
-    expect(messages[1]).toEqual({ type: "intent", action: "mine" });
+    expect(messages[1]).toEqual({ type: "intent", action: "mine", line: 1 });
     port.postMessage({ type: "resume", sensors: SENSORS });
 
     await new Promise<void>((resolve) => {

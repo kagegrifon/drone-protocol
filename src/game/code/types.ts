@@ -17,8 +17,8 @@ export type CodeAction = "moveTo" | "mine" | "drop" | "charge";
 
 /** Намерение, которое воркер шлёт driver'у на каждом await drone.<action>(). */
 export type WorkerMessage =
-  | { type: "intent"; action: CodeAction; targetId?: EntityId }
-  | { type: "wait"; seconds: number }
+  | { type: "intent"; action: CodeAction; targetId?: EntityId; line: number }
+  | { type: "wait"; seconds: number; line: number }
   | { type: "finished" }
   | { type: "error"; message: string };
 

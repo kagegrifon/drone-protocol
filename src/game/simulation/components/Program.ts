@@ -30,4 +30,6 @@ export interface ProgramComponent {
   codeSource?: string;
   /** Сообщение об ошибке исполнения кода (включая таймаут синхронного участка). */
   codeError?: string;
+  /** Текущая исполняемая строка кода (1-based). null = нет активного действия. */
+  currentLine?: number | null;
 }
