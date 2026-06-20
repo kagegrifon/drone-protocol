@@ -130,6 +130,7 @@ export class GameController {
       onDroneClick: this._setupOptions?.onDroneClick,
       onReady: this._setupOptions?.onReady,
       onAudioReady: this._setupOptions?.onAudioReady,
+      focusPoint: scene.focusPoint,
     });
 
     const store = useGameStore.getState();
