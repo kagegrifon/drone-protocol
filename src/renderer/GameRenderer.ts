@@ -11,6 +11,7 @@ export interface GameRendererOptions {
   onDroneClick?: (id: EntityId) => void;
   onReady?: () => void;
   onAudioReady?: (am: AudioManager) => void;
+  focusPoint: { x: number; y: number };
 }
 
 export class GameRenderer {
@@ -20,7 +21,7 @@ export class GameRenderer {
     world: World,
     grid: Grid,
     parent: HTMLElement,
-    options: GameRendererOptions = {},
+    options: GameRendererOptions,
   ) {
     this._game = new Phaser.Game({
       type: Phaser.AUTO,
@@ -36,6 +37,7 @@ export class GameRenderer {
         preBoot: (game: Phaser.Game) => {
           game.registry.set("world", world);
           game.registry.set("grid", grid);
+          game.registry.set("focusPoint", options.focusPoint);
           if (options.onDroneClick)
             game.registry.set("onDroneClick", options.onDroneClick);
           if (options.onReady) game.registry.set("onReady", options.onReady);

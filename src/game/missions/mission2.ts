@@ -60,6 +60,7 @@ export const mission2: MissionDef = {
         { id: mineId, type: "mine" },
         { id: chargerId, type: "charger" },
       ],
+      focusPoint: { x: 5, y: 5 },
     };
   },
 };

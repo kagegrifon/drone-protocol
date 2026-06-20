@@ -25,6 +25,7 @@ export class GameScene extends Phaser.Scene {
   // чтобы плавно «доводить» прогресс шага между дискретными апдейтами симуляции.
   private _lastSimTick = -1;
   private _tickStartMs = 0;
+  private _lastSelectedId: EntityId | null = null;
 
   constructor() {
     super({ key: "GameScene" });
@@ -202,6 +203,14 @@ export class GameScene extends Phaser.Scene {
     const store = useGameStore.getState();
     const selectedId = store.selectedDroneId;
 
+    if (selectedId !== null && selectedId !== this._lastSelectedId) {
+      const sprite = this._droneSprites.get(selectedId);
+      if (sprite) {
+        this.cameras.main.pan(sprite.x, sprite.y, 500, "Sine.easeInOut");
+      }
+    }
+    this._lastSelectedId = selectedId;
+
     // Обнаружить новый симуляционный тик — засечь его начало для доинтерполяции
     const simTick = store.stats.tick;
     if (simTick !== this._lastSimTick) {
@@ -303,7 +312,12 @@ export class GameScene extends Phaser.Scene {
     };
 
     cam.setZoom(1.0);
-    cam.centerOn(worldW / 2, worldH / 2);
+    const fp = this.registry.get("focusPoint") as
+      | { x: number; y: number }
+      | undefined;
+    const cx = fp ? fp.x * TILE_SIZE + TILE_SIZE / 2 : worldW / 2;
+    const cy = fp ? fp.y * TILE_SIZE + TILE_SIZE / 2 : worldH / 2;
+    cam.centerOn(cx, cy);
 
     this.time.delayedCall(0, () => {
       const minZoom = computeMinZoom();
