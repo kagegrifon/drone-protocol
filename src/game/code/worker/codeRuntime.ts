@@ -116,6 +116,7 @@ export function runCode(
       post({ type: "finished" });
     })
     .catch((err: unknown) => {
+      console.error("[codeRuntime] drone code error:", err);
       const message = err instanceof Error ? err.message : String(err);
       post({ type: "error", message });
     });

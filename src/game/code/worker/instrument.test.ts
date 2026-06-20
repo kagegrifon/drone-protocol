@@ -79,4 +79,33 @@ while (true) {
     }).not.toThrow();
     expect(result.match(/__line\(/g)?.length ?? 0).toBe(4);
   });
+
+  it("корректно обрабатывает вложенные while без точек с запятой", async () => {
+    const code = `while (true) {
+  while (drone.inventory === 0) {
+    await drone.moveTo(2)
+    await drone.mine()
+  }
+  while (drone.inventory > 0) {
+    await drone.drop()
+  }
+}`;
+    const result = instrument(code);
+    expect(result.match(/__line\(/g)?.length ?? 0).toBe(3);
+
+    // Запускаем инструментированный код с mock-дроном.
+    // inventory начинает с 0 → входим во внутренний while → после moveTo+mine inventory=1
+    // → выходим, входим в drop-while → после drop inventory=0 → бросаем исключение чтобы выйти из outer while
+    let callCount = 0;
+    const drone = {
+      get inventory() { return callCount < 2 ? 0 : 1; },
+      moveTo: async () => { callCount++; },
+      mine: async () => { callCount++; },
+      drop: async () => { throw new Error("stop"); },
+    };
+    const __line = () => {};
+    const AsyncFn = Object.getPrototypeOf(async function () {}).constructor as new (...args: string[]) => (...args: unknown[]) => Promise<void>;
+    const fn = new AsyncFn("drone", "__line", result);
+    await expect(fn(drone, __line)).rejects.toThrow("stop");
+  });
 });

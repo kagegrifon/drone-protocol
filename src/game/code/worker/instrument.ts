@@ -62,9 +62,11 @@ export function instrument(code: string): string {
   let result = code;
   for (const { start, end, line } of patches) {
     const original = result.slice(start, end);
+    // Добавляем ; перед wrap-ом: без него две подряд строки без ; парсятся
+    // как вызов функции — expr1\n(expr2) → expr1(expr2).
     result =
       result.slice(0, start) +
-      `(__line(${line}), ${original})` +
+      `;(__line(${line}), ${original})` +
       result.slice(end);
   }
 
