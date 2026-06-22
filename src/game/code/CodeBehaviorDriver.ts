@@ -81,7 +81,12 @@ export class CodeBehaviorDriver implements BehaviorDriver {
       )
         return;
 
-      // Позиция уже обновлена в MovementSystem до emit — снапшот корректен.
+      // Если в path ещё есть шаги — дрон продолжает идти без остановки,
+      // resume пока не нужен (MovementSystem сам ведёт по пути).
+      const movement = session.world.getComponent(droneId, "Movement");
+      if (movement && movement.path.length > 0) return;
+
+      // Путь пройден — позиция обновлена, снапшот корректен.
       session.phase = "idle";
       session.port.postMessage({
         type: "resume",

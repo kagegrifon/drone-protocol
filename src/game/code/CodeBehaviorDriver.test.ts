@@ -180,10 +180,9 @@ describe("CodeBehaviorDriver", () => {
     expect(world.getComponent(drone, "Program")!.state).toBe("idle");
   });
 
-  it("early resume on drone:moved: ONE step() after event is enough to start the next moveTo", async () => {
-    // Без раннего resume нужен ЛИШНИЙ тик (step в action-pending → resume → ждать ответ → step для pending).
-    // С ранним resume: drone:moved → resume отправляется СРАЗУ → воркер отвечает за ~15ms →
-    // один step() через 50ms уже читает готовый pending и ставит следующий moveTo.
+  it("early resume on drone:moved: ONE step() after reaching target is enough to start next moveTo", async () => {
+    // Ранний resume отправляется на drone:moved когда path пустой (дрон достиг цели).
+    // Воркер отвечает за ~15ms → один step() через 50ms читает pending и ставит следующий moveTo.
     const { id: drone, registry } = addDrone(
       world,
       "await self.moveTo({x:1,y:0}); await self.moveTo({x:2,y:0});",
@@ -197,8 +196,9 @@ describe("CodeBehaviorDriver", () => {
       () => world.getComponent(drone, "Program")!.state === "move",
     );
 
-    // Симулируем завершение шага MovementSystem: обновляет позицию, state=running, эмит
+    // Симулируем завершение всего пути MovementSystem: позиция обновлена, path очищен, state=running
     world.getComponent(drone, "Position")!.x = 1;
+    world.getComponent(drone, "Movement")!.path = []; // путь пройден
     world.getComponent(drone, "Program")!.state = "running";
     gameEvents.emit("drone:moved", { droneId: drone, fromX: 0, fromY: 0, toX: 1, toY: 0 });
 

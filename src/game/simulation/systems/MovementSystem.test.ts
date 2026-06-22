@@ -61,7 +61,7 @@ describe("MovementSystem", () => {
     expect(movement.progress).toBeCloseTo(0.1);
   });
 
-  it("moves drone exactly one cell after 10 ticks at speed=1, then stops", () => {
+  it("moves drone along full 2-cell path in 20 ticks at speed=1", () => {
     const id = addDrone(
       world,
       0,
@@ -76,10 +76,10 @@ describe("MovementSystem", () => {
     const pos = world.getComponent(id, "Position")!;
     expect(pos.x).toBe(1);
     expect(pos.y).toBe(0);
-    // Дополнительные тики не сдвинут дрон — путь зачищен.
+    // Path continues — drone keeps moving to cell 2
     for (let i = 0; i < 10; i++) system.update();
     const pos2 = world.getComponent(id, "Position")!;
-    expect(pos2.x).toBe(1);
+    expect(pos2.x).toBe(2);
   });
 
   // speed=10 (клеток/сек): progress += DT*10 = 1.0 за тик → 1 тик = 1 шаг
@@ -178,7 +178,7 @@ describe("MovementSystem", () => {
     expect(movement.path.length).toBe(0);
   });
 
-  it("clears the remaining path after one atomic step", () => {
+  it("keeps remaining path after one step so drone continues without pause", () => {
     const id = addDrone(
       world,
       0,
@@ -192,8 +192,23 @@ describe("MovementSystem", () => {
     );
     system.update();
     const movement = world.getComponent(id, "Movement")!;
-    expect(movement.path).toEqual([]);
+    expect(movement.path).toEqual([{ x: 2, y: 0 }, { x: 3, y: 0 }]);
     expect(movement.progress).toBe(0);
+  });
+
+  it("drone with 3-cell path reaches target in 30 ticks without stopping", () => {
+    const id = addDrone(
+      world,
+      0,
+      0,
+      [{ x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }],
+      10,
+    );
+    for (let i = 0; i < 30; i++) system.update();
+    const pos = world.getComponent(id, "Position")!;
+    expect(pos.x).toBe(3);
+    expect(pos.y).toBe(0);
+    expect(world.getComponent(id, "Movement")!.path).toEqual([]);
   });
 });
 
