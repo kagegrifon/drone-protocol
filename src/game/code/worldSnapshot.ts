@@ -1,4 +1,4 @@
-import type { EntityId } from "../../shared/types/index.js";
+import type { EntityId, WorldObjectType } from "../../shared/types/index.js";
 import type { World } from "../simulation/world/World.js";
 import { freeSlotsCount } from "../simulation/world/workSlots.js";
 import type {
@@ -8,9 +8,6 @@ import type {
   MineSnap,
   WorldSnapshot,
 } from "./types.js";
-
-/** Тип статических сущностей (всё, кроме дронов) — из scene.staticEntities. */
-type StaticType = "mine" | "base" | "charger";
 
 function droneSnap(world: World, id: EntityId): DroneSnap | null {
   const pos = world.getComponent(id, "Position");
@@ -37,7 +34,7 @@ function droneSnap(world: World, id: EntityId): DroneSnap | null {
 export function collectWorld(
   world: World,
   droneId: EntityId,
-  typeMap: ReadonlyMap<EntityId, StaticType>,
+  typeMap: ReadonlyMap<EntityId, WorldObjectType>,
 ): WorldSnapshot {
   const self = droneSnap(world, droneId);
   if (!self) {

@@ -1,6 +1,6 @@
-import type { EntityId, Position } from "../../shared/types/index.js";
+import type { EntityId, Position, WorldObjectType } from "../../shared/types/index.js";
 
-export type EntityType = "mine" | "base" | "charger" | "drone";
+export type EntityType = WorldObjectType | "drone";
 
 /** Базовые поля любой сущности в снапшоте мира. */
 export interface BaseEntitySnap {
