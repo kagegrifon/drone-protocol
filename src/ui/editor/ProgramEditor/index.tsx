@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useGameStore } from "../../../shared/store/gameStore.js";
-import { CodeEditor } from "../CodeEditor/CodeEditor.js";
+import { ProgramCodeBlock } from "../CodeEditor/ProgramCodeBlock.js";
 
 const TAB_BTN = (active: boolean): React.CSSProperties => ({
   background: active ? "#0d2040" : "transparent",
@@ -191,33 +191,27 @@ export function ProgramEditor() {
                       </button>
                     </div>
                     {assignedExpanded && (
-                      <>
-                        <CodeEditor
-                          value={assignedProgram.behavior.code}
-                          onChange={(code) =>
-                            setProgramCodeSource(assignedProgram.id, code)
-                          }
-                          height="240px"
-                          highlightLine={
-                            drone.assignedProgramId === activeProgramId
-                              ? (drone.currentLine ?? null)
-                              : null
-                          }
-                        />
-                        {drone.codeError && (
-                          <div
-                            style={{
-                              color: "#ff4444",
-                              fontFamily: "monospace",
-                              fontSize: "11px",
-                              marginTop: "6px",
-                              whiteSpace: "pre-wrap",
-                            }}
-                          >
-                            {drone.codeError}
-                          </div>
-                        )}
-                      </>
+                      <ProgramCodeBlock
+                        key={`assigned-${drone.id}-${assignedProgram.id}`}
+                        code={assignedProgram.behavior.code}
+                        onApply={(code) =>
+                          setProgramCodeSource(assignedProgram.id, code)
+                        }
+                        height="240px"
+                        highlightLine={
+                          drone.assignedProgramId === activeProgramId
+                            ? (drone.currentLine ?? null)
+                            : null
+                        }
+                        codeError={drone.codeError ?? null}
+                        affectedDroneIds={drones
+                          .filter(
+                            (d) =>
+                              d.assignedProgramId === assignedProgram.id &&
+                              d.id !== drone.id,
+                          )
+                          .map((d) => d.id)}
+                      />
                     )}
                   </div>
                 )}
@@ -270,33 +264,21 @@ export function ProgramEditor() {
                       </button>
                     </div>
                     {personalExpanded && (
-                      <>
-                        <CodeEditor
-                          value={personalProgram.behavior.code}
-                          onChange={(code) =>
-                            setProgramCodeSource(personalProgram.id, code)
-                          }
-                          height="240px"
-                          highlightLine={
-                            drone.personalProgramId === activeProgramId
-                              ? (drone.currentLine ?? null)
-                              : null
-                          }
-                        />
-                        {!assignedProgram && drone.codeError && (
-                          <div
-                            style={{
-                              color: "#ff4444",
-                              fontFamily: "monospace",
-                              fontSize: "11px",
-                              marginTop: "6px",
-                              whiteSpace: "pre-wrap",
-                            }}
-                          >
-                            {drone.codeError}
-                          </div>
-                        )}
-                      </>
+                      <ProgramCodeBlock
+                        key={`personal-${drone.id}-${personalProgram.id}`}
+                        code={personalProgram.behavior.code}
+                        onApply={(code) =>
+                          setProgramCodeSource(personalProgram.id, code)
+                        }
+                        height="240px"
+                        highlightLine={
+                          drone.personalProgramId === activeProgramId
+                            ? (drone.currentLine ?? null)
+                            : null
+                        }
+                        codeError={!assignedProgram ? (drone.codeError ?? null) : null}
+                        affectedDroneIds={[]}
+                      />
                     )}
                   </div>
                 )}
@@ -612,12 +594,18 @@ export function ProgramEditor() {
                 <div
                   style={{ borderTop: "1px solid #1e3a5f", paddingTop: "8px" }}
                 >
-                  <CodeEditor
-                    value={editingProgram.behavior.code}
-                    onChange={(code) =>
+                  <ProgramCodeBlock
+                    key={`program-${editingProgramId}`}
+                    code={editingProgram.behavior.code}
+                    onApply={(code) =>
                       setProgramCodeSource(editingProgramId!, code)
                     }
                     height="240px"
+                    affectedDroneIds={drones
+                      .filter(
+                        (d) => d.assignedProgramId === editingProgramId,
+                      )
+                      .map((d) => d.id)}
                   />
                 </div>
               </>
