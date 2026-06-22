@@ -1,7 +1,7 @@
 import type { EntityId, WorldObjectType } from "../../shared/types/index.js";
 import { DT } from "../simulation/constants.js";
 import type { ProgramComponent } from "../simulation/components/Program.js";
-import { planMoveToPoint } from "../pathfinding/planMove.js";
+import { planMoveToPoint, planNextStep } from "../pathfinding/planMove.js";
 import type { BehaviorDriver, BehaviorTickContext } from "./BehaviorDriver.js";
 import type { CodeWorkerPort } from "./CodeWorkerPort.js";
 import { collectWorld } from "./worldSnapshot.js";
@@ -81,12 +81,9 @@ export class CodeBehaviorDriver implements BehaviorDriver {
       )
         return;
 
-      // Если в path ещё есть шаги — дрон продолжает идти без остановки,
-      // resume пока не нужен (MovementSystem сам ведёт по пути).
-      const movement = session.world.getComponent(droneId, "Movement");
-      if (movement && movement.path.length > 0) return;
-
-      // Путь пройден — позиция обновлена, снапшот корректен.
+      // moveTo = «умный шаг»: один шаг завершён (path пуст в момент события),
+      // позиция обновлена. Шлём ранний resume сразу (~15ms) — воркер успевает
+      // вернуть новый intent до конца следующего шага, дрон не тормозит.
       session.phase = "idle";
       session.port.postMessage({
         type: "resume",
@@ -195,13 +192,31 @@ export class CodeBehaviorDriver implements BehaviorDriver {
       case "intent": {
         if (msg.action === "moveTo") {
           if (msg.point !== undefined) {
-            planMoveToPoint(
-              droneId,
-              msg.point,
-              ctx.world,
-              ctx.grid,
-              ctx.occupied,
-            );
+            const movement = ctx.world.getComponent(droneId, "Movement");
+            const sameTarget =
+              movement !== undefined &&
+              movement.targetX === msg.point.x &&
+              movement.targetY === msg.point.y;
+            // Та же цель и дрон уже двигался к ней (lastAction moveTo) → продлеваем
+            // путь одним look-ahead шагом, не сбрасывая progress (непрерывность).
+            // Иначе — строим новый путь (смена цели или старт движения).
+            if (sameTarget && session.lastAction === "moveTo") {
+              planNextStep(
+                droneId,
+                msg.point,
+                ctx.world,
+                ctx.grid,
+                ctx.occupied,
+              );
+            } else {
+              planMoveToPoint(
+                droneId,
+                msg.point,
+                ctx.world,
+                ctx.grid,
+                ctx.occupied,
+              );
+            }
           }
           program.state = "move";
           session.lastAction = "moveTo";

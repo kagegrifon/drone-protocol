@@ -265,6 +265,56 @@ describe("CodeBehaviorDriver", () => {
     expect(world.getComponent(drone, "Program")!.state).toBe("running");
   });
 
+  it("extends path with a single look-ahead step when moveTo targets the same point", async () => {
+    // Дрон едет к {x:3,y:0}. На drone:moved (path пуст после шага) приходит ранний
+    // resume, воркер снова шлёт moveTo к ТОЙ ЖЕ цели → driver должен дописать
+    // следующий шаг через planNextStep, НЕ сбрасывая progress.
+    const mine = world.createEntity();
+    world.addComponent(mine, "Position", { x: 3, y: 0 });
+    world.addComponent(mine, "Deposit", { oreRemaining: 5, mineRate: 1 });
+    const typeMap = new Map<number, WorldObjectType>([[mine, "mine"]]);
+    driver = new CodeBehaviorDriver({
+      createPort: () => new NodeWorkerPort(),
+      timeoutMs: 1000,
+      typeMap,
+    });
+
+    const { id: drone, registry } = addDrone(
+      world,
+      "while (true) { await self.moveTo(World.mines[0].position); }",
+    );
+
+    await tickUntil(
+      driver,
+      drone,
+      world,
+      registry,
+      () => world.getComponent(drone, "Program")!.state === "move",
+    );
+
+    // Симулируем шаг MovementSystem: дрон шагнул в (1,0), path пуст, state=running.
+    world.getComponent(drone, "Position")!.x = 1;
+    world.getComponent(drone, "Movement")!.path = [];
+    world.getComponent(drone, "Movement")!.progress = 0;
+    world.getComponent(drone, "Program")!.state = "running";
+    gameEvents.emit("drone:moved", {
+      droneId: drone,
+      fromX: 0,
+      fromY: 0,
+      toX: 1,
+      toY: 0,
+    });
+
+    await new Promise((r) => setTimeout(r, 50));
+    driver.step(drone, ctx(world, registry));
+
+    // Та же цель → driver дописал следующий шаг к (3,0): следующий шаг (2,0).
+    const m = world.getComponent(drone, "Movement")!;
+    expect(m.targetX).toBe(3);
+    expect(m.path).toEqual([{ x: 2, y: 0 }]);
+    expect(world.getComponent(drone, "Program")!.state).toBe("move");
+  });
+
   it("identical code produces an identical state trace (determinism)", async () => {
     async function run(): Promise<string[]> {
       const w = new World();
