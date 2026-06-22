@@ -4,6 +4,7 @@ import { Grid } from "../simulation/world/Grid.js";
 import { CodeBehaviorDriver } from "./CodeBehaviorDriver.js";
 import { NodeWorkerPort } from "./worker/NodeWorkerPort.js";
 import type { ProgramRegistry } from "../programs/types.js";
+import type { WorldObjectType } from "../../shared/types/index.js";
 
 const EMPTY_GRID = new Grid();
 const EMPTY_OCCUPIED = new Set<string>();
@@ -106,7 +107,7 @@ describe("CodeBehaviorDriver", () => {
       "await self.moveTo(World.mines[0].position);",
     );
 
-    const typeMap = new Map<number, "mine" | "base" | "charger">([
+    const typeMap = new Map<number, WorldObjectType>([
       [mine, "mine"],
     ]);
     driver = new CodeBehaviorDriver({

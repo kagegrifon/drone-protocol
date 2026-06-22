@@ -1,4 +1,4 @@
-import type { EntityId } from "../../shared/types/index.js";
+import type { EntityId, WorldObjectType } from "../../shared/types/index.js";
 import { DT } from "../simulation/constants.js";
 import type { ProgramComponent } from "../simulation/components/Program.js";
 import { planMoveToPoint } from "../pathfinding/planMove.js";
@@ -30,7 +30,7 @@ export interface CodeBehaviorDriverOptions {
    * Карта типов статических сущностей мира (mine/base/charger), из
    * scene.staticEntities. По ней collectWorld строит World.mines/bases/chargers.
    */
-  typeMap?: ReadonlyMap<EntityId, "mine" | "base" | "charger">;
+  typeMap?: ReadonlyMap<EntityId, WorldObjectType>;
 }
 
 /**
@@ -42,7 +42,7 @@ export interface CodeBehaviorDriverOptions {
  */
 export class CodeBehaviorDriver implements BehaviorDriver {
   private readonly sessions = new Map<EntityId, Session>();
-  private readonly typeMap: ReadonlyMap<EntityId, "mine" | "base" | "charger">;
+  private readonly typeMap: ReadonlyMap<EntityId, WorldObjectType>;
 
   constructor(private readonly options: CodeBehaviorDriverOptions) {
     this.typeMap = options.typeMap ?? new Map();
