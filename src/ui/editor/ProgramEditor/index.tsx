@@ -206,9 +206,7 @@ export function ProgramEditor() {
                         codeError={drone.codeError ?? null}
                         affectedDroneIds={drones
                           .filter(
-                            (d) =>
-                              d.assignedProgramId === assignedProgram.id &&
-                              d.id !== drone.id,
+                            (d) => d.assignedProgramId === assignedProgram.id,
                           )
                           .map((d) => d.id)}
                       />
@@ -276,7 +274,9 @@ export function ProgramEditor() {
                             ? (drone.currentLine ?? null)
                             : null
                         }
-                        codeError={!assignedProgram ? (drone.codeError ?? null) : null}
+                        codeError={
+                          !assignedProgram ? (drone.codeError ?? null) : null
+                        }
                         affectedDroneIds={[]}
                       />
                     )}
@@ -602,9 +602,7 @@ export function ProgramEditor() {
                     }
                     height="240px"
                     affectedDroneIds={drones
-                      .filter(
-                        (d) => d.assignedProgramId === editingProgramId,
-                      )
+                      .filter((d) => d.assignedProgramId === editingProgramId)
                       .map((d) => d.id)}
                   />
                 </div>
