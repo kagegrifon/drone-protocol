@@ -1,6 +1,5 @@
 import type { EntityId, Position, WorldObjectType } from "../../shared/types/index.js";
 
-export type { WorldObjectType };
 export type EntityType = WorldObjectType | "drone";
 
 /** Базовые поля любой сущности в снапшоте мира. */
