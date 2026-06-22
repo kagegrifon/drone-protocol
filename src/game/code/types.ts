@@ -1,23 +1,59 @@
-import type { EntityId } from "../../shared/types/index.js";
+import type { EntityId, Position } from "../../shared/types/index.js";
 
-/** Снапшот сенсоров дрона на старте тика — синхронный, детерминированный. */
-export interface SensorsSnapshot {
+export type EntityType = "mine" | "base" | "charger" | "drone";
+
+/** Базовые поля любой сущности в снапшоте мира. */
+export interface BaseEntitySnap {
+  id: EntityId;
+  type: EntityType;
+  position: Position;
+}
+
+export interface MineSnap extends BaseEntitySnap {
+  type: "mine";
+  oreRemaining: number;
+  freeSlots: number;
+}
+
+export interface ChargerSnap extends BaseEntitySnap {
+  type: "charger";
+  freeSlots: number;
+}
+
+export interface BaseSnap extends BaseEntitySnap {
+  type: "base";
+  freeSlots: number;
+  storedOre: number;
+}
+
+export interface DroneSnap extends BaseEntitySnap {
+  type: "drone";
   energy: number;
   energyMax: number;
   inventory: number;
   inventoryMax: number;
-  freeSlots: number;
-  /** distance(a, b) для всех пар { entities + self } через Manhattan-расстояние. */
-  positions: Record<EntityId, { x: number; y: number }>;
-  /** deposit(target) — остаток руды для сущностей с компонентом Deposit. */
-  deposits: Record<EntityId, number>;
+  // freeSlots у дрона НЕТ — оно про рабочие слоты объектов.
+}
+
+/**
+ * Снапшот всего мира на старте тика — синхронный, детерминированный.
+ * Передаётся в воркер; богатые объекты с методами строятся внутри воркера.
+ */
+export interface WorldSnapshot {
+  /** Управляемый дрон, полная детализация. */
+  self: DroneSnap;
+  mines: MineSnap[];
+  chargers: ChargerSnap[];
+  bases: BaseSnap[];
+  /** ВСЕ дроны, включая self. */
+  drones: DroneSnap[];
 }
 
 export type CodeAction = "moveTo" | "mine" | "drop" | "charge";
 
-/** Намерение, которое воркер шлёт driver'у на каждом await drone.<action>(). */
+/** Намерение, которое воркер шлёт driver'у на каждом await self.<action>(). */
 export type WorkerMessage =
-  | { type: "intent"; action: CodeAction; targetId?: EntityId; line: number }
+  | { type: "intent"; action: CodeAction; point?: Position; line: number }
   | { type: "wait"; seconds: number; line: number }
   | { type: "finished" }
   | { type: "error"; message: string };
@@ -28,7 +64,6 @@ export type DriverMessage =
       type: "start";
       code: string;
       selfId: EntityId;
-      entities: Record<string, EntityId>;
-      sensors: SensorsSnapshot;
+      world: WorldSnapshot;
     }
-  | { type: "resume"; sensors: SensorsSnapshot };
+  | { type: "resume"; world: WorldSnapshot };
