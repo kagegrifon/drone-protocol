@@ -16,10 +16,10 @@ describe("instrument", () => {
   });
 
   it("вставляет __line перед await self.moveTo()", () => {
-    const code = `await self.moveTo(ore);`;
+    const code = `await self.moveTo({ x: 1, y: 1 });`;
     const result = instrument(code);
     expect(result).toContain("__line(1)");
-    expect(result).toContain("await self.moveTo(ore)");
+    expect(result).toContain("await self.moveTo({ x: 1, y: 1 })");
   });
 
   it("вставляет __line перед await self.wait()", () => {
@@ -44,7 +44,7 @@ describe("instrument", () => {
   });
 
   it("многострочный вызов — строка начала ExpressionStatement", () => {
-    const code = `await self\n  .moveTo(\n    ore\n  );`;
+    const code = `await self\n  .moveTo(\n    { x: 1, y: 1 }\n  );`;
     const result = instrument(code);
     expect(result).toContain("__line(1)");
   });
@@ -66,9 +66,9 @@ describe("instrument", () => {
   it("выдаёт валидный исполнимый JS для нетривиального кода", () => {
     const code = `
 while (true) {
-  await self.moveTo(mine);
+  await self.moveTo({ x: 1, y: 1 });
   await self.mine();
-  await self.moveTo(base);
+  await self.moveTo({ x: 2, y: 2 });
   await self.drop();
 }
     `.trim();
@@ -83,7 +83,7 @@ while (true) {
   it("корректно обрабатывает вложенные while без точек с запятой", async () => {
     const code = `while (true) {
   while (self.inventory === 0) {
-    await self.moveTo(2)
+    await self.moveTo({ x: 1, y: 1 })
     await self.mine()
   }
   while (self.inventory > 0) {
@@ -98,13 +98,24 @@ while (true) {
     // → выходим, входим в drop-while → после drop inventory=0 → бросаем исключение чтобы выйти из outer while
     let callCount = 0;
     const self = {
-      get inventory() { return callCount < 2 ? 0 : 1; },
-      moveTo: async () => { callCount++; },
-      mine: async () => { callCount++; },
-      drop: async () => { throw new Error("stop"); },
+      get inventory() {
+        return callCount < 2 ? 0 : 1;
+      },
+      moveTo: async () => {
+        callCount++;
+      },
+      mine: async () => {
+        callCount++;
+      },
+      drop: async () => {
+        throw new Error("stop");
+      },
     };
     const __line = () => {};
-    const AsyncFn = Object.getPrototypeOf(async function () {}).constructor as new (...args: string[]) => (...args: unknown[]) => Promise<void>;
+    const AsyncFn = Object.getPrototypeOf(async function () {})
+      .constructor as new (
+      ...args: string[]
+    ) => (...args: unknown[]) => Promise<void>;
     const fn = new AsyncFn("self", "__line", result);
     await expect(fn(self, __line)).rejects.toThrow("stop");
   });
