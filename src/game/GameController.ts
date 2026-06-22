@@ -2,23 +2,24 @@ import type { WinCondition, FailCondition } from "./types.js";
 import type { StatsState } from "../shared/store/gameStore.js";
 import type { EntityId } from "../shared/types/index.js";
 import type { World as WorldType } from "./simulation/world/World.js";
-import type { MissionDef, EntityMeta, EntityType } from "./missions/types.js";
+import type { MissionDef, EntityMeta } from "./missions/types.js";
+import type { WorldObjectType } from "../shared/types/index.js";
 import type { AudioManager } from "../renderer/audio/AudioManager.js";
 import { GameLoop } from "./GameLoop.js";
 import { useGameStore } from "../shared/store/gameStore.js";
 import { GameRenderer } from "../renderer/GameRenderer.js";
 import { gameEvents } from "../shared/events/gameEvents.js";
 
-const ENTITY_LABEL: Record<EntityType, string> = {
+const ENTITY_LABEL: Record<WorldObjectType, string> = {
   mine: "Mine",
   charger: "Charger",
   base: "Base",
 };
 
 function buildEntityMetas(
-  entities: Array<{ id: EntityId; type: EntityType }>,
+  entities: Array<{ id: EntityId; type: WorldObjectType }>,
 ): EntityMeta[] {
-  const counts: Partial<Record<EntityType, number>> = {};
+  const counts: Partial<Record<WorldObjectType, number>> = {};
   return entities.map(({ id, type }) => {
     counts[type] = (counts[type] ?? 0) + 1;
     const n = counts[type]!;

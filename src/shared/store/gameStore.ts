@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { EntityId } from "../types/index.js";
+import type { EntityId, WorldObjectType } from "../types/index.js";
 import type { GameStatus } from "@/game/types.js";
 import type { World } from "@/game/simulation/world/World.js";
 import type { Grid } from "@/game/simulation/world/Grid.js";
@@ -102,7 +102,7 @@ interface GameStore {
       createPort?: () => CodeWorkerPort;
       staticEntities?: ReadonlyArray<{
         id: EntityId;
-        type: "mine" | "base" | "charger";
+        type: WorldObjectType;
       }>;
     },
   ): void;
@@ -205,7 +205,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     get()._systems?.statistics.destroy();
     get()._systems?.programExecution.dispose();
     const collision = new CollisionSystem(world);
-    const typeMap = new Map<EntityId, "mine" | "base" | "charger">(
+    const typeMap = new Map<EntityId, WorldObjectType>(
       (options?.staticEntities ?? []).map((e) => [e.id, e.type]),
     );
     const codeDriver = new CodeBehaviorDriver({
