@@ -117,5 +117,3 @@ interface WorldApi {
 declare const self: DroneApi;
 /** Мир: множества сущностей по типам. */
 declare const World: WorldApi;
-
-export {};
