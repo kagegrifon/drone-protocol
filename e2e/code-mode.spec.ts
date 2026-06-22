@@ -49,7 +49,7 @@ test.use({
 test("ввод кода в Code Mode → запуск миссии → дрон добывает руду", async ({
   page,
 }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(120_000);
   await page.goto("");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -70,6 +70,28 @@ test("ввод кода в Code Mode → запуск миссии → дрон 
   await page.keyboard.press("Control+a");
   await page.evaluate((code) => navigator.clipboard.writeText(code), MINING_CODE);
   await page.keyboard.press("Control+v");
+
+  // Проверяем revert: редактируем текст, видим кнопки, отменяем
+  await editor.click();
+  await page.keyboard.press("End");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("// test edit");
+  await expect(page.locator("[data-testid='code-revert']")).toBeVisible({
+    timeout: 3_000,
+  });
+  await page.locator("[data-testid='code-revert']").click();
+  await expect(page.locator("[data-testid='code-apply']")).not.toBeVisible({
+    timeout: 2_000,
+  });
+
+  // Вставляем код ещё раз после revert (revert вернул предыдущий draft)
+  await editor.click();
+  await page.keyboard.press("Control+a");
+  await page.evaluate((code) => navigator.clipboard.writeText(code), MINING_CODE);
+  await page.keyboard.press("Control+v");
+
+  // Применяем код через кнопку (draft-режим — без apply воркер не перезапустится)
+  await page.locator("[data-testid='code-apply']").click();
 
   // Запускаем симуляцию
   await page.getByRole("button", { name: /Play/i }).click();
