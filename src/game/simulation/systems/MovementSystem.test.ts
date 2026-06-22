@@ -155,6 +155,33 @@ describe("MovementSystem", () => {
     expect(program.state).toBe("mine");
   });
 
+  it("continues moving (state=move) when path still has a look-ahead step", () => {
+    // path с look-ahead: после shift остаётся следующий шаг (driver дописал).
+    // state остаётся move → MovementSystem продолжит вести дрон без паузы.
+    const id = addDrone(
+      world,
+      0,
+      0,
+      [
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+      ],
+      10,
+    );
+    system.update();
+    const program = world.getComponent(id, "Program")!;
+    expect(program.state).toBe("move");
+    expect(world.getComponent(id, "Movement")!.path).toEqual([{ x: 2, y: 0 }]);
+  });
+
+  it("resumes program (state=running) when path becomes empty after the step", () => {
+    const id = addDrone(world, 0, 0, [{ x: 1, y: 0 }], 10);
+    system.update();
+    const program = world.getComponent(id, "Program")!;
+    expect(program.state).toBe("running");
+    expect(world.getComponent(id, "Movement")!.path).toEqual([]);
+  });
+
   it("does not move drone with empty path", () => {
     const id = addDrone(world, 3, 3, []);
     system.update();
@@ -178,7 +205,7 @@ describe("MovementSystem", () => {
     expect(movement.path.length).toBe(0);
   });
 
-  it("keeps remaining path after one step so drone continues without pause", () => {
+  it("steps one cell at a time, continuing while path is non-empty", () => {
     const id = addDrone(
       world,
       0,
@@ -191,9 +218,12 @@ describe("MovementSystem", () => {
       10,
     );
     system.update();
-    const movement = world.getComponent(id, "Movement")!;
-    expect(movement.path).toEqual([{ x: 2, y: 0 }, { x: 3, y: 0 }]);
-    expect(movement.progress).toBe(0);
+    expect(world.getComponent(id, "Position")!.x).toBe(1);
+    expect(world.getComponent(id, "Movement")!.path).toEqual([
+      { x: 2, y: 0 },
+      { x: 3, y: 0 },
+    ]);
+    expect(world.getComponent(id, "Program")!.state).toBe("move");
   });
 
   it("drone with 3-cell path reaches target in 30 ticks without stopping", () => {
