@@ -81,8 +81,8 @@ describe("CodeBehaviorDriver", () => {
     driver.disposeAll();
   });
 
-  it("await drone.mine() sets state=mine and returns from the tick", async () => {
-    const { id: drone, registry } = addDrone(world, "await drone.mine();");
+  it("await self.mine() sets state=mine and returns from the tick", async () => {
+    const { id: drone, registry } = addDrone(world, "await self.mine();");
 
     await tickUntil(
       driver,
@@ -96,10 +96,44 @@ describe("CodeBehaviorDriver", () => {
     expect(program.state).toBe("mine");
   });
 
+  it("await self.moveTo(World.mines[0].position) plans a path via planMoveToPoint", async () => {
+    const mine = world.createEntity();
+    world.addComponent(mine, "Position", { x: 2, y: 0 });
+    world.addComponent(mine, "Deposit", { oreRemaining: 5, mineRate: 1 });
+
+    const { id: drone, registry } = addDrone(
+      world,
+      "await self.moveTo(World.mines[0].position);",
+    );
+
+    const typeMap = new Map<number, "mine" | "base" | "charger">([
+      [mine, "mine"],
+    ]);
+    driver = new CodeBehaviorDriver({
+      createPort: () => new NodeWorkerPort(),
+      timeoutMs: 1000,
+      typeMap,
+    });
+
+    await tickUntil(
+      driver,
+      drone,
+      world,
+      registry,
+      () => world.getComponent(drone, "Program")!.state === "move",
+    );
+
+    expect(world.getComponent(drone, "Program")!.state).toBe("move");
+    const movement = world.getComponent(drone, "Movement")!;
+    expect(movement.targetX).toBe(2);
+    expect(movement.targetY).toBe(0);
+    expect(movement.path.length).toBeGreaterThan(0);
+  });
+
   it("resolves the awaited action once state returns to running, advancing to the next await", async () => {
     const { id: drone, registry } = addDrone(
       world,
-      "await drone.mine(); await drone.charge();",
+      "await self.mine(); await self.charge();",
     );
 
     await tickUntil(
@@ -149,7 +183,7 @@ describe("CodeBehaviorDriver", () => {
       const w = new World();
       const { id: drone, registry } = addDrone(
         w,
-        "await drone.mine(); await drone.charge();",
+        "await self.mine(); await self.charge();",
       );
       const d = new CodeBehaviorDriver({
         createPort: () => new NodeWorkerPort(),

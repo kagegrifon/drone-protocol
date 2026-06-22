@@ -26,18 +26,19 @@ async function selectFirstDrone(page: import("@playwright/test").Page) {
   await firstDrone.click();
 }
 
-// Mission 1: base создаётся первой (id=1), mine — второй (id=2), дрон — id=3.
+// Объектный World API: шахта/база берутся из World.mines[0]/World.bases[0],
+// а moveTo ведёт строго к position сущности — числовые id больше не нужны.
 // moveTo вызывается рядом с mine/drop в каждой итерации, чтобы дрон гарантированно
 // доехал до цели перед действием (одного moveTo на дальнюю цель недостаточно —
 // он лишь задаёт путь, а проезд занимает несколько тиков).
 const MINING_CODE = `while (true) {
-  while (drone.inventory < drone.inventoryMax) {
-    await drone.moveTo(2);
-    await drone.mine();
+  while (self.inventory < self.inventoryMax) {
+    await self.moveTo(World.mines[0].position);
+    await self.mine();
   }
-  while (drone.inventory > 0) {
-    await drone.moveTo(1);
-    await drone.drop();
+  while (self.inventory > 0) {
+    await self.moveTo(World.bases[0].position);
+    await self.drop();
   }
 }`;
 

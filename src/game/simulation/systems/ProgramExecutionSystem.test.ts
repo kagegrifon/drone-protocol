@@ -70,7 +70,7 @@ describe("ProgramExecutionSystem — update gating", () => {
     collision = new CollisionSystem(world);
   });
 
-  function makeSystem(code = "await drone.mine();") {
+  function makeSystem(code = "await self.mine();") {
     system = new ProgramExecutionSystem(
       world,
       GRID,
@@ -119,7 +119,7 @@ describe("ProgramExecutionSystem — code execution", () => {
       world,
       GRID,
       collision,
-      makeRegistry("await drone.mine();"),
+      makeRegistry("await self.mine();"),
       codeDriver,
     );
 
