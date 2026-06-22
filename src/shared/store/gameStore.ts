@@ -98,7 +98,13 @@ interface GameStore {
     world: World,
     grid: Grid,
     registry: ProgramRegistry,
-    options?: { createPort?: () => CodeWorkerPort },
+    options?: {
+      createPort?: () => CodeWorkerPort;
+      staticEntities?: ReadonlyArray<{
+        id: EntityId;
+        type: "mine" | "base" | "charger";
+      }>;
+    },
   ): void;
   setProgramCodeSource(programId: string, code: string): void;
   tick(): void;
@@ -199,8 +205,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     get()._systems?.statistics.destroy();
     get()._systems?.programExecution.dispose();
     const collision = new CollisionSystem(world);
+    const typeMap = new Map<EntityId, "mine" | "base" | "charger">(
+      (options?.staticEntities ?? []).map((e) => [e.id, e.type]),
+    );
     const codeDriver = new CodeBehaviorDriver({
       createPort: options?.createPort ?? (() => new BrowserWorkerPort()),
+      typeMap,
     });
     const programExecution = new ProgramExecutionSystem(
       world,
