@@ -6,6 +6,8 @@ import type { BehaviorDriver, BehaviorTickContext } from "./BehaviorDriver.js";
 import type { CodeWorkerPort } from "./CodeWorkerPort.js";
 import { collectWorld } from "./worldSnapshot.js";
 import type { WorkerMessage } from "./types.js";
+import { gameEvents } from "../../shared/events/gameEvents.js";
+import type { World } from "../simulation/world/World.js";
 
 // Бюджет на ответ воркера. Большой запас нужен из-за холодного старта в dev:
 // первый запуск worker-модуля под Vite (компиляция + конкуренция с Monaco
@@ -15,12 +17,20 @@ const DEFAULT_TIMEOUT_MS = 10000;
 
 type Phase = "idle" | "action-pending" | "waiting" | "done";
 
+type LastAction = "moveTo" | "mine" | "drop" | "charge" | "wait" | null;
+
 interface Session {
   port: CodeWorkerPort;
   phase: Phase;
   pending: WorkerMessage | null;
   waitRemaining: number;
   timeoutHandle: ReturnType<typeof setTimeout> | null;
+  lastAction: LastAction;
+  // Ссылка на world сохраняется при каждом step() для использования в
+  // обработчике drone:moved (collectWorld нужен актуальный world).
+  world: World | null;
+  // Флаг: drone:blocked пришёл до drone:moved — не делаем ранний resume.
+  blocked: boolean;
 }
 
 export interface CodeBehaviorDriverOptions {
@@ -39,13 +49,56 @@ export interface CodeBehaviorDriverOptions {
  * intent → program.state выставляется и step() возвращает управление, как
  * в stepProgram. Когда системы вернули state в 'running', driver шлёт воркеру
  * 'resume' со свежим снапшотом сенсоров — промис в воркере резолвится.
+ *
+ * Для moveTo ранний resume отправляется по событию drone:moved (~15ms после
+ * завершения шага), что устраняет паузу в 1 тик между шагами движения.
  */
 export class CodeBehaviorDriver implements BehaviorDriver {
   private readonly sessions = new Map<EntityId, Session>();
   private readonly typeMap: ReadonlyMap<EntityId, WorldObjectType>;
 
+  private readonly onDroneMoved: (data: {
+    droneId: EntityId;
+    fromX: number;
+    fromY: number;
+    toX: number;
+    toY: number;
+  }) => void;
+
+  private readonly onDroneBlocked: (data: { droneId: EntityId }) => void;
+
   constructor(private readonly options: CodeBehaviorDriverOptions) {
     this.typeMap = options.typeMap ?? new Map();
+
+    this.onDroneMoved = ({ droneId }) => {
+      const session = this.sessions.get(droneId);
+      if (
+        !session ||
+        session.phase !== "action-pending" ||
+        session.lastAction !== "moveTo" ||
+        session.blocked ||
+        !session.world
+      )
+        return;
+
+      // Позиция уже обновлена в MovementSystem до emit — снапшот корректен.
+      session.phase = "idle";
+      session.port.postMessage({
+        type: "resume",
+        world: collectWorld(session.world, droneId, this.typeMap),
+      });
+      // Таймаут перевооружается через program, которого здесь нет —
+      // он будет снят и перезаведён на следующем step() в idle-ветке.
+    };
+
+    this.onDroneBlocked = ({ droneId }) => {
+      const session = this.sessions.get(droneId);
+      if (!session || session.phase !== "action-pending") return;
+      session.blocked = true;
+    };
+
+    gameEvents.on("drone:moved", this.onDroneMoved);
+    gameEvents.on("drone:blocked", this.onDroneBlocked);
   }
 
   step(droneId: EntityId, ctx: BehaviorTickContext): void {
@@ -70,6 +123,9 @@ export class CodeBehaviorDriver implements BehaviorDriver {
         pending: null,
         waitRemaining: 0,
         timeoutHandle: null,
+        lastAction: null,
+        world: ctx.world,
+        blocked: false,
       };
       this.sessions.set(droneId, session);
 
@@ -92,6 +148,9 @@ export class CodeBehaviorDriver implements BehaviorDriver {
       return;
     }
 
+    // Обновляем ссылку на world при каждом тике — нужна актуальная для drone:moved.
+    session.world = ctx.world;
+
     // Driver-side ожидание drone.wait(seconds) — не требует похода в воркер.
     if (session.phase === "waiting") {
       session.waitRemaining -= DT;
@@ -107,9 +166,11 @@ export class CodeBehaviorDriver implements BehaviorDriver {
 
     if (session.phase === "action-pending") {
       // Действие применено (program.state !== 'running'); ждём, пока системы
-      // вернут state обратно в 'running'.
+      // вернут state обратно в 'running'. Для moveTo resume уже мог быть
+      // отправлен по drone:moved — в этом случае phase уже idle.
       if (program.state !== "running") return;
       session.phase = "idle";
+      session.blocked = false;
       session.port.postMessage({
         type: "resume",
         world: collectWorld(ctx.world, droneId, this.typeMap),
@@ -138,19 +199,25 @@ export class CodeBehaviorDriver implements BehaviorDriver {
             );
           }
           program.state = "move";
+          session.lastAction = "moveTo";
         } else if (msg.action === "mine") {
           program.state = "mine";
+          session.lastAction = "mine";
         } else if (msg.action === "drop") {
           program.state = "drop";
+          session.lastAction = "drop";
         } else if (msg.action === "charge") {
           program.state = "charge";
+          session.lastAction = "charge";
         }
         program.currentLine = msg.line;
         session.phase = "action-pending";
+        session.blocked = false;
         return;
       }
       case "wait": {
         session.waitRemaining = msg.seconds;
+        session.lastAction = "wait";
         program.currentLine = msg.line;
         session.phase = "waiting";
         return;
@@ -185,6 +252,8 @@ export class CodeBehaviorDriver implements BehaviorDriver {
 
   disposeAll(): void {
     for (const droneId of [...this.sessions.keys()]) this.dispose(droneId);
+    gameEvents.off("drone:moved", this.onDroneMoved);
+    gameEvents.off("drone:blocked", this.onDroneBlocked);
   }
 
   private armTimeout(session: Session, program: ProgramComponent): void {
