@@ -120,7 +120,7 @@ function makeCodeProgram(id: string, code = ""): ProgramDef {
 
 describe("store.pauseDrone / startDrone / resetDrone", () => {
   function setup() {
-    const prog = makeCodeProgram("p1", "await drone.mine();");
+    const prog = makeCodeProgram("p1", "await self.mine();");
     const { world, registry, droneId } = makeWorldWithDrone("p1", prog);
     useGameStore.getState().init(world, new Grid(), registry);
     return { world, registry, droneId };
@@ -175,7 +175,7 @@ describe("store.pauseDrone / startDrone / resetDrone", () => {
 
 describe("store.restartProgram()", () => {
   it("сбрасывает callStack и переводит дрона в state=running", () => {
-    const prog = makeCodeProgram("p1", "await drone.mine();");
+    const prog = makeCodeProgram("p1", "await self.mine();");
     const { world, registry, droneId } = makeWorldWithDrone("p1", prog);
     useGameStore.getState().init(world, new Grid(), registry);
 
@@ -193,7 +193,7 @@ describe("store.restartProgram()", () => {
   });
 
   it("сбрасывает состояние действия и путь движения", () => {
-    const prog = makeCodeProgram("p1", "await drone.moveTo(99);");
+    const prog = makeCodeProgram("p1", "await self.moveTo({ x: 9, y: 9 });");
     const { world, registry, droneId } = makeWorldWithDrone("p1", prog);
     useGameStore.getState().init(world, new Grid(), registry);
 
@@ -286,7 +286,7 @@ describe("store.init() — CodeBehaviorDriver подключён через Prog
       id: "p1",
       name: "Personal",
       personal: true,
-      behavior: { sourceForm: "code", code: "await drone.mine();" },
+      behavior: { sourceForm: "code", code: "await self.mine();" },
     };
     const { world, registry } = makeWorldWithDrone("p1", prog);
     const depositId = world.createEntity();

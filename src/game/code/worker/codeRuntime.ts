@@ -1,38 +1,30 @@
 import type {
+  BaseEntitySnap,
   CodeAction,
   DriverMessage,
-  SensorsSnapshot,
   WorkerMessage,
+  WorldSnapshot,
 } from "../types.js";
-import type { EntityId } from "../../../shared/types/index.js";
+import type { Position } from "../../../shared/types/index.js";
 import { instrument } from "./instrument.js";
 
 type Post = (msg: WorkerMessage) => void;
 type OnDriverMessage = (cb: (msg: DriverMessage) => void) => void;
 
 /**
- * Исполняет код игрока как async-функцию. Каждый await drone.<action>() шлёт
+ * Исполняет код игрока как async-функцию. В код прокидываются глобальные `self`
+ * (управляемый дрон) и `World` (мир по типам). Каждый await self.<action>() шлёт
  * intent через `post` и зависает на промисе, который резолвится при получении
- * следующего DriverMessage через `onDriverMessage`. Возвращает промис,
- * завершающийся после finished/error.
+ * следующего DriverMessage. Объекты API создаются один раз и мутируются по месту
+ * на каждом resume — ссылки стабильны, чтение полей дёшево, детерминизм сохранён.
  */
 export function runCode(
   start: Extract<DriverMessage, { type: "start" }>,
   post: Post,
   onDriverMessage: OnDriverMessage,
 ): Promise<void> {
-  let sensors: SensorsSnapshot = start.sensors;
   let resolveResume: (() => void) | null = null;
   let currentLine = 0;
-
-  onDriverMessage((msg) => {
-    if (msg.type === "resume") {
-      sensors = msg.sensors;
-      const resolve = resolveResume;
-      resolveResume = null;
-      resolve?.();
-    }
-  });
 
   function awaitResume(): Promise<void> {
     return new Promise((resolve) => {
@@ -44,74 +36,148 @@ export function runCode(
     currentLine = n;
   }
 
-  async function sendAction(action: CodeAction, targetId?: EntityId): Promise<void> {
-    post(
-      targetId === undefined
-        ? { type: "intent", action, line: currentLine }
-        : { type: "intent", action, targetId, line: currentLine },
-    );
-    await awaitResume();
+  function requirePoint(point: unknown): Position {
+    if (point == null)
+      throw new Error(
+        "moveTo(point): point null/undefined — передай {x,y}, например World.mines[0].position",
+      );
+    const p = point as { x?: unknown; y?: unknown };
+    if (typeof p.x !== "number" || typeof p.y !== "number")
+      throw new Error(
+        "moveTo(point): ожидается {x, y} (например World.mines[0].position)",
+      );
+    return { x: p.x, y: p.y };
   }
 
-  function distance(a: EntityId, b: EntityId): number {
-    const pa = sensors.positions[a];
-    const pb = sensors.positions[b];
-    if (!pa || !pb) return 0;
-    return Math.abs(pa.x - pb.x) + Math.abs(pa.y - pb.y);
+  function sendMove(point: Position): Promise<void> {
+    post({ type: "intent", action: "moveTo", point, line: currentLine });
+    return awaitResume();
   }
 
-  function deposit(target: EntityId): number {
-    return sensors.deposits[target] ?? 0;
+  function sendAction(action: CodeAction): Promise<void> {
+    post({ type: "intent", action, line: currentLine });
+    return awaitResume();
   }
 
-  const drone = {
-    get self(): EntityId {
-      return start.selfId;
-    },
-    get energy(): number {
-      return sensors.energy;
-    },
-    get energyMax(): number {
-      return sensors.energyMax;
-    },
-    get inventory(): number {
-      return sensors.inventory;
-    },
-    get inventoryMax(): number {
-      return sensors.inventoryMax;
-    },
-    get freeSlots(): number {
-      return sensors.freeSlots;
-    },
-    moveTo: (target: EntityId) => sendAction("moveTo", target),
-    mine: () => sendAction("mine"),
-    drop: () => sendAction("drop"),
-    charge: () => sendAction("charge"),
-    async wait(seconds: number): Promise<void> {
+  // --- Прототипы сущностей (методы общие, не пересоздаются) ---
+
+  class Entity {
+    id!: number;
+    type!: string;
+    position!: Position;
+    distanceTo(other: { position: Position } | Position): number {
+      const p =
+        other && "position" in other
+          ? (other as { position: Position }).position
+          : (other as Position);
+      if (!p || typeof p.x !== "number" || typeof p.y !== "number")
+        throw new Error("distanceTo(target): нужна сущность или точка {x,y}");
+      return Math.abs(this.position.x - p.x) + Math.abs(this.position.y - p.y);
+    }
+  }
+
+  class MineEntity extends Entity {
+    oreRemaining!: number;
+    freeSlots!: number;
+  }
+  class ChargerEntity extends Entity {
+    freeSlots!: number;
+  }
+  class BaseEntity extends Entity {
+    freeSlots!: number;
+    storedOre!: number;
+  }
+  class DroneEntity extends Entity {
+    energy!: number;
+    energyMax!: number;
+    inventory!: number;
+    inventoryMax!: number;
+  }
+
+  class SelfEntity extends DroneEntity {
+    moveTo(point: unknown): Promise<void> {
+      return sendMove(requirePoint(point));
+    }
+    mine(): Promise<void> {
+      return sendAction("mine");
+    }
+    drop(): Promise<void> {
+      return sendAction("drop");
+    }
+    charge(): Promise<void> {
+      return sendAction("charge");
+    }
+    wait(seconds: number): Promise<void> {
       post({ type: "wait", seconds, line: currentLine });
-      await awaitResume();
-    },
+      return awaitResume();
+    }
+    findClosest<T extends Entity>(list: readonly T[]): T | null {
+      if (!Array.isArray(list))
+        throw new Error("findClosest(list): ожидается массив сущностей");
+      let best: T | null = null;
+      let bestD = Infinity;
+      for (const e of list) {
+        const d = this.distanceTo(e);
+        if (d < bestD) {
+          bestD = d;
+          best = e;
+        }
+      }
+      return best;
+    }
+  }
+
+  // --- Объекты API: создаются один раз, мутируются по месту ---
+
+  const self = new SelfEntity();
+  const World = {
+    mines: [] as MineEntity[],
+    chargers: [] as ChargerEntity[],
+    bases: [] as BaseEntity[],
+    drones: [] as DroneEntity[],
   };
+
+  function syncList<T extends Entity>(
+    list: T[],
+    snaps: BaseEntitySnap[],
+    factory: () => T,
+  ): void {
+    list.length = snaps.length;
+    for (let i = 0; i < snaps.length; i++) {
+      list[i] ??= factory();
+      Object.assign(list[i], snaps[i]);
+    }
+  }
+
+  function syncWorld(snap: WorldSnapshot): void {
+    Object.assign(self, snap.self);
+    syncList(World.mines, snap.mines, () => new MineEntity());
+    syncList(World.chargers, snap.chargers, () => new ChargerEntity());
+    syncList(World.bases, snap.bases, () => new BaseEntity());
+    syncList(World.drones, snap.drones, () => new DroneEntity());
+  }
+
+  onDriverMessage((msg) => {
+    if (msg.type === "resume") {
+      syncWorld(msg.world);
+      const resolve = resolveResume;
+      resolveResume = null;
+      resolve?.();
+    }
+  });
+
+  syncWorld(start.world);
 
   const instrumentedCode = instrument(start.code);
 
-  const entityNames = Object.keys(start.entities);
-  const entityValues = entityNames.map((name) => start.entities[name]);
+  const AsyncFunction = Object.getPrototypeOf(async function () {})
+    .constructor as new (
+    ...args: string[]
+  ) => (...args: unknown[]) => Promise<void>;
 
-  const AsyncFunction = Object.getPrototypeOf(
-    async function () {},
-  ).constructor as new (...args: string[]) => (...args: unknown[]) => Promise<void>;
+  const fn = new AsyncFunction("self", "World", "__line", instrumentedCode);
 
-  const fn = new AsyncFunction(
-    "drone",
-    "__line",
-    "distance",
-    "deposit",
-    ...entityNames,
-    instrumentedCode,
-  );
-
-  return fn(drone, __line, distance, deposit, ...entityValues)
+  return fn(self, World, __line)
     .then(() => {
       post({ type: "finished" });
     })

@@ -2,13 +2,13 @@ import { parse } from "acorn";
 import type { Node, AwaitExpression, CallExpression, MemberExpression } from "acorn";
 
 /**
- * Инструментирует код игрока: перед каждым `await drone.<action>()`
+ * Инструментирует код игрока: перед каждым `await self.<action>()`
  * вставляет `(__line(N), ...)` где N — номер строки вызова (1-based).
  *
  * Для будущего step-режима тот же обходчик можно расширить:
  * вместо синхронного __line(N) вставлять `await __step(N)` на каждый
  * statement — это даст паузу на любой строке. Сейчас НЕ реализуем:
- * инструментируем только await drone.* и __line синхронный.
+ * инструментируем только await self.* и __line синхронный.
  */
 export function instrument(code: string): string {
   const ast = parse(code, {
@@ -82,7 +82,7 @@ function isDroneCall(node: Node | null | undefined): boolean {
   const member = call.callee as MemberExpression;
   if (
     member.object.type !== "Identifier" ||
-    (member.object as { name: string }).name !== "drone"
+    (member.object as { name: string }).name !== "self"
   )
     return false;
   if (member.property.type !== "Identifier") return false;

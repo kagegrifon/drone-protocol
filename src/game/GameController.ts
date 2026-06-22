@@ -134,7 +134,9 @@ export class GameController {
     });
 
     const store = useGameStore.getState();
-    store.init(scene.world, scene.grid, scene.registry);
+    store.init(scene.world, scene.grid, scene.registry, {
+      staticEntities: scene.staticEntities,
+    });
     store.setGameStatus("idle");
   }
 

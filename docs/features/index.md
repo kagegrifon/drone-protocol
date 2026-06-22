@@ -21,6 +21,7 @@ docs/features/
 | [drone-code-mode-core.md](planned/drone-code-mode-core.md) | Code Mode (этап 1) — ядро исполнения JS-кода | ядро и миграция реестра на `behavior: DroneBehavior` готовы |
 | [drone-code-mode-monaco.md](planned/drone-code-mode-monaco.md) | Code Mode (этап 2) — редактор Monaco + переключатель | planned |
 | [drone-tab-assigned-program-editor.md](planned/drone-tab-assigned-program-editor.md) | Вкладка DRONE: редактор кода назначенной программы (дебаггинг, этап 1) | planned |
+| [object-world-api.md](planned/object-world-api.md) | Объектный World API для скриптов дронов (Screeps-style) | Фазы 1–7 реализованы, фикс Monaco готов |
 
 
 ### done

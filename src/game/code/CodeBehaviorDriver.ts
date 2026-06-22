@@ -1,10 +1,10 @@
 import type { EntityId } from "../../shared/types/index.js";
 import { DT } from "../simulation/constants.js";
 import type { ProgramComponent } from "../simulation/components/Program.js";
-import { planAstarMove } from "../pathfinding/planMove.js";
+import { planMoveToPoint } from "../pathfinding/planMove.js";
 import type { BehaviorDriver, BehaviorTickContext } from "./BehaviorDriver.js";
 import type { CodeWorkerPort } from "./CodeWorkerPort.js";
-import { collectSensors } from "./sensors.js";
+import { collectWorld } from "./worldSnapshot.js";
 import type { WorkerMessage } from "./types.js";
 
 // Бюджет на ответ воркера. Большой запас нужен из-за холодного старта в dev:
@@ -21,17 +21,16 @@ interface Session {
   pending: WorkerMessage | null;
   waitRemaining: number;
   timeoutHandle: ReturnType<typeof setTimeout> | null;
-  entities: Record<string, EntityId>;
 }
 
 export interface CodeBehaviorDriverOptions {
   createPort: () => CodeWorkerPort;
   timeoutMs?: number;
-  /** Именованные сущности, доступные коду игрока как глобальные переменные. */
-  entities?: (
-    droneId: EntityId,
-    ctx: BehaviorTickContext,
-  ) => Record<string, EntityId>;
+  /**
+   * Карта типов статических сущностей мира (mine/base/charger), из
+   * scene.staticEntities. По ней collectWorld строит World.mines/bases/chargers.
+   */
+  typeMap?: ReadonlyMap<EntityId, "mine" | "base" | "charger">;
 }
 
 /**
@@ -43,8 +42,11 @@ export interface CodeBehaviorDriverOptions {
  */
 export class CodeBehaviorDriver implements BehaviorDriver {
   private readonly sessions = new Map<EntityId, Session>();
+  private readonly typeMap: ReadonlyMap<EntityId, "mine" | "base" | "charger">;
 
-  constructor(private readonly options: CodeBehaviorDriverOptions) {}
+  constructor(private readonly options: CodeBehaviorDriverOptions) {
+    this.typeMap = options.typeMap ?? new Map();
+  }
 
   step(droneId: EntityId, ctx: BehaviorTickContext): void {
     const program = ctx.world.getComponent(droneId, "Program");
@@ -61,7 +63,6 @@ export class CodeBehaviorDriver implements BehaviorDriver {
           ? activeDef.behavior.code
           : undefined;
       if (!code) return;
-      const entities = this.options.entities?.(droneId, ctx) ?? {};
       const port = this.options.createPort();
       session = {
         port,
@@ -69,7 +70,6 @@ export class CodeBehaviorDriver implements BehaviorDriver {
         pending: null,
         waitRemaining: 0,
         timeoutHandle: null,
-        entities,
       };
       this.sessions.set(droneId, session);
 
@@ -86,8 +86,7 @@ export class CodeBehaviorDriver implements BehaviorDriver {
         type: "start",
         code,
         selfId: droneId,
-        entities,
-        sensors: collectSensors(ctx.world, droneId, entities),
+        world: collectWorld(ctx.world, droneId, this.typeMap),
       });
       this.armTimeout(session, program);
       return;
@@ -100,7 +99,7 @@ export class CodeBehaviorDriver implements BehaviorDriver {
       session.phase = "idle";
       session.port.postMessage({
         type: "resume",
-        sensors: collectSensors(ctx.world, droneId, session.entities),
+        world: collectWorld(ctx.world, droneId, this.typeMap),
       });
       this.armTimeout(session, program);
       return;
@@ -113,7 +112,7 @@ export class CodeBehaviorDriver implements BehaviorDriver {
       session.phase = "idle";
       session.port.postMessage({
         type: "resume",
-        sensors: collectSensors(ctx.world, droneId, session.entities),
+        world: collectWorld(ctx.world, droneId, this.typeMap),
       });
       this.armTimeout(session, program);
       return;
@@ -129,10 +128,10 @@ export class CodeBehaviorDriver implements BehaviorDriver {
     switch (msg.type) {
       case "intent": {
         if (msg.action === "moveTo") {
-          if (msg.targetId !== undefined) {
-            planAstarMove(
+          if (msg.point !== undefined) {
+            planMoveToPoint(
               droneId,
-              msg.targetId,
+              msg.point,
               ctx.world,
               ctx.grid,
               ctx.occupied,
