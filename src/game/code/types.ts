@@ -32,7 +32,6 @@ export interface DroneSnap extends BaseEntitySnap {
   energyMax: number;
   inventory: number;
   inventoryMax: number;
-  // freeSlots у дрона НЕТ — оно про рабочие слоты объектов.
 }
 
 /**

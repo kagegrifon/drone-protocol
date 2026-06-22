@@ -106,4 +106,4 @@ A feature stays in `planned/` until complete; update status inside the file and 
 - Do not commit `node_modules/`, `.env`, build artifacts `dist/`.
 - Never use `git push --force` or `git reset --hard` without explicit user request.
 - Before committing, check `git status` — commit only files related to the current task, never `git add -A`.
-- Add `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>` to every commit trailer.
+
