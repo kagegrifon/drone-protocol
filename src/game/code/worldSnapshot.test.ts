@@ -134,4 +134,40 @@ describe("collectWorld", () => {
 
     expect(snap.mines).toHaveLength(0);
   });
+
+  it("reports self.position as path[0] when the drone is mid-move (look-ahead snapshot)", () => {
+    const world = new World();
+    const drone = makeDrone(world, 0, 0);
+    // дрон физически в (0,0), но уже едет в (1,0) — буфер пути
+    world.getComponent(drone, "Movement")!.path = [
+      { x: 1, y: 0 },
+      { x: 2, y: 0 },
+    ];
+
+    const snap = collectWorld(world, drone, new Map());
+
+    // снапшот «на шаг вперёд»: позиция = клетка, в которую дрон едет
+    expect(snap.self.position).toEqual({ x: 1, y: 0 });
+  });
+
+  it("reports self.position as current Position when path is empty", () => {
+    const world = new World();
+    const drone = makeDrone(world, 3, 4); // path по умолчанию []
+
+    const snap = collectWorld(world, drone, new Map());
+
+    expect(snap.self.position).toEqual({ x: 3, y: 4 });
+  });
+
+  it("applies look-ahead position to OTHER drones in drones[] too", () => {
+    const world = new World();
+    const self = makeDrone(world, 0, 0);
+    const other = makeDrone(world, 4, 4);
+    world.getComponent(other, "Movement")!.path = [{ x: 5, y: 4 }];
+
+    const snap = collectWorld(world, self, new Map());
+
+    const otherSnap = snap.drones.find((d) => d.id === other)!;
+    expect(otherSnap.position).toEqual({ x: 5, y: 4 });
+  });
 });

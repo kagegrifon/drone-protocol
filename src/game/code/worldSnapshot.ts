@@ -14,10 +14,18 @@ function droneSnap(world: World, id: EntityId): DroneSnap | null {
   if (!pos) return null;
   const energy = world.getComponent(id, "Energy");
   const inventory = world.getComponent(id, "Inventory");
+  // Look-ahead: если дрон в движении (path непуст), показываем клетку, в
+  // которую он едет (path[0]) — код считает moveTo от клетки, до которой дрон
+  // обязан доехать. На момент раннего resume Position = уже достигнутая клетка,
+  // path[0] = следующая. См. спек continuous-drone-movement (снапшот «на шаг
+  // вперёд»).
+  const movement = world.getComponent(id, "Movement");
+  const cell =
+    movement && movement.path.length > 0 ? movement.path[0] : pos;
   return {
     id,
     type: "drone",
-    position: { x: pos.x, y: pos.y },
+    position: { x: cell.x, y: cell.y },
     energy: energy?.current ?? 0,
     energyMax: energy?.max ?? 0,
     inventory: inventory?.ore ?? 0,
