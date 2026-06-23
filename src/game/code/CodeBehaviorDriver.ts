@@ -1,7 +1,7 @@
 import type { EntityId, WorldObjectType } from "../../shared/types/index.js";
 import { DT } from "../simulation/constants.js";
 import type { ProgramComponent } from "../simulation/components/Program.js";
-import { planMoveToPoint, planNextStep } from "../pathfinding/planMove.js";
+import { planNextStep } from "../pathfinding/planMove.js";
 import type { BehaviorDriver, BehaviorTickContext } from "./BehaviorDriver.js";
 import type { CodeWorkerPort } from "./CodeWorkerPort.js";
 import { collectWorld } from "./worldSnapshot.js";
@@ -192,31 +192,19 @@ export class CodeBehaviorDriver implements BehaviorDriver {
       case "intent": {
         if (msg.action === "moveTo") {
           if (msg.point !== undefined) {
-            const movement = ctx.world.getComponent(droneId, "Movement");
-            const sameTarget =
-              movement !== undefined &&
-              movement.targetX === msg.point.x &&
-              movement.targetY === msg.point.y;
-            // Та же цель и дрон уже двигался к ней (lastAction moveTo) → продлеваем
-            // путь одним look-ahead шагом, не сбрасывая progress (непрерывность).
-            // Иначе — строим новый путь (смена цели или старт движения).
-            if (sameTarget && session.lastAction === "moveTo") {
-              planNextStep(
-                droneId,
-                msg.point,
-                ctx.world,
-                ctx.grid,
-                ctx.occupied,
-              );
-            } else {
-              planMoveToPoint(
-                droneId,
-                msg.point,
-                ctx.world,
-                ctx.grid,
-                ctx.occupied,
-              );
-            }
+            // moveTo = ОДИН шаг: всегда планируем ровно следующую клетку к цели.
+            // После шага path пустеет → MovementSystem вернёт state=running →
+            // driver резолвит воркер → код игрока исполняет следующую строку
+            // (может сменить цель/действие). Плавность обеспечивает ранний resume
+            // на drone:moved: воркер успевает прислать следующий moveTo до конца
+            // текущего шага. См. модель single-step в спеке continuous-movement.
+            planNextStep(
+              droneId,
+              msg.point,
+              ctx.world,
+              ctx.grid,
+              ctx.occupied,
+            );
           }
           program.state = "move";
           session.lastAction = "moveTo";

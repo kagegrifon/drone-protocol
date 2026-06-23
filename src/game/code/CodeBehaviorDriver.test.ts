@@ -98,7 +98,9 @@ describe("CodeBehaviorDriver", () => {
     expect(program.state).toBe("mine");
   });
 
-  it("await self.moveTo(World.mines[0].position) plans a path via planMoveToPoint", async () => {
+  it("await self.moveTo(point) plans EXACTLY one step (single-step model)", async () => {
+    // moveTo = один шаг: path содержит ровно следующую клетку, не весь путь.
+    // После шага path пустеет → state=running → управление возвращается в код игрока.
     const mine = world.createEntity();
     world.addComponent(mine, "Position", { x: 2, y: 0 });
     world.addComponent(mine, "Deposit", { oreRemaining: 5, mineRate: 1 });
@@ -129,7 +131,8 @@ describe("CodeBehaviorDriver", () => {
     const movement = world.getComponent(drone, "Movement")!;
     expect(movement.targetX).toBe(2);
     expect(movement.targetY).toBe(0);
-    expect(movement.path.length).toBeGreaterThan(0);
+    // Ровно один шаг — не весь путь до (2,0).
+    expect(movement.path).toEqual([{ x: 1, y: 0 }]);
   });
 
   it("resolves the awaited action once state returns to running, advancing to the next await", async () => {
@@ -265,10 +268,10 @@ describe("CodeBehaviorDriver", () => {
     expect(world.getComponent(drone, "Program")!.state).toBe("running");
   });
 
-  it("extends path with a single look-ahead step when moveTo targets the same point", async () => {
-    // Дрон едет к {x:3,y:0}. На drone:moved (path пуст после шага) приходит ранний
-    // resume, воркер снова шлёт moveTo к ТОЙ ЖЕ цели → driver должен дописать
-    // следующий шаг через planNextStep, НЕ сбрасывая progress.
+  it("plans the next single step after each moveTo (continuous via repeated single steps)", async () => {
+    // Дрон в (1,0) после первого шага. Воркер на раннем resume снова шлёт moveTo
+    // к {x:3,y:0} → driver планирует РОВНО следующий шаг (2,0) через planNextStep,
+    // не сбрасывая progress. Так непрерывность складывается из отдельных шагов.
     const mine = world.createEntity();
     world.addComponent(mine, "Position", { x: 3, y: 0 });
     world.addComponent(mine, "Deposit", { oreRemaining: 5, mineRate: 1 });
