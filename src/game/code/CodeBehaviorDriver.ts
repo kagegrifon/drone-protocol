@@ -1,7 +1,7 @@
 import type { EntityId, WorldObjectType } from "../../shared/types/index.js";
 import { DT } from "../simulation/constants.js";
 import type { ProgramComponent } from "../simulation/components/Program.js";
-import { planNextStep } from "../pathfinding/planMove.js";
+import { extendPathTail, planMoveToPoint } from "../pathfinding/planMove.js";
 import type { BehaviorDriver, BehaviorTickContext } from "./BehaviorDriver.js";
 import type { CodeWorkerPort } from "./CodeWorkerPort.js";
 import { collectWorld } from "./worldSnapshot.js";
@@ -192,19 +192,35 @@ export class CodeBehaviorDriver implements BehaviorDriver {
       case "intent": {
         if (msg.action === "moveTo") {
           if (msg.point !== undefined) {
-            // moveTo = ОДИН шаг: всегда планируем ровно следующую клетку к цели.
-            // После шага path пустеет → MovementSystem вернёт state=running →
-            // driver резолвит воркер → код игрока исполняет следующую строку
-            // (может сменить цель/действие). Плавность обеспечивает ранний resume
-            // на drone:moved: воркер успевает прислать следующий moveTo до конца
-            // текущего шага. См. модель single-step в спеке continuous-movement.
-            planNextStep(
-              droneId,
-              msg.point,
-              ctx.world,
-              ctx.grid,
-              ctx.occupied,
-            );
+            const movement = ctx.world.getComponent(droneId, "Movement");
+            const sameTarget =
+              movement !== undefined &&
+              movement.targetX === msg.point.x &&
+              movement.targetY === msg.point.y;
+            if (movement && sameTarget && movement.path.length > 0) {
+              // Та же цель, дрон в движении → пересчитываем хвост от path[0],
+              // не трогая path[0]/progress. Воркеру дана фора в шаг, дрон не
+              // тормозит. Путь идентичен прежнему. См. спек «РЕВИЗИЯ 2026-06-23».
+              extendPathTail(
+                droneId,
+                msg.point,
+                ctx.world,
+                ctx.grid,
+                ctx.occupied,
+              );
+            } else {
+              // Другая цель или дрон стоит (cold start / буфер пуст) → строим
+              // новый путь от позиции дрона. progress сбрасывается —
+              // корректно для старта движения и разворота (дрон уже доехал
+              // path[0] либо стоит).
+              planMoveToPoint(
+                droneId,
+                msg.point,
+                ctx.world,
+                ctx.grid,
+                ctx.occupied,
+              );
+            }
           }
           program.state = "move";
           session.lastAction = "moveTo";

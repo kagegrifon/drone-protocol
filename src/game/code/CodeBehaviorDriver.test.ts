@@ -98,9 +98,9 @@ describe("CodeBehaviorDriver", () => {
     expect(program.state).toBe("mine");
   });
 
-  it("await self.moveTo(point) plans EXACTLY one step (single-step model)", async () => {
-    // moveTo = один шаг: path содержит ровно следующую клетку, не весь путь.
-    // После шага path пустеет → state=running → управление возвращается в код игрока.
+  it("await self.moveTo(point) plans full path on cold start (path-buffer model)", async () => {
+    // Cold start: path пуст → planMoveToPoint строит весь путь до цели.
+    // Буфер пути заполнен сразу; MovementSystem сдвигает path по шагу за тик.
     const mine = world.createEntity();
     world.addComponent(mine, "Position", { x: 2, y: 0 });
     world.addComponent(mine, "Deposit", { oreRemaining: 5, mineRate: 1 });
@@ -131,8 +131,8 @@ describe("CodeBehaviorDriver", () => {
     const movement = world.getComponent(drone, "Movement")!;
     expect(movement.targetX).toBe(2);
     expect(movement.targetY).toBe(0);
-    // Ровно один шаг — не весь путь до (2,0).
-    expect(movement.path).toEqual([{ x: 1, y: 0 }]);
+    // Весь путь от (0,0) к (2,0): буфер пути.
+    expect(movement.path).toEqual([{ x: 1, y: 0 }, { x: 2, y: 0 }]);
   });
 
   it("resolves the awaited action once state returns to running, advancing to the next await", async () => {
@@ -268,10 +268,11 @@ describe("CodeBehaviorDriver", () => {
     expect(world.getComponent(drone, "Program")!.state).toBe("running");
   });
 
-  it("plans the next single step after each moveTo (continuous via repeated single steps)", async () => {
-    // Дрон в (1,0) после первого шага. Воркер на раннем resume снова шлёт moveTo
-    // к {x:3,y:0} → driver планирует РОВНО следующий шаг (2,0) через planNextStep,
-    // не сбрасывая progress. Так непрерывность складывается из отдельных шагов.
+  it("rebuilds full path from position when worker re-sends moveTo and buffer is empty", async () => {
+    // Дрон «встал» (path пуст) после шага в (1,0). Воркер на раннем resume снова
+    // шлёт moveTo к (3,0) → буфер пуст → driver строит новый путь от позиции
+    // (planMoveToPoint): весь маршрут [2,0 3,0]. Так continuous-движение
+    // возобновляется после остановки.
     const mine = world.createEntity();
     world.addComponent(mine, "Position", { x: 3, y: 0 });
     world.addComponent(mine, "Deposit", { oreRemaining: 5, mineRate: 1 });
@@ -295,7 +296,7 @@ describe("CodeBehaviorDriver", () => {
       () => world.getComponent(drone, "Program")!.state === "move",
     );
 
-    // Симулируем шаг MovementSystem: дрон шагнул в (1,0), path пуст, state=running.
+    // Симулируем шаг MovementSystem: дрон в (1,0), path пуст, state=running.
     world.getComponent(drone, "Position")!.x = 1;
     world.getComponent(drone, "Movement")!.path = [];
     world.getComponent(drone, "Movement")!.progress = 0;
@@ -311,10 +312,13 @@ describe("CodeBehaviorDriver", () => {
     await new Promise((r) => setTimeout(r, 50));
     driver.step(drone, ctx(world, registry));
 
-    // Та же цель → driver дописал следующий шаг к (3,0): следующий шаг (2,0).
     const m = world.getComponent(drone, "Movement")!;
     expect(m.targetX).toBe(3);
-    expect(m.path).toEqual([{ x: 2, y: 0 }]);
+    // буфер был пуст → полный путь от (1,0) к (3,0)
+    expect(m.path).toEqual([
+      { x: 2, y: 0 },
+      { x: 3, y: 0 },
+    ]);
     expect(world.getComponent(drone, "Program")!.state).toBe("move");
   });
 
@@ -356,5 +360,118 @@ describe("CodeBehaviorDriver", () => {
     const traceA = await run();
     const traceB = await run();
     expect(dedupe(traceA)).toEqual(dedupe(traceB));
+  });
+
+  it("recomputes the tail from path[0] (identical for same target) when worker re-sends moveTo mid-move", async () => {
+    // Дрон в движении: path=[2,0 3,0 4,0 5,0] к цели (5,0), progress накоплен.
+    // Воркер на раннем resume снова шлёт moveTo к (5,0) → driver пересчитывает
+    // хвост от path[0]=(2,0): путь идентичен, path[0] и progress целы.
+    const mine = world.createEntity();
+    world.addComponent(mine, "Position", { x: 5, y: 0 });
+    world.addComponent(mine, "Deposit", { oreRemaining: 5, mineRate: 1 });
+    const typeMap = new Map<number, WorldObjectType>([[mine, "mine"]]);
+    driver = new CodeBehaviorDriver({
+      createPort: () => new NodeWorkerPort(),
+      timeoutMs: 1000,
+      typeMap,
+    });
+
+    const { id: drone, registry } = addDrone(
+      world,
+      "while (true) { await self.moveTo(World.mines[0].position); }",
+    );
+
+    await tickUntil(
+      driver,
+      drone,
+      world,
+      registry,
+      () => world.getComponent(drone, "Program")!.state === "move",
+    );
+
+    // Состояние «дрон в движении»: буфер непуст, progress накоплен, цель (5,0).
+    world.getComponent(drone, "Position")!.x = 1;
+    const mv = world.getComponent(drone, "Movement")!;
+    mv.path = [
+      { x: 2, y: 0 },
+      { x: 3, y: 0 },
+      { x: 4, y: 0 },
+      { x: 5, y: 0 },
+    ];
+    mv.progress = 0.5;
+    mv.targetX = 5;
+    mv.targetY = 0;
+    world.getComponent(drone, "Program")!.state = "running";
+    gameEvents.emit("drone:moved", {
+      droneId: drone,
+      fromX: 0,
+      fromY: 0,
+      toX: 1,
+      toY: 0,
+    });
+
+    await new Promise((r) => setTimeout(r, 50));
+    driver.step(drone, ctx(world, registry));
+
+    const m = world.getComponent(drone, "Movement")!;
+    // Хвост пересчитан от path[0]=(2,0) к (5,0): путь идентичен.
+    expect(m.path).toEqual([
+      { x: 2, y: 0 },
+      { x: 3, y: 0 },
+      { x: 4, y: 0 },
+      { x: 5, y: 0 },
+    ]);
+    expect(m.progress).toBe(0.5); // progress не сброшен — нет рывка
+    expect(world.getComponent(drone, "Program")!.state).toBe("move");
+  });
+
+  it("rebuilds path through path[0] when worker sends moveTo to a DIFFERENT target", async () => {
+    // Код шлёт moveTo к (1,3) — другая цель, чем накопленная (5,0). Дрон в
+    // движении (path непуст) → planMoveToPoint от позиции дрона. (path[0]
+    // не сохраняется в этой ветке — это смена цели; плавность поворота
+    // обеспечивается тем, что в реале позиция дрона = path[0] из-за снапшота.)
+    driver = new CodeBehaviorDriver({
+      createPort: () => new NodeWorkerPort(),
+      timeoutMs: 1000,
+    });
+
+    const { id: drone, registry } = addDrone(
+      world,
+      "while (true) { await self.moveTo({ x: 1, y: 3 }); }",
+    );
+
+    await tickUntil(
+      driver,
+      drone,
+      world,
+      registry,
+      () => world.getComponent(drone, "Program")!.state === "move",
+    );
+
+    // Дрон в движении к старой цели (5,0), буфер непуст.
+    world.getComponent(drone, "Position")!.x = 1;
+    const mv = world.getComponent(drone, "Movement")!;
+    mv.path = [{ x: 2, y: 0 }];
+    mv.progress = 0.5;
+    mv.targetX = 5;
+    mv.targetY = 0;
+    world.getComponent(drone, "Program")!.state = "running";
+    gameEvents.emit("drone:moved", {
+      droneId: drone,
+      fromX: 0,
+      fromY: 0,
+      toX: 1,
+      toY: 0,
+    });
+
+    await new Promise((r) => setTimeout(r, 50));
+    driver.step(drone, ctx(world, registry));
+
+    const m = world.getComponent(drone, "Movement")!;
+    // Другая цель → новый путь от позиции (1,0) к (1,3).
+    expect(m.targetX).toBe(1);
+    expect(m.targetY).toBe(3);
+    expect(m.path.length).toBeGreaterThan(0);
+    expect(m.path[m.path.length - 1]).toEqual({ x: 1, y: 3 });
   });
 });
