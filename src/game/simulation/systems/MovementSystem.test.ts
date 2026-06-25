@@ -148,16 +148,19 @@ describe("MovementSystem", () => {
     expect(program.state).toBe("running");
   });
 
-  it("does not resume program if state is not move", () => {
+  it("does not change state when state is not move", () => {
+    // MovementSystem меняет state только если state === 'move'.
+    // Если drone.state === 'mine' — шаг выполняется, но state не трогается.
     const id = addDrone(world, 0, 0, [{ x: 1, y: 0 }], 10, 100, "mine");
     system.update();
     const program = world.getComponent(id, "Program")!;
     expect(program.state).toBe("mine");
   });
 
-  it("continues moving (state=move) when path still has a look-ahead step", () => {
-    // path с look-ahead: после shift остаётся следующий шаг (driver дописал).
-    // state остаётся move → MovementSystem продолжит вести дрон без паузы.
+  it("continues moving when path still has a look-ahead step (state=running for early resume)", () => {
+    // path с look-ahead: после shift остаётся следующий шаг.
+    // MovementSystem ставит state=running после шага (early-resume модель).
+    // CodeBehaviorDriver по событию drone:moved вернёт state=move сразу.
     const id = addDrone(
       world,
       0,
@@ -170,7 +173,7 @@ describe("MovementSystem", () => {
     );
     system.update();
     const program = world.getComponent(id, "Program")!;
-    expect(program.state).toBe("move");
+    expect(program.state).toBe("running");
     expect(world.getComponent(id, "Movement")!.path).toEqual([{ x: 2, y: 0 }]);
   });
 
@@ -223,7 +226,7 @@ describe("MovementSystem", () => {
       { x: 2, y: 0 },
       { x: 3, y: 0 },
     ]);
-    expect(world.getComponent(id, "Program")!.state).toBe("move");
+    expect(world.getComponent(id, "Program")!.state).toBe("running"); // early-resume: driver вернёт move по drone:moved
   });
 
   it("drone with 3-cell path reaches target in 30 ticks without stopping", () => {

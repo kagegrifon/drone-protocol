@@ -66,11 +66,9 @@ export class MovementSystem {
       energy.current = Math.max(0, energy.current - energy.drainPerMove);
       movement.progress = 0;
 
-      // Continuous movement: если driver успел дописать следующий шаг (look-ahead),
-      // path не пуст — продолжаем движение, state остаётся move. Если path пуст —
-      // известный путь исчерпан, возвращаем управление программе (безопасная
-      // остановка на клетке). См. спек continuous-drone-movement.
-      if (program.state === "move" && movement.path.length === 0) {
+      // После шага всегда возвращаем управление в код, но начатый шаг завершаем
+      // Поэтому эмитим "drone:moved"
+      if (program.state === "move") {
         program.state = "running";
       }
 

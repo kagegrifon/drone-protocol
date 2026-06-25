@@ -72,14 +72,16 @@ export class CodeBehaviorDriver implements BehaviorDriver {
 
     this.onDroneMoved = ({ droneId }) => {
       const session = this.sessions.get(droneId);
+
       if (
         !session ||
         session.phase !== "action-pending" ||
         session.lastAction !== "moveTo" ||
         session.blocked ||
         !session.world
-      )
+      ) {
         return;
+      }
 
       // moveTo = «умный шаг»: один шаг завершён (path пуст в момент события),
       // позиция обновлена. Шлём ранний resume сразу (~15ms) — воркер успевает
@@ -190,14 +192,19 @@ export class CodeBehaviorDriver implements BehaviorDriver {
 
     switch (msg.type) {
       case "intent": {
+        const movement = ctx.world.getComponent(droneId, "Movement")!;
+
+        // позволяем дрону дойти до конца начатое движение
+        if (session.lastAction === "moveTo" && msg.action !== "moveTo") {
+          movement.path.length = movement.path.length ? 1 : 0;
+        }
+
         if (msg.action === "moveTo") {
           if (msg.point !== undefined) {
-            const movement = ctx.world.getComponent(droneId, "Movement");
             const sameTarget =
-              movement !== undefined &&
               movement.targetX === msg.point.x &&
               movement.targetY === msg.point.y;
-            if (movement && sameTarget && movement.path.length > 0) {
+            if (sameTarget && movement.path.length > 0) {
               // Та же цель, дрон в движении → пересчитываем хвост от path[0],
               // не трогая path[0]/progress. Воркеру дана фора в шаг, дрон не
               // тормозит. Путь идентичен прежнему. См. спек «РЕВИЗИЯ 2026-06-23».
