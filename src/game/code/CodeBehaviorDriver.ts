@@ -127,9 +127,13 @@ export class CodeBehaviorDriver implements BehaviorDriver {
 
     switch (msg.type) {
       case "intent": {
-        if (msg.action === "moveTo") {
-          const movement = ctx.world.getComponent(droneId, "Movement")!;
+        const movement = ctx.world.getComponent(droneId, "Movement")!;
+        // позволяем дрону дойти до конца начатое движение
+        if (msg.action !== "moveTo") {
+          movement.path.length = movement.path.length ? 1 : 0;
+        }
 
+        if (msg.action === "moveTo") {
           if (msg.point !== undefined) {
             // если уже двигались, то сначала доезжаем до конца, а потом уже меняем направление
             if (movement.progress !== 0) {
