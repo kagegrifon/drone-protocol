@@ -41,7 +41,31 @@ export const mission3: MissionDef = {
     const sharedLoop: ProgramDef = {
       id: "shared-loop-m3",
       name: "mine-loop",
-      behavior: { sourceForm: "code", code: "" },
+      behavior: {
+        sourceForm: "code",
+        code: `
+while (true) {
+  const mine = World.mines[0]
+  while (self.position.x !== mine.position.x || self.position.y !== mine.position.y) {
+    await self.moveTo(mine.position)
+  }
+
+  while (self.inventory < self.inventoryMax) {
+    await self.mine()
+  }
+
+  const base = World.bases[0]
+
+  while (self.position.x !== base.position.x || self.position.y !== base.position.y) {
+    await self.moveTo(base.position)
+  }
+
+  while (self.inventory > 0) {
+    await self.drop()
+  }
+}
+        `,
+      },
     };
     registry.set(sharedLoop.id, sharedLoop);
 

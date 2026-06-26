@@ -61,7 +61,7 @@ describe("MovementSystem", () => {
     expect(movement.progress).toBeCloseTo(0.1);
   });
 
-  it("moves drone exactly one cell after 10 ticks at speed=1, then stops", () => {
+  it("moves drone one cell per 10 ticks at speed=1, continuing along the path", () => {
     const id = addDrone(
       world,
       0,
@@ -76,10 +76,11 @@ describe("MovementSystem", () => {
     const pos = world.getComponent(id, "Position")!;
     expect(pos.x).toBe(1);
     expect(pos.y).toBe(0);
-    // Дополнительные тики не сдвинут дрон — путь зачищен.
+    // Continuous-движение: путь больше не зачищается после шага —
+    // дрон продолжает движение к следующей клетке.
     for (let i = 0; i < 10; i++) system.update();
     const pos2 = world.getComponent(id, "Position")!;
-    expect(pos2.x).toBe(1);
+    expect(pos2.x).toBe(2);
   });
 
   // speed=10 (клеток/сек): progress += DT*10 = 1.0 за тик → 1 тик = 1 шаг
@@ -178,7 +179,7 @@ describe("MovementSystem", () => {
     expect(movement.path.length).toBe(0);
   });
 
-  it("clears the remaining path after one atomic step", () => {
+  it("keeps the remaining path after one step (continuous movement)", () => {
     const id = addDrone(
       world,
       0,
@@ -192,7 +193,12 @@ describe("MovementSystem", () => {
     );
     system.update();
     const movement = world.getComponent(id, "Movement")!;
-    expect(movement.path).toEqual([]);
+    // Пройденная клетка снимается через shift(), хвост сохраняется —
+    // дрон продолжит движение по нему на следующих тиках.
+    expect(movement.path).toEqual([
+      { x: 2, y: 0 },
+      { x: 3, y: 0 },
+    ]);
     expect(movement.progress).toBe(0);
   });
 });
@@ -236,7 +242,7 @@ describe("MovementSystem — drone:moved эмиссия", () => {
   });
 });
 
-describe("MovementSystem — фикс гонки (stepped-set)", () => {
+describe("MovementSystem — разрешение коллизий (двухфазное)", () => {
   let world: World;
   let system: MovementSystem;
 
@@ -246,37 +252,76 @@ describe("MovementSystem — фикс гонки (stepped-set)", () => {
     gameEvents.clearAll();
   });
 
-  it("первый дрон шагает, второй с тем же целевым полем блокируется", () => {
-    const blocked: number[] = [];
-    gameEvents.on("drone:blocked", ({ droneId }) => blocked.push(droneId));
-
-    const d1 = addDrone(world, 0, 0, [{ x: 1, y: 0 }], 10); // создан первым → победит
-    const d2 = addDrone(world, 2, 0, [{ x: 1, y: 0 }], 10); // создан вторым → заблокирован
+  it("два дрона в одну пустую клетку: младший id едет, старший ждёт", () => {
+    const d1 = addDrone(world, 0, 0, [{ x: 1, y: 0 }], 10); // меньший id → победит
+    const d2 = addDrone(world, 2, 0, [{ x: 1, y: 0 }], 10); // больший id → ждёт
 
     system.update();
 
     expect(world.getComponent(d1, "Position")).toMatchObject({ x: 1, y: 0 });
     expect(world.getComponent(d2, "Position")).toMatchObject({ x: 2, y: 0 });
-    expect(blocked).toEqual([d2]);
   });
 
-  it("заблокированный дрон: путь очищен, программа resumeится", () => {
+  it("ждущий дрон сохраняет путь и сбрасывает progress (не отбрасывается)", () => {
     addDrone(world, 0, 0, [{ x: 1, y: 0 }], 10);
     const d2 = addDrone(world, 2, 0, [{ x: 1, y: 0 }], 10);
 
     system.update();
 
     const mov2 = world.getComponent(d2, "Movement")!;
-    const prog2 = world.getComponent(d2, "Program")!;
-    expect(mov2.path).toEqual([]);
+    // Путь НЕ зачищается — дрон ждёт, не теряя цель.
+    expect(mov2.path).toEqual([{ x: 1, y: 0 }]);
     expect(mov2.progress).toBe(0);
-    expect(prog2.state).toBe("running");
   });
 
-  it("два дрона движутся в разные клетки — оба проходят", () => {
-    const blocked: number[] = [];
-    gameEvents.on("drone:blocked", ({ droneId }) => blocked.push(droneId));
+  it("движущийся дрон не въезжает в клетку стоящего дрона", () => {
+    // d1 стоит в (1,0) без пути; d2 хочет туда же.
+    addDrone(world, 1, 0, [], 10);
+    const d2 = addDrone(world, 2, 0, [{ x: 1, y: 0 }], 10);
 
+    system.update();
+
+    expect(world.getComponent(d2, "Position")).toMatchObject({ x: 2, y: 0 });
+  });
+
+  it("цепочка A→B→C: колонна трогается по очереди (за тик едет только головной)", () => {
+    // C в (2,0) едет в (3,0); B в (1,0) едет в (2,0); A в (0,0) едет в (1,0).
+    // Клетка освобождается только по факту прибытия → за тик двигается лишь C.
+    const a = addDrone(world, 0, 0, [{ x: 1, y: 0 }], 10);
+    const b = addDrone(world, 1, 0, [{ x: 2, y: 0 }], 10);
+    const c = addDrone(world, 2, 0, [{ x: 3, y: 0 }], 10);
+
+    system.update();
+    expect(world.getComponent(c, "Position")).toMatchObject({ x: 3, y: 0 });
+    // B и A ждут: их цель ещё занята соседом на начало тика.
+    expect(world.getComponent(b, "Position")).toMatchObject({ x: 1, y: 0 });
+    expect(world.getComponent(a, "Position")).toMatchObject({ x: 0, y: 0 });
+
+    // Следующий тик: (2,0) освободилась → B едет; A ждёт, пока освободится (1,0).
+    system.update();
+    expect(world.getComponent(b, "Position")).toMatchObject({ x: 2, y: 0 });
+    expect(world.getComponent(a, "Position")).toMatchObject({ x: 0, y: 0 });
+
+    // Третий тик: (1,0) освободилась → A едет.
+    system.update();
+    expect(world.getComponent(a, "Position")).toMatchObject({ x: 1, y: 0 });
+  });
+
+  it("встречный обмен (swap) запрещён: проходит только один дрон", () => {
+    // A в (0,0) едет в (1,0); B в (1,0) едет в (0,0) — навстречу.
+    const a = addDrone(world, 0, 0, [{ x: 1, y: 0 }], 10);
+    const b = addDrone(world, 1, 0, [{ x: 0, y: 0 }], 10);
+
+    system.update();
+
+    const posA = world.getComponent(a, "Position")!;
+    const posB = world.getComponent(b, "Position")!;
+    // Дроны не должны пройти сквозь друг друга (оказаться оба в новых клетках).
+    const swapped = posA.x === 1 && posB.x === 0;
+    expect(swapped).toBe(false);
+  });
+
+  it("два дрона в разные клетки — оба проходят", () => {
     const d1 = addDrone(world, 0, 0, [{ x: 1, y: 0 }], 10);
     const d2 = addDrone(world, 0, 1, [{ x: 1, y: 1 }], 10);
 
@@ -284,7 +329,26 @@ describe("MovementSystem — фикс гонки (stepped-set)", () => {
 
     expect(world.getComponent(d1, "Position")).toMatchObject({ x: 1, y: 0 });
     expect(world.getComponent(d2, "Position")).toMatchObject({ x: 1, y: 1 });
-    expect(blocked).toHaveLength(0);
+  });
+
+  it("ждущий дрон проходит, когда клетка фактически освободилась", () => {
+    // d1 стоит в (1,0); d2 хочет туда. Пока d1 там — d2 ждёт.
+    const d1 = addDrone(world, 1, 0, [], 10);
+    const d2 = addDrone(world, 2, 0, [{ x: 1, y: 0 }], 10);
+
+    system.update();
+    expect(world.getComponent(d2, "Position")).toMatchObject({ x: 2, y: 0 });
+
+    // d1 уезжает прочь. В этом тике d1 ещё числится в (1,0) на начало тика,
+    // поэтому d2 продолжает ждать.
+    world.getComponent(d1, "Movement")!.path = [{ x: 1, y: 5 }];
+    system.update();
+    expect(world.getComponent(d1, "Position")).toMatchObject({ x: 1, y: 5 });
+    expect(world.getComponent(d2, "Position")).toMatchObject({ x: 2, y: 0 });
+
+    // Теперь (1,0) свободна на начало тика → d2 проходит.
+    system.update();
+    expect(world.getComponent(d2, "Position")).toMatchObject({ x: 1, y: 0 });
   });
 
   it("дрон шагает в свою же клетку (path[0] === position) — шаг разрешён", () => {
@@ -292,5 +356,32 @@ describe("MovementSystem — фикс гонки (stepped-set)", () => {
     system.update();
     const mov = world.getComponent(d, "Movement")!;
     expect(mov.path).toEqual([]);
+  });
+
+  // Главный сценарий бага: при медленной скорости два дрона едут в одну клетку.
+  // Один резервирует её при выезде (progress=0), второй НЕ должен начинать
+  // движение вообще — иначе он накопит progress, «почти доедет» и его
+  // отбросит назад, когда первый займёт клетку.
+  it("ждущий дрон НЕ копит progress, пока цель зарезервирована (нет отбрасывания)", () => {
+    addDrone(world, 0, 0, [{ x: 1, y: 0 }], 1); // d1: резервирует (1,0) при выезде
+    const d2 = addDrone(world, 2, 0, [{ x: 1, y: 0 }], 1); // d2: та же цель
+
+    // Несколько тиков, пока d1 ещё в пути (progress < 1): d2 не должен сдвигать
+    // свою визуальную позицию — его progress остаётся 0.
+    for (let i = 0; i < 5; i++) {
+      system.update();
+      const mov2 = world.getComponent(d2, "Movement")!;
+      expect(mov2.progress).toBe(0);
+    }
+    // d1 ещё едет, d2 всё ещё на месте.
+    expect(world.getComponent(d2, "Position")).toMatchObject({ x: 2, y: 0 });
+  });
+
+  it("дрон резервирует целевую клетку на всё время движения (progress 0→1)", () => {
+    const d1 = addDrone(world, 0, 0, [{ x: 1, y: 0 }], 1);
+    system.update(); // d1 выехал: progress > 0, цель (1,0) зарезервирована
+    const mov1 = world.getComponent(d1, "Movement")!;
+    expect(mov1.progress).toBeGreaterThan(0);
+    expect(mov1.reserved).toEqual({ x: 1, y: 0 });
   });
 });

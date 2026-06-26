@@ -1,7 +1,7 @@
 import type { EntityId, WorldObjectType } from "../../shared/types/index.js";
 import { DT } from "../simulation/constants.js";
 import type { ProgramComponent } from "../simulation/components/Program.js";
-import { planMoveToPoint } from "../pathfinding/planMove.js";
+import { extendPathTail, planMoveToPoint } from "../pathfinding/planMove.js";
 import type { BehaviorDriver, BehaviorTickContext } from "./BehaviorDriver.js";
 import type { CodeWorkerPort } from "./CodeWorkerPort.js";
 import { collectWorld } from "./worldSnapshot.js";
@@ -127,15 +127,32 @@ export class CodeBehaviorDriver implements BehaviorDriver {
 
     switch (msg.type) {
       case "intent": {
+        const movement = ctx.world.getComponent(droneId, "Movement")!;
+        // позволяем дрону дойти до конца начатое движение
+        if (msg.action !== "moveTo") {
+          movement.path.length = movement.path.length ? 1 : 0;
+        }
+
         if (msg.action === "moveTo") {
           if (msg.point !== undefined) {
-            planMoveToPoint(
-              droneId,
-              msg.point,
-              ctx.world,
-              ctx.grid,
-              ctx.occupied,
-            );
+            // если уже двигались, то сначала доезжаем до конца, а потом уже меняем направление
+            if (movement.progress !== 0) {
+              extendPathTail(
+                droneId,
+                msg.point,
+                ctx.world,
+                ctx.grid,
+                ctx.occupied,
+              );
+            } else {
+              planMoveToPoint(
+                droneId,
+                msg.point,
+                ctx.world,
+                ctx.grid,
+                ctx.occupied,
+              );
+            }
           }
           program.state = "move";
         } else if (msg.action === "mine") {
