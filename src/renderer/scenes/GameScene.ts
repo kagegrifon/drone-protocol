@@ -266,15 +266,26 @@ export class GameScene extends Phaser.Scene {
         sprite.updateStats(energyRatio, loadRatio);
 
         const movement = this._world.getComponent(entityId, "Movement");
-        const to =
-          movement && movement.path.length > 0 ? movement.path[0] : null;
+
+        // Дрон реально едет, только если зарезервировал целевую клетку или уже
+        // накопил progress. Ждущий дрон (цель занята, движение не начато) держит
+        // путь, но стоит на месте — его не нужно тянуть к целевой клетке.
+        const hasReservedCell = movement?.reserved != null;
+        const hasStartedMoving = (movement?.progress ?? 0) > 0;
+        const isDriving = hasReservedCell || hasStartedMoving;
+
+        let targetCell: { x: number; y: number } | null = null;
+        if (movement && movement.path.length > 0 && isDriving) {
+          targetCell = movement.path[0];
+        }
 
         // При паузе: симуляция не продвигает progress, но t осциллирует
-        // каждый глобальный тик → дрон дрожит без t-компоненты.
+        // каждый глобальный тик → дрон дрожит без t-компоненты. То же для
+        // ждущего дрона: targetCell === null, поэтому он остаётся на месте.
         const interpT = program?.localPaused ? 0 : t;
         const { x, y } = interpolateVisualPos(
           pos,
-          to,
+          targetCell,
           movement?.progress ?? 0,
           movement?.speed ?? 0,
           interpT,
