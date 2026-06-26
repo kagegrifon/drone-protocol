@@ -268,12 +268,16 @@ export class GameScene extends Phaser.Scene {
         const movement = this._world.getComponent(entityId, "Movement");
         const to =
           movement && movement.path.length > 0 ? movement.path[0] : null;
+
+        // При паузе: симуляция не продвигает progress, но t осциллирует
+        // каждый глобальный тик → дрон дрожит без t-компоненты.
+        const interpT = program?.localPaused ? 0 : t;
         const { x, y } = interpolateVisualPos(
           pos,
           to,
           movement?.progress ?? 0,
           movement?.speed ?? 0,
-          t,
+          interpT,
           TILE_SIZE,
         );
         const prevX = sprite.x;
