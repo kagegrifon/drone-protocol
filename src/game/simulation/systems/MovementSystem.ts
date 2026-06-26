@@ -64,7 +64,6 @@ export class MovementSystem {
       position.x = next.x;
       position.y = next.y;
       energy.current = Math.max(0, energy.current - energy.drainPerMove);
-      movement.path = [];
       movement.progress = 0;
 
       if (program.state === "move") {
