@@ -14,6 +14,20 @@ Read [DECISIONS.md](DECISIONS.md) before starting — key architectural decision
 
 ---
 
+## Code quality — READABILITY is the top priority
+
+Optimize every change for the next human reader, not for brevity or cleverness.
+
+- **No nested ternaries.** Never chain `a ? b : c ? d : e`. Extract a helper function, a `switch`, or precompute a variable instead.
+- **Name intermediate values.** A well-named `const` beats a complex inline expression. If a JSX prop value needs more than a trivial expression, compute it above `return` with a descriptive name.
+- **Keep JSX flat and scannable.** Avoid deep inline conditionals and multi-branch expressions inside markup. Pull logic out into variables or small components.
+- **One responsibility per function/component.** If you can't describe what it does in one sentence, split it.
+- **Prefer clarity over fewer lines.** More lines that read top-to-bottom are better than dense one-liners.
+
+When in doubt: would a teammate understand this at a glance without untangling it? If not, rewrite it.
+
+---
+
 ## Reference documents
 
 - [Game Design Document (GDD).md](Game Design Document (GDD).md) — mechanics, visuals, audio, missions. Read when working on phases 9–10 or when in doubt about game design.
