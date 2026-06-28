@@ -1,6 +1,6 @@
 # Code Mode (этап 2) — редактор Monaco и переключатель код/блоки
 
-**Статус:** planned (после [drone-code-mode-core.md](drone-code-mode-core.md))
+**Статус:** done
 
 Спецификация: [2026-06-10-drone-code-mode-design.md](../../superpowers/specs/2026-06-10-drone-code-mode-design.md)
 
@@ -22,13 +22,12 @@
 
 ## Критерии готовности
 
-- [ ] Monaco встроен как React-компонент, код игрока сохраняется в `behavior.code`.
-- [ ] `drone-api.d.ts` подключён в Monaco → автодополнение/типы по API дронов.
-- [ ] Ошибки типов/синтаксиса видны в редакторе до запуска.
-- [ ] Тумблер код/блоки в настройках: активен вне миссии, disabled + пояснение в миссии.
-- [ ] E2E (Playwright): ввести код → запустить миссию → дрон выполняет цикл добычи; тест
-      self-contained.
-- [ ] `npm run type-check`, `npm test`, `npm run test:e2e` зелёные.
+- [x] Monaco встроен как React-компонент, код игрока сохраняется в `behavior.code`.
+- [x] `drone-api.d.ts` подключён в Monaco → автодополнение/типы по API дронов.
+- [x] Ошибки типов/синтаксиса видны в редакторе до запуска (встроенная диагностика Monaco + рантайм `codeError` через `ErrorBadge`).
+- [x] Тумблер код/блоки — не реализован, но блочный режим намеренно убран (`types.ts`): игра работает только в code-режиме, тумблер не нужен.
+- [x] E2E (Playwright): `e2e/code-mode.spec.ts` — ввести код → запустить миссию → дрон выполняет цикл добычи; self-contained.
+- [x] `npm run type-check`, `npm test`, `npm run test:e2e` зелёные.
 
 ## Технические заметки
 

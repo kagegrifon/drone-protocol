@@ -1,6 +1,6 @@
 # Вкладка DRONE: редактор кода назначенной программы
 
-**Статус:** planned
+**Статус:** done
 
 > Этап 1 из 2. Этап 2 — [code-debugging-line-highlight.md](code-debugging-line-highlight.md)
 > (подсветка текущей строки) — строится поверх этого этапа.
