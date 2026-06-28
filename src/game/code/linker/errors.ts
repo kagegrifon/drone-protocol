@@ -35,7 +35,9 @@ export class CycleError extends LinkError {
 export class DuplicateSlug extends LinkError {
   readonly kind = "DuplicateSlug";
   constructor(specifier: string) {
-    super(`Duplicate module name "${specifier}" — two programs share this slug`);
+    super(
+      `Duplicate module name "${specifier}" — two programs share this slug`,
+    );
   }
 }
 

@@ -66,11 +66,7 @@ describe("linkProgram — transitive graph", () => {
       "B",
       `import { c } from "c";\nexport function b() { c(); }`,
     );
-    const a = prog(
-      "a",
-      "A",
-      `import { b } from "b";\nb();`,
-    );
+    const a = prog("a", "A", `import { b } from "b";\nb();`);
     const { code } = linkProgram("a", registry(a, b, c));
     const posC = code.indexOf("__mod_c__c");
     const posB = code.indexOf("__mod_b__b");
@@ -84,8 +80,16 @@ describe("linkProgram — transitive graph", () => {
 
   it("diamond A→B,C→D emits D exactly once", () => {
     const d = prog("d", "D", `export function d() {}`);
-    const b = prog("b", "B", `import { d } from "d";\nexport function b() { d(); }`);
-    const c = prog("c", "C", `import { d } from "d";\nexport function c() { d(); }`);
+    const b = prog(
+      "b",
+      "B",
+      `import { d } from "d";\nexport function b() { d(); }`,
+    );
+    const c = prog(
+      "c",
+      "C",
+      `import { d } from "d";\nexport function c() { d(); }`,
+    );
     const a = prog(
       "a",
       "A",
@@ -99,8 +103,16 @@ describe("linkProgram — transitive graph", () => {
 
 describe("linkProgram — errors", () => {
   it("throws CycleError on A↔B", () => {
-    const a = prog("a", "A", `import { b } from "b";\nexport function a() { b(); }`);
-    const b = prog("b", "B", `import { a } from "a";\nexport function b() { a(); }`);
+    const a = prog(
+      "a",
+      "A",
+      `import { b } from "b";\nexport function a() { b(); }`,
+    );
+    const b = prog(
+      "b",
+      "B",
+      `import { a } from "a";\nexport function b() { a(); }`,
+    );
     expect(() => linkProgram("a", registry(a, b))).toThrow(CycleError);
   });
 
@@ -111,15 +123,23 @@ describe("linkProgram — errors", () => {
 
   it("throws MissingExport when name not exported", () => {
     const miner = prog("m", "Miner", `export function other() {}`);
-    const entry = prog("e", "Entry", `import { mineLoop } from "miner";\nmineLoop();`);
-    expect(() => linkProgram("e", registry(miner, entry))).toThrow(MissingExport);
+    const entry = prog(
+      "e",
+      "Entry",
+      `import { mineLoop } from "miner";\nmineLoop();`,
+    );
+    expect(() => linkProgram("e", registry(miner, entry))).toThrow(
+      MissingExport,
+    );
   });
 
   it("throws DuplicateSlug when two programs share a slug", () => {
     const m1 = prog("m1", "Miner", `export function f() {}`);
     const m2 = prog("m2", "miner", `export function g() {}`);
     const entry = prog("e", "Entry", `import { f } from "miner";\nf();`);
-    expect(() => linkProgram("e", registry(m1, m2, entry))).toThrow(DuplicateSlug);
+    expect(() => linkProgram("e", registry(m1, m2, entry))).toThrow(
+      DuplicateSlug,
+    );
   });
 });
 

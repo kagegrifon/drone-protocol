@@ -56,11 +56,7 @@ describe("linker output ↔ instrument compatibility", () => {
       "B",
       `import { deep } from "c";\nexport async function mid() { await deep(); }`,
     );
-    const a = prog(
-      "a",
-      "A",
-      `import { mid } from "b";\nawait mid();`,
-    );
+    const a = prog("a", "A", `import { mid } from "b";\nawait mid();`);
     expect(() => buildable("a", registry(a, b, c))).not.toThrow();
   });
 

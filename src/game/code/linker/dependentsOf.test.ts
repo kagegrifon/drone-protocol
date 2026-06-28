@@ -26,7 +26,11 @@ describe("dependentsOf", () => {
 
   it("finds transitive importers (C imported by B imported by A)", () => {
     const c = prog("c", "C", `export function c() {}`);
-    const b = prog("b", "B", `import { c } from "c";\nexport function b() { c(); }`);
+    const b = prog(
+      "b",
+      "B",
+      `import { c } from "c";\nexport function b() { c(); }`,
+    );
     const a = prog("a", "A", `import { b } from "b";\nb();`);
     const deps = dependentsOf("c", registry(a, b, c));
     expect(new Set(deps)).toEqual(new Set(["a", "b", "c"]));

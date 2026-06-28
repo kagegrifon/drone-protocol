@@ -129,7 +129,9 @@ function topoSortDeps(
   const visit = (id: string): void => {
     if (visited.has(id)) return;
     if (onStack.has(id)) {
-      throw new CycleError([...onStack, id].map((x) => slug(registry.get(x)!.name)));
+      throw new CycleError(
+        [...onStack, id].map((x) => slug(registry.get(x)!.name)),
+      );
     }
     onStack.add(id);
     for (const depId of resolveDeps(id)) visit(depId);
