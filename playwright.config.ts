@@ -19,7 +19,7 @@ export default defineConfig({
   fullyParallel: true,
   // В CI Playwright сам подбирает workers по числу CPU; локально ограничиваем 3,
   // чтобы параллельный запуск Phaser не перегружал машину.
-  workers: isCI ? undefined : 3,
+  workers: isCI ? undefined : 1,
   // В CI один ретрай + HTML-отчёт рядом со списком — чтобы при падении
   // остался трейс и отчёт для выгрузки в артефакты.
   retries: isCI ? 1 : 0,
