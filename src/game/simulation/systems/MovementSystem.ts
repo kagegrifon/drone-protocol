@@ -2,6 +2,7 @@ import type { Position } from "../../../shared/types/index.js";
 import type { World } from "../world/World.js";
 import { gameEvents } from "../../../shared/events/gameEvents.js";
 import { DT, EPSILON } from "../constants.js";
+import { getMoveSpeedMul } from "../modifiers/effects.js";
 
 const posKey = (x: number, y: number) => `${x},${y}`;
 
@@ -44,6 +45,8 @@ export class MovementSystem {
       const position = this.world.getComponent(id, "Position")!;
       const energy = this.world.getComponent(id, "Energy")!;
       const program = this.world.getComponent(id, "Program")!;
+      const mods = this.world.getComponent(id, "Modifiers");
+      const activeModifiers = mods?.active ?? [];
 
       if (program.localPaused) continue;
 
@@ -78,7 +81,7 @@ export class MovementSystem {
       }
 
       // ── Накопление прогресса (плавность) ──────────────────────────────────
-      movement.progress += DT * movement.speed;
+      movement.progress += DT * movement.speed * getMoveSpeedMul(activeModifiers);
       if (movement.progress < 1 - EPSILON) continue;
 
       // ── Прибытие ──────────────────────────────────────────────────────────

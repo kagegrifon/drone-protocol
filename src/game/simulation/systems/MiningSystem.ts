@@ -3,6 +3,7 @@ import type { ComponentName } from "../world/World.js";
 import type { World } from "../world/World.js";
 import { gameEvents } from "../../../shared/events/gameEvents.js";
 import { DT, EPSILON, BASE_MINE_SPEED, BASE_DROP_SPEED } from "../constants.js";
+import { canMine, canDrop } from "../modifiers/effects.js";
 
 export class MiningSystem {
   constructor(private readonly world: World) {}
@@ -27,6 +28,14 @@ export class MiningSystem {
       const position = this.world.getComponent(id, "Position")!;
       const inventory = this.world.getComponent(id, "Inventory")!;
       const energy = this.world.getComponent(id, "Energy")!;
+      const mods = this.world.getComponent(id, "Modifiers");
+      const activeModifiers = mods?.active ?? [];
+
+      if (!canMine(activeModifiers)) {
+        program.mineProgress = undefined;
+        program.state = "running";
+        continue;
+      }
 
       const depositId = this.findEntityAt(position.x, position.y, "Deposit");
       if (depositId === null) {
@@ -69,6 +78,14 @@ export class MiningSystem {
 
       const position = this.world.getComponent(id, "Position")!;
       const droneInventory = this.world.getComponent(id, "Inventory")!;
+      const dropMods = this.world.getComponent(id, "Modifiers");
+      const dropActiveModifiers = dropMods?.active ?? [];
+
+      if (!canDrop(dropActiveModifiers)) {
+        program.dropProgress = undefined;
+        program.state = "running";
+        continue;
+      }
 
       const baseId = this.findEntityAt(position.x, position.y, "Inventory", id);
       if (baseId === null) {

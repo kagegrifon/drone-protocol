@@ -9,6 +9,7 @@ import type {
   CallFrame,
 } from "../../game/simulation/components/Program.js";
 import { CollisionSystem } from "../../game/simulation/systems/CollisionSystem.js";
+import { ModifiersSystem } from "../../game/simulation/systems/ModifiersSystem.js";
 import { ProgramExecutionSystem } from "../../game/simulation/systems/ProgramExecutionSystem.js";
 import { MovementSystem } from "../../game/simulation/systems/MovementSystem.js";
 import { MiningSystem } from "../../game/simulation/systems/MiningSystem.js";
@@ -73,6 +74,7 @@ export interface StatsState {
 
 interface Systems {
   collision: CollisionSystem;
+  modifiers: ModifiersSystem;
   programExecution: ProgramExecutionSystem;
   movement: MovementSystem;
   mining: MiningSystem;
@@ -205,6 +207,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     get()._systems?.statistics.destroy();
     get()._systems?.programExecution.dispose();
     const collision = new CollisionSystem(world);
+    const modifiers = new ModifiersSystem(world);
     const typeMap = new Map<EntityId, WorldObjectType>(
       (options?.staticEntities ?? []).map((e) => [e.id, e.type]),
     );
@@ -226,6 +229,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     const systems: Systems = {
       collision,
+      modifiers,
       programExecution,
       movement,
       mining,
@@ -262,6 +266,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!world || !_systems) return;
 
     _systems.collision.update();
+    _systems.modifiers.update();
     _systems.programExecution.update();
     _systems.movement.update();
     _systems.mining.update();
