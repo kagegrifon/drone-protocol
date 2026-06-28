@@ -45,20 +45,14 @@ export function ProgramCodeBlock({
 
   return (
     <div>
-      <CodeEditor
-        value={draft}
-        onChange={setDraft}
-        height={height}
-        highlightLine={highlightLine}
-      />
-
       {isDirty && (
         <div
           style={{
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            marginTop: "6px",
+            marginTop: "8px",
+            marginBottom: "8px",
             flexWrap: "wrap",
           }}
         >
@@ -108,6 +102,13 @@ export function ProgramCodeBlock({
           )}
         </div>
       )}
+
+      <CodeEditor
+        value={draft}
+        onChange={setDraft}
+        height={height}
+        highlightLine={highlightLine}
+      />
 
       {codeError && (
         <div
