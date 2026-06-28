@@ -97,8 +97,6 @@ A feature stays in `planned/` until complete; update status inside the file and 
   ```
   git checkout -b feat/<slug>
   ```
-- When the feature is complete, stop — the **user pushes the branch and creates the PR themselves**.
-- Do not push branches or create PRs unless explicitly asked.
 
 ### Git Worktrees (parallel agents)
 
