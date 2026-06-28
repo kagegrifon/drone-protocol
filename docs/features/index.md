@@ -18,10 +18,7 @@ docs/features/
 |---|---|---|
 | [congestion-metric.md](planned/congestion-metric.md) | Метрика Congestion (затор дронов) | planned |
 | [drone-modifiers.md](planned/drone-modifiers.md) | Система модификаторов дрона | planned |
-| [drone-code-mode-core.md](planned/drone-code-mode-core.md) | Code Mode (этап 1) — ядро исполнения JS-кода | ядро и миграция реестра на `behavior: DroneBehavior` готовы |
-| [drone-code-mode-monaco.md](planned/drone-code-mode-monaco.md) | Code Mode (этап 2) — редактор Monaco + переключатель | planned |
-| [drone-tab-assigned-program-editor.md](planned/drone-tab-assigned-program-editor.md) | Вкладка DRONE: редактор кода назначенной программы (дебаггинг, этап 1) | planned |
-| [object-world-api.md](planned/object-world-api.md) | Объектный World API для скриптов дронов (Screeps-style) | Фазы 1–7 реализованы, фикс Monaco готов |
+| [library-modules-import.md](planned/library-modules-import.md) | Подключение модулей в программы дронов (library imports) | planned |
 
 
 ### done
@@ -36,4 +33,8 @@ docs/features/
 | [missions-atomic-migration.md](done/missions-atomic-migration.md) | Миграция миссий под атомарную семантику |
 | [drag-drop-blocks.md](done/drag-drop-blocks.md) | Drag & Drop блоков + визуальный рефактор редактора |
 | [work-slots-and-collisions.md](done/work-slots-and-collisions.md) | Эксклюзивные слоты работы и физическая непроходимость дронов |
+| [drone-tab-assigned-program-editor.md](done/drone-tab-assigned-program-editor.md) | Вкладка DRONE: редактор кода назначенной программы (дебаггинг, этап 1) |
 | [code-debugging-line-highlight.md](done/code-debugging-line-highlight.md) | Дебаггинг кода: подсветка текущей исполняемой строки (этап 2) |
+| [drone-code-mode-core.md](done/drone-code-mode-core.md) | Code Mode (этап 1) — ядро исполнения JS-кода |
+| [object-world-api.md](done/object-world-api.md) | Объектный World API для скриптов дронов (Screeps-style) |
+| [drone-code-mode-monaco.md](done/drone-code-mode-monaco.md) | Code Mode (этап 2) — редактор Monaco |
