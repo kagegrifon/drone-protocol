@@ -82,6 +82,14 @@ CollisionSystem → ProgramExecutionSystem → MovementSystem → MiningSystem �
 - Unit tests — Vitest, next to the file (`*.test.ts`). Cover simulation layer systems.
 - E2E tests — Playwright (`tests/` or `e2e/`).
   - Run in parallel — each test must be self-contained with an isolated context (own browser context / `localStorage`); never rely on shared state or ordering between tests.
+  - **Always select UI elements by `data-testid` attribute.** Never rely on text content, tag names, or class names for selection. This ensures tests remain stable when text or styles change. Example:
+    ```ts
+    // ✗ brittle: breaks if text changes
+    await page.getByText("Start Game").click();
+    
+    // ✓ stable: explicit test identifier
+    await page.locator('[data-testid="start-button"]').click();
+    ```
 - Simulation layer tested without Phaser — pure TS.
 
 ---
