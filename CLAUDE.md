@@ -23,8 +23,26 @@ Optimize every change for the next human reader, not for brevity or cleverness.
 - **Keep JSX flat and scannable.** Avoid deep inline conditionals and multi-branch expressions inside markup. Pull logic out into variables or small components.
 - **One responsibility per function/component.** If you can't describe what it does in one sentence, split it.
 - **Prefer clarity over fewer lines.** More lines that read top-to-bottom are better than dense one-liners.
+- **Object parameters over positional ones.** When a function has **3+ parameters**, OR 2 parameters where one is `boolean`, OR 2 parameters of the same type, OR parameters whose role is hard to read at the call site — pass a single options object so every argument is named at the call site. Positional args are fine only when 1–2 parameters of distinct types read unambiguously.
+  ```ts
+  // ✗ call site is opaque: topoSortDeps(entry, registry, slugIndex, parseFor)
+  function topoSortDeps(entryId: string, registry: ProgramRegistry, slugIndex: Map<string, string>, parseFor: (def: ProgramDef) => ParsedModule)
+  // ✓ each argument is self-describing
+  function topoSortDeps({ entryId, registry, slugIndex, parseFor }: TopoSortDepsArgs)
+  ```
+- **Descriptive names — never cryptic abbreviations.** No `imp`, `s`, `p`, `mod` as standalone identifiers. Loop variables, params, and locals get full words (`importDecl`, `slug`, `program`). This is a hard rule, not a preference. **Exception:** a short single-letter name is fine in a short inline callback where the element is obvious — e.g. `someArr.map(v => v.name)`. The exception does not apply to multi-line callbacks or anything beyond a trivial expression.
+- **Replace long `if/else if` and `switch` chains with data structures.** When dispatching on a value, prefer a lookup map/record of handlers over branch chains — it reads declaratively and extends without touching control flow.
+  ```ts
+  // ✗ branch chain
+  if (kind === "move") { ... } else if (kind === "mine") { ... } else if (kind === "drop") { ... }
+  // ✓ declarative dispatch
+  const HANDLERS: Record<ActionKind, () => void> = { move: () => ..., mine: () => ..., drop: () => ... };
+  HANDLERS[kind]();
+  ```
 
 When in doubt: would a teammate understand this at a glance without untangling it? If not, rewrite it.
+
+**Post-implementation readability pass.** At the end of every coding task, before claiming it done, re-scan your own diff against all the rules above — specifically for cryptic names, multi-parameter functions that should take an options object, and `if`/`switch` chains that should be lookup maps — and fix what you find. The rules apply both while writing and as a final review.
 
 ---
 
