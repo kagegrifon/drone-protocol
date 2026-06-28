@@ -84,7 +84,9 @@ export function DroneList() {
         const hasError = !!d.codeError;
         const dotColor = indicatorColor(d);
         const statusText = indicatorLabel(d);
-        const statusTextColor = hasError ? ERROR_COLOR : statusColor(d.programState);
+        const statusTextColor = hasError
+          ? ERROR_COLOR
+          : statusColor(d.programState);
         const pauseColor = d.localPaused ? PAUSED_COLOR : "#445566";
         return (
           <div
@@ -138,6 +140,8 @@ export function DroneList() {
                 fontFamily: "monospace",
                 fontSize: "10px",
                 letterSpacing: "0.5px",
+                position: "relative",
+                top: "2px",
               }}
             >
               {statusText}
