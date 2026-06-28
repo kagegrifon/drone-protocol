@@ -63,6 +63,8 @@ export class CodeBehaviorDriver implements BehaviorDriver {
           ? activeDef.behavior.code
           : undefined;
       if (!code) return;
+      // Новый запуск кода — сбрасываем ошибку предыдущего прогона.
+      program.codeError = undefined;
       const port = this.options.createPort();
       session = {
         port,

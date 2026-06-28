@@ -32,6 +32,17 @@ const RADIO_STYLE = (checked: boolean): React.CSSProperties => ({
   flexShrink: 0,
 });
 
+const ERROR_COLOR = "#ff4444";
+
+// Значок «⚠» рядом с именем программы, у которой есть ошибка исполнения.
+function ErrorBadge({ message }: { message: string }) {
+  return (
+    <span title={message} style={{ color: ERROR_COLOR, fontSize: "12px" }}>
+      ⚠
+    </span>
+  );
+}
+
 export function ProgramEditor() {
   const [tab, setTab] = useState<"drone" | "library" | "program">("drone");
   const [editingProgramId, setEditingProgramId] = useState<string | null>(null);
@@ -77,6 +88,13 @@ export function ProgramEditor() {
   const activeProgramId = drone
     ? (drone.assignedProgramId ?? drone.personalProgramId)
     : null;
+
+  // Ошибка исполнения относится к активной программе дрона: assigned, если она
+  // назначена, иначе personal. Только у активного блока показываем ⚠ и рамку.
+  const codeError = drone?.codeError ?? null;
+  const assignedHasError = !!assignedProgram && codeError !== null;
+  const personalHasError =
+    !assignedProgram && !!personalProgram && codeError !== null;
 
   return (
     <div
@@ -134,7 +152,12 @@ export function ProgramEditor() {
               <>
                 {/* Assigned program block — only if present */}
                 {assignedProgram && (
-                  <div style={BLOCK_STYLE(true, "#0088ff")}>
+                  <div
+                    style={BLOCK_STYLE(
+                      true,
+                      assignedHasError ? ERROR_COLOR : "#0088ff",
+                    )}
+                  >
                     <div
                       style={{
                         display: "flex",
@@ -157,6 +180,9 @@ export function ProgramEditor() {
                       >
                         {assignedProgram.name}
                       </span>
+                      {assignedHasError && codeError && (
+                        <ErrorBadge message={codeError} />
+                      )}
                       <button
                         onClick={() => setAssignedExpanded(!assignedExpanded)}
                         style={{
@@ -216,7 +242,12 @@ export function ProgramEditor() {
 
                 {/* Personal program block */}
                 {personalProgram && (
-                  <div style={BLOCK_STYLE(!assignedProgram, "#00ff88")}>
+                  <div
+                    style={BLOCK_STYLE(
+                      !assignedProgram,
+                      personalHasError ? ERROR_COLOR : "#00ff88",
+                    )}
+                  >
                     <div
                       style={{
                         display: "flex",
@@ -246,6 +277,9 @@ export function ProgramEditor() {
                       >
                         {personalProgram.name}
                       </span>
+                      {personalHasError && codeError && (
+                        <ErrorBadge message={codeError} />
+                      )}
                       <button
                         onClick={() => setPersonalExpanded(!personalExpanded)}
                         style={{

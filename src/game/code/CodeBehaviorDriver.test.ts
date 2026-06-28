@@ -179,6 +179,34 @@ describe("CodeBehaviorDriver", () => {
     expect(world.getComponent(drone, "Program")!.state).toBe("idle");
   });
 
+  it("clears a previous codeError when the code is restarted", async () => {
+    const { id: drone, registry } = addDrone(world, "while (true) {}");
+    driver = new CodeBehaviorDriver({
+      createPort: () => new NodeWorkerPort(),
+      timeoutMs: 200,
+    });
+
+    // Первый прогон падает по таймауту — codeError выставлен.
+    await tickUntil(
+      driver,
+      drone,
+      world,
+      registry,
+      () => world.getComponent(drone, "Program")!.codeError !== undefined,
+      400,
+    );
+    expect(world.getComponent(drone, "Program")!.codeError).toBeDefined();
+
+    // Перезапуск: убираем сессию (как при reset дрона) и возвращаем running.
+    driver.dispose(drone);
+    const program = world.getComponent(drone, "Program")!;
+    program.state = "running";
+
+    // Следующий step создаёт новую сессию и сбрасывает старую ошибку.
+    driver.step(drone, ctx(world, registry));
+    expect(world.getComponent(drone, "Program")!.codeError).toBeUndefined();
+  });
+
   it("identical code produces an identical state trace (determinism)", async () => {
     async function run(): Promise<string[]> {
       const w = new World();
