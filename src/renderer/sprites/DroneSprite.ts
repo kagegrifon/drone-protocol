@@ -35,6 +35,7 @@ export class DroneSprite extends Phaser.GameObjects.Container {
   private readonly _loadBar: Phaser.GameObjects.Graphics;
   private _blinkTween: Phaser.Tweens.Tween;
   private _idleTween: Phaser.Tweens.Tween | null = null;
+  private _errorTween: Phaser.Tweens.Tween | null = null;
   private _glowMode: GlowMode = "normal";
   private readonly _trail: { x: number; y: number }[] = [];
   private _lastEnergyRatio = -1;
@@ -139,6 +140,28 @@ export class DroneSprite extends Phaser.GameObjects.Container {
     this._selectionRing.setVisible(selected);
   }
 
+  /** Красный пульсирующий tint тела при ошибке исполнения кода дрона. */
+  setErrorState(hasError: boolean): void {
+    if (hasError) {
+      if (this._errorTween) return;
+      this._body.setTint(COLORS.DRONE_ERROR);
+      this._errorTween = this.scene.tweens.add({
+        targets: this._body,
+        alpha: { from: 1, to: 0.4 },
+        duration: 500,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+    } else {
+      if (!this._errorTween) return;
+      this._errorTween.remove();
+      this._errorTween = null;
+      this._body.clearTint();
+      this._body.setAlpha(1);
+    }
+  }
+
   updateStats(energyRatio: number, loadRatio: number): void {
     const e = Phaser.Math.Clamp(energyRatio, 0, 1);
     const l = Phaser.Math.Clamp(loadRatio, 0, 1);
@@ -181,6 +204,7 @@ export class DroneSprite extends Phaser.GameObjects.Container {
   destroy(fromScene?: boolean): void {
     this._blinkTween.remove();
     this._idleTween?.remove();
+    this._errorTween?.remove();
     super.destroy(fromScene);
   }
 }

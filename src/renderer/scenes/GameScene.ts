@@ -254,6 +254,7 @@ export class GameScene extends Phaser.Scene {
         }
 
         sprite.setSelected(entityId === selectedId);
+        sprite.setErrorState(!!program?.codeError);
 
         const energy = this._world.getComponent(entityId, "Energy");
         const inventory = this._world.getComponent(entityId, "Inventory");

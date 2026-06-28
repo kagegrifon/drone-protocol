@@ -1,6 +1,8 @@
 import { useGameStore } from "../../shared/store/gameStore.js";
 import type { DroneState } from "../../shared/store/gameStore.js";
 
+const ERROR_COLOR = "#ff4444";
+
 function statusColor(state: DroneState["programState"]): string {
   switch (state) {
     case "running":
@@ -24,6 +26,20 @@ function statusLabel(state: DroneState["programState"]): string {
     default:
       return state.toUpperCase(); // MOVE, MINE, DROP, CHARGE
   }
+}
+
+// Приоритет индикации: ошибка → пауза → текущий статус программы.
+const PAUSED_COLOR = "#ff8844";
+
+function indicatorColor(drone: DroneState): string {
+  if (drone.codeError) return ERROR_COLOR;
+  if (drone.localPaused) return PAUSED_COLOR;
+  return statusColor(drone.programState);
+}
+
+function indicatorLabel(drone: DroneState): string {
+  if (drone.codeError) return "ERR";
+  return statusLabel(drone.programState);
 }
 
 const ICON_BTN: React.CSSProperties = {
@@ -65,8 +81,13 @@ export function DroneList() {
       </div>
       {drones.map((d) => {
         const isSelected = d.id === selectedId;
-        const color = statusColor(d.programState);
-        const pauseColor = d.localPaused ? "#ff8844" : "#445566";
+        const hasError = !!d.codeError;
+        const dotColor = indicatorColor(d);
+        const statusText = indicatorLabel(d);
+        const statusTextColor = hasError
+          ? ERROR_COLOR
+          : statusColor(d.programState);
+        const pauseColor = d.localPaused ? PAUSED_COLOR : "#445566";
         return (
           <div
             key={d.id}
@@ -90,7 +111,7 @@ export function DroneList() {
                 width: "8px",
                 height: "8px",
                 borderRadius: "50%",
-                background: d.localPaused ? "#ff8844" : color,
+                background: dotColor,
                 display: "inline-block",
                 flexShrink: 0,
               }}
@@ -105,15 +126,25 @@ export function DroneList() {
             >
               Drone #{d.id}
             </span>
+            {hasError && (
+              <span
+                title={d.codeError ?? undefined}
+                style={{ color: ERROR_COLOR, fontSize: "12px" }}
+              >
+                ⚠
+              </span>
+            )}
             <span
               style={{
-                color,
+                color: statusTextColor,
                 fontFamily: "monospace",
                 fontSize: "10px",
                 letterSpacing: "0.5px",
+                position: "relative",
+                top: "2px",
               }}
             >
-              {statusLabel(d.programState)}
+              {statusText}
             </span>
             <button
               data-testid={`drone-play-pause-${d.id}`}
