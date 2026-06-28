@@ -16,6 +16,7 @@ import { MiningSystem } from "../../game/simulation/systems/MiningSystem.js";
 import { EnergySystem } from "../../game/simulation/systems/EnergySystem.js";
 import { StatisticsSystem } from "../../game/simulation/systems/StatisticsSystem.js";
 import { CodeBehaviorDriver } from "../../game/code/CodeBehaviorDriver.js";
+import { dependentsOf } from "../../game/code/linker/dependentsOf.js";
 import { BrowserWorkerPort } from "../../game/code/worker/BrowserWorkerPort.js";
 import type { CodeWorkerPort } from "../../game/code/CodeWorkerPort.js";
 
@@ -315,6 +316,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     prog.behavior.code = code;
 
     if (world && _systems) {
+      // Перезапускаем дронов всех программ, которые транзитивно импортируют
+      // изменённую (включая её саму) — их склеенный код устарел.
+      const affected = new Set(dependentsOf(programId, registry));
       for (const droneId of world.query(
         "Position",
         "Energy",
@@ -322,10 +326,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         "Program",
       )) {
         const program = world.getComponent(droneId, "Program")!;
-        if (
-          program.personalProgramId === programId ||
-          program.currentProgramId === programId
-        ) {
+        const activeId = program.currentProgramId ?? program.personalProgramId;
+        if (affected.has(activeId)) {
           _systems.programExecution.disposeDrone(droneId);
         }
       }

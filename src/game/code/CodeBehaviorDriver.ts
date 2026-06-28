@@ -6,6 +6,9 @@ import type { BehaviorDriver, BehaviorTickContext } from "./BehaviorDriver.js";
 import type { CodeWorkerPort } from "./CodeWorkerPort.js";
 import { collectWorld } from "./worldSnapshot.js";
 import type { WorkerMessage } from "./types.js";
+import { linkProgram, type LineMapSegment } from "./linker/linkProgram.js";
+import { LinkError } from "./linker/errors.js";
+import { mapLine } from "./linker/mapLine.js";
 
 // Бюджет на ответ воркера. Большой запас нужен из-за холодного старта в dev:
 // первый запуск worker-модуля под Vite (компиляция + конкуренция с Monaco
@@ -21,6 +24,10 @@ interface Session {
   pending: WorkerMessage | null;
   waitRemaining: number;
   timeoutHandle: ReturnType<typeof setTimeout> | null;
+  /** id entry-программы сессии — для маппинга строк через lineMap. */
+  entryId: string;
+  /** Карта строк склеенного кода → исходные программы (см. linkProgram). */
+  lineMap: LineMapSegment[];
 }
 
 export interface CodeBehaviorDriverOptions {
@@ -58,13 +65,26 @@ export class CodeBehaviorDriver implements BehaviorDriver {
       const activeProgramId =
         program.currentProgramId ?? program.personalProgramId;
       const activeDef = ctx.registry.get(activeProgramId);
-      const code =
-        activeDef?.behavior.sourceForm === "code"
-          ? activeDef.behavior.code
-          : undefined;
-      if (!code) return;
+      if (activeDef?.behavior.sourceForm !== "code") return;
       // Новый запуск кода — сбрасываем ошибку предыдущего прогона.
       program.codeError = undefined;
+
+      // Линкуем программу с её модулями на главном потоке. LinkError (цикл,
+      // неизвестный импорт, отсутствующий экспорт…) выводим как codeError и не
+      // стартуем воркер — ровно как существующий путь runtime-ошибки.
+      let linked;
+      try {
+        linked = linkProgram(activeProgramId, ctx.registry);
+      } catch (err) {
+        if (err instanceof LinkError) {
+          program.state = "idle";
+          program.codeError = err.message;
+          program.currentLine = null;
+          return;
+        }
+        throw err;
+      }
+
       const port = this.options.createPort();
       session = {
         port,
@@ -72,6 +92,8 @@ export class CodeBehaviorDriver implements BehaviorDriver {
         pending: null,
         waitRemaining: 0,
         timeoutHandle: null,
+        entryId: activeProgramId,
+        lineMap: linked.lineMap,
       };
       this.sessions.set(droneId, session);
 
@@ -86,7 +108,7 @@ export class CodeBehaviorDriver implements BehaviorDriver {
 
       port.postMessage({
         type: "start",
-        code,
+        code: linked.code,
         selfId: droneId,
         world: collectWorld(ctx.world, droneId, this.typeMap),
       });
@@ -164,13 +186,13 @@ export class CodeBehaviorDriver implements BehaviorDriver {
         } else if (msg.action === "charge") {
           program.state = "charge";
         }
-        program.currentLine = msg.line;
+        program.currentLine = this.mapToEntryLine(session, msg.line);
         session.phase = "action-pending";
         return;
       }
       case "wait": {
         session.waitRemaining = msg.seconds;
-        program.currentLine = msg.line;
+        program.currentLine = this.mapToEntryLine(session, msg.line);
         session.phase = "waiting";
         return;
       }
@@ -192,6 +214,15 @@ export class CodeBehaviorDriver implements BehaviorDriver {
         return;
       }
     }
+  }
+
+  /**
+   * Маппит строку склеенного кода в строку entry-программы для подсветки.
+   * v1: если исполнение внутри модуля — возвращает null (подсветка гаснет).
+   */
+  private mapToEntryLine(session: Session, gluedLine: number): number | null {
+    const mapped = mapLine(gluedLine, session.lineMap, session.entryId);
+    return mapped?.origLine ?? null;
   }
 
   dispose(droneId: EntityId): void {
