@@ -8,7 +8,9 @@ async function startMission(
   page: import("@playwright/test").Page,
   index: number,
 ) {
-  await page.locator(`[data-testid="mission-card-${index}"]`).click();
+  const missionCard = page.locator(`[data-testid="mission-card-${index}"]`);
+  await missionCard.waitFor({ state: "visible", timeout: 10_000 });
+  await missionCard.click();
   await page.getByRole("button", { name: "ЗАПУСТИТЬ" }).click();
 }
 
@@ -19,11 +21,12 @@ async function waitForGame(page: import("@playwright/test").Page) {
 }
 
 async function selectFirstDrone(page: import("@playwright/test").Page) {
-  const firstDrone = page.locator('[data-testid^="drone-item-"]').first();
-  await firstDrone.waitFor({ state: "visible", timeout: 20_000 });
-  const testId = await firstDrone.getAttribute("data-testid");
+  const firstDroneRow = page.locator('[data-testid^="drone-item-"]').first();
+  await firstDroneRow.waitFor({ state: "visible", timeout: 20_000 });
+  const testId = await firstDroneRow.getAttribute("data-testid");
   const droneId = testId?.replace("drone-item-", "");
-  await firstDrone.click();
+  // Click the name span to avoid hitting the pause/reset buttons on the right
+  await page.locator(`[data-testid="drone-name-${droneId}"]`).click();
   return droneId!;
 }
 

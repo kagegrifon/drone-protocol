@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { useGameStore } from "../../../shared/store/gameStore.js";
 
 function Bar({
@@ -78,12 +79,44 @@ const BTN: React.CSSProperties = {
   lineHeight: 1,
 };
 
-export function DroneInspector() {
-  const selectedId = useGameStore((s) => s.selectedDroneId);
-  const drones = useGameStore((s) => s.drones);
+const DroneControls = memo(function DroneControls({
+  droneId,
+  localPaused,
+}: {
+  droneId: number;
+  localPaused: boolean;
+}) {
   const startDrone = useGameStore((s) => s.startDrone);
   const pauseDrone = useGameStore((s) => s.pauseDrone);
   const resetDrone = useGameStore((s) => s.resetDrone);
+
+  return (
+    <div style={{ display: "flex", gap: "6px", marginBottom: "12px" }}>
+      <button
+        data-testid="drone-play-pause"
+        style={BTN}
+        onClick={() =>
+          localPaused ? startDrone(droneId) : pauseDrone(droneId)
+        }
+        title={localPaused ? "Resume drone" : "Pause drone"}
+      >
+        {localPaused ? "▶" : "⏸"}
+      </button>
+      <button
+        data-testid="drone-reset"
+        style={BTN}
+        onClick={() => resetDrone(droneId)}
+        title="Reset drone program"
+      >
+        ↺
+      </button>
+    </div>
+  );
+});
+
+export function DroneInspector() {
+  const selectedId = useGameStore((s) => s.selectedDroneId);
+  const drones = useGameStore((s) => s.drones);
   const drone = drones.find((d) => d.id === selectedId);
 
   if (!drone) {
@@ -142,26 +175,7 @@ export function DroneInspector() {
         )}
       </div>
 
-      <div style={{ display: "flex", gap: "6px", marginBottom: "12px" }}>
-        <button
-          data-testid="drone-play-pause"
-          style={BTN}
-          onClick={() =>
-            drone.localPaused ? startDrone(drone.id) : pauseDrone(drone.id)
-          }
-          title={drone.localPaused ? "Resume drone" : "Pause drone"}
-        >
-          {drone.localPaused ? "▶" : "⏸"}
-        </button>
-        <button
-          data-testid="drone-reset"
-          style={BTN}
-          onClick={() => resetDrone(drone.id)}
-          title="Reset drone program"
-        >
-          ↺
-        </button>
-      </div>
+      <DroneControls droneId={drone.id} localPaused={drone.localPaused} />
 
       <Row label="ENERGY">
         <Bar

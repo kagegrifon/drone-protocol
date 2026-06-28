@@ -117,6 +117,7 @@ export function DroneList() {
               }}
             />
             <span
+              data-testid={`drone-name-${d.id}`}
               style={{
                 color: "#c0cfe0",
                 fontFamily: "monospace",
