@@ -38,9 +38,10 @@ function signatureParams(
   if (paramTypes.size === 0) return "...args: any[]";
   return sig.params
     .map((name) => {
-      const bare = name.replace(/^\.\.\./, "");
+      const isRest = name.startsWith("...");
+      const bare = isRest ? name.slice(3) : name;
       const type = paramTypes.get(bare) ?? "any";
-      return `${bare}: ${type}`;
+      return isRest ? `...${bare}: ${type}` : `${bare}: ${type}`;
     })
     .join(", ");
 }

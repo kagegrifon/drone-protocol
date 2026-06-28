@@ -45,6 +45,60 @@ function ErrorBadge({ message }: { message: string }) {
   );
 }
 
+interface AssignedDronesListProps {
+  programId: string;
+  drones: Array<{ id: string; assignedProgramId?: string }>;
+  onSelectDrone: (id: string) => void;
+}
+
+function AssignedDronesList({
+  programId,
+  drones,
+  onSelectDrone,
+}: AssignedDronesListProps) {
+  const assignedDrones = drones.filter((d) => d.assignedProgramId === programId);
+  if (assignedDrones.length === 0) return null;
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "4px",
+        marginTop: "6px",
+      }}
+    >
+      <span
+        style={{
+          color: "#445566",
+          fontFamily: "monospace",
+          fontSize: "10px",
+          alignSelf: "center",
+        }}
+      >
+        назначена:
+      </span>
+      {assignedDrones.map((d) => (
+        <button
+          key={d.id}
+          onClick={() => onSelectDrone(d.id)}
+          style={{
+            background: "#0d2040",
+            border: "1px solid #1e3a5f",
+            color: "#4488ff",
+            fontFamily: "monospace",
+            fontSize: "10px",
+            padding: "1px 6px",
+            cursor: "pointer",
+            borderRadius: "2px",
+          }}
+        >
+          drone-{d.id} ↗
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // Бейдж «exports» на программе с модульным интерфейсом — её можно импортировать.
 function ExportsBadge({ names }: { names: string[] }) {
   return (
@@ -457,53 +511,14 @@ export function ProgramEditor() {
                       </button>
                     )}
                   </div>
-                  {(() => {
-                    const assignedDrones = drones.filter(
-                      (d) => d.assignedProgramId === prog.id,
-                    );
-                    return assignedDrones.length > 0 ? (
-                      <div
-                        style={{
-                          display: "flex",
-                          flexWrap: "wrap",
-                          gap: "4px",
-                          marginTop: "6px",
-                        }}
-                      >
-                        <span
-                          style={{
-                            color: "#445566",
-                            fontFamily: "monospace",
-                            fontSize: "10px",
-                            alignSelf: "center",
-                          }}
-                        >
-                          назначена:
-                        </span>
-                        {assignedDrones.map((d) => (
-                          <button
-                            key={d.id}
-                            onClick={() => {
-                              selectDrone(d.id);
-                              setTab("drone");
-                            }}
-                            style={{
-                              background: "#0d2040",
-                              border: "1px solid #1e3a5f",
-                              color: "#4488ff",
-                              fontFamily: "monospace",
-                              fontSize: "10px",
-                              padding: "1px 6px",
-                              cursor: "pointer",
-                              borderRadius: "2px",
-                            }}
-                          >
-                            drone-{d.id} ↗
-                          </button>
-                        ))}
-                      </div>
-                    ) : null;
-                  })()}
+                  <AssignedDronesList
+                    programId={prog.id}
+                    drones={drones}
+                    onSelectDrone={(id) => {
+                      selectDrone(id);
+                      setTab("drone");
+                    }}
+                  />
                 </div>
               );
             })}
@@ -619,53 +634,14 @@ export function ProgramEditor() {
                       </button>
                     )}
                   </div>
-                  {(() => {
-                    const assignedDrones = drones.filter(
-                      (d) => d.assignedProgramId === editingProgramId,
-                    );
-                    return assignedDrones.length > 0 ? (
-                      <div
-                        style={{
-                          display: "flex",
-                          flexWrap: "wrap",
-                          gap: "4px",
-                          marginTop: "6px",
-                        }}
-                      >
-                        <span
-                          style={{
-                            color: "#445566",
-                            fontFamily: "monospace",
-                            fontSize: "10px",
-                            alignSelf: "center",
-                          }}
-                        >
-                          назначена:
-                        </span>
-                        {assignedDrones.map((d) => (
-                          <button
-                            key={d.id}
-                            onClick={() => {
-                              selectDrone(d.id);
-                              setTab("drone");
-                            }}
-                            style={{
-                              background: "#0d2040",
-                              border: "1px solid #1e3a5f",
-                              color: "#4488ff",
-                              fontFamily: "monospace",
-                              fontSize: "10px",
-                              padding: "1px 6px",
-                              cursor: "pointer",
-                              borderRadius: "2px",
-                            }}
-                          >
-                            drone-{d.id} ↗
-                          </button>
-                        ))}
-                      </div>
-                    ) : null;
-                  })()}
+                  <AssignedDronesList
+                    programId={editingProgramId!}
+                    drones={drones}
+                    onSelectDrone={(id) => {
+                      selectDrone(id);
+                      setTab("drone");
+                    }}
+                  />
                 </div>
                 <div
                   style={{ borderTop: "1px solid #1e3a5f", paddingTop: "8px" }}
