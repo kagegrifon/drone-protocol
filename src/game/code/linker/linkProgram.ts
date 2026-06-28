@@ -1,4 +1,5 @@
-import type { Node } from "acorn";
+import type { Function as FunctionNode, Identifier, Pattern } from "acorn";
+import { recursive, type WalkerCallback } from "acorn-walk";
 import type { ProgramDef, ProgramRegistry } from "../../programs/types.js";
 import { parseModule, type ParsedModule, type Range } from "./parseModule.js";
 import { slug } from "./slug.js";
@@ -198,10 +199,14 @@ interface RenamePatch {
   text: string;
 }
 
+/** Состояние обхода: имена, затенённые текущей областью видимости. */
+type Shadowed = ReadonlySet<string>;
+
 /**
- * Обходит AST модуля, заменяя ссылки на имена из rename — но только если имя
- * не затенено локальной областью видимости (параметр/локальная переменная/
- * вложенная функция). Имена в позиции property/ключа объекта не трогаются.
+ * Обходит AST модуля (acorn-walk recursive), заменяя ссылки на имена из rename —
+ * но только если имя не затенено локальной областью видимости (параметр/локальная
+ * переменная/вложенная функция). Обход MemberExpression/Property берётся из base
+ * acorn-walk: он сам пропускает property/ключ объекта в не-computed позиции.
  */
 function collectRenamePatches(
   mod: ParsedModule,
@@ -210,145 +215,93 @@ function collectRenamePatches(
   if (rename.size === 0) return [];
   const patches: RenamePatch[] = [];
 
-  const walk = (node: AnyNode | null, shadowed: ReadonlySet<string>): void => {
-    if (!node || typeof node !== "object" || !("type" in node)) return;
+  recursive<Shadowed>(mod.ast, new Set(), {
+    // Вся import-декларация вырезается отдельно — её идентификаторы не патчим,
+    // иначе патчи переименования пересеклись бы с вырезанием. Не спускаемся.
+    ImportDeclaration() {},
 
-    switch (node.type) {
-      case "ImportDeclaration":
-        // Вся декларация вырезается отдельно — её идентификаторы не патчим,
-        // иначе патчи переименования пересекутся с вырезанием.
-        return;
-      case "Identifier": {
-        const name = str(node, "name");
-        const target = rename.get(name);
-        if (target && !shadowed.has(name)) {
-          patches.push({ start: node.start, end: node.end, text: target });
-        }
-        return;
+    Identifier(node, shadowed) {
+      const target = rename.get(node.name);
+      if (target && !shadowed.has(node.name)) {
+        patches.push({ start: node.start, end: node.end, text: target });
       }
-      case "MemberExpression": {
-        // a.b — переписываем object, но не property (если не computed).
-        walk(child(node, "object"), shadowed);
-        if (node.computed) walk(child(node, "property"), shadowed);
-        return;
-      }
-      case "Property": {
-        // { key: value } — key не ссылка (если не computed/не shorthand).
-        if (node.computed) walk(child(node, "key"), shadowed);
-        walk(child(node, "value"), shadowed);
-        return;
-      }
-      case "FunctionDeclaration":
-      case "FunctionExpression":
-      case "ArrowFunctionExpression": {
-        const id = child(node, "id");
-        // Имя function-декларации — биндинг ВНЕШНЕГО scope: переименовываем его
-        // в текущем shadowed (так top-level `function helper` → `__mod_*__helper`).
-        if (id && node.type === "FunctionDeclaration") walk(id, shadowed);
-        const params = children(node, "params");
-        const inner = new Set(shadowed);
-        addParamNames(params, inner);
-        addLocalBindings(child(node, "body"), inner);
-        // Имя именованного функционального выражения видно только внутри себя.
-        if (id && node.type === "FunctionExpression") {
-          inner.add(str(id, "name"));
-        }
-        for (const p of params) walk(p, inner);
-        walk(child(node, "body"), inner);
-        return;
-      }
-      default:
-        break;
-    }
+    },
 
-    // Общий обход дочерних узлов.
-    for (const key of Object.keys(node)) {
-      if (key === "type" || key === "start" || key === "end") continue;
-      const value = (node as Record<string, unknown>)[key];
-      if (Array.isArray(value)) {
-        for (const item of value) walk(asNode(item), shadowed);
-      } else {
-        walk(asNode(value), shadowed);
-      }
-    }
-  };
-
-  for (const stmt of mod.ast.body) {
-    walk(stmt as unknown as AnyNode, new Set());
-  }
+    Function(node, shadowed, callback) {
+      walkFunction(node, shadowed, callback);
+    },
+  });
 
   return patches;
 }
 
-/** Узкое приведение значения к AnyNode (или null, если это не узел). */
-function asNode(value: unknown): AnyNode | null {
-  if (value && typeof value === "object" && "type" in value) {
-    return value as AnyNode;
+/**
+ * Обходит функцию с учётом её области видимости. Имя function-декларации — биндинг
+ * ВНЕШНЕГО scope, поэтому переименовывается в текущем shadowed (так top-level
+ * `function helper` → `__mod_*__helper`). Тело и параметры видят расширенный scope.
+ */
+function walkFunction(
+  node: FunctionNode,
+  shadowed: Shadowed,
+  callback: WalkerCallback<Shadowed>,
+): void {
+  if (node.type === "FunctionDeclaration" && node.id) {
+    callback(node.id, shadowed);
   }
-  return null;
-}
 
-function child(node: AnyNode, key: string): AnyNode | null {
-  return asNode(node[key]);
-}
+  const inner = new Set(shadowed);
+  for (const param of node.params) collectPatternNames(param, inner);
+  addLocalBindings(node.body, inner);
+  // Имя именованного функционального выражения видно только внутри себя.
+  if (node.type === "FunctionExpression" && node.id) {
+    inner.add(node.id.name);
+  }
 
-function children(node: AnyNode, key: string): AnyNode[] {
-  const value = node[key];
-  return Array.isArray(value) ? (value as AnyNode[]) : [];
-}
-
-function str(node: AnyNode, key: string): string {
-  return node[key] as string;
-}
-
-/** Добавляет имена параметров (вкл. деструктуризацию/rest/дефолты) в набор. */
-function addParamNames(params: AnyNode[], out: Set<string>): void {
-  for (const p of params) collectPatternNames(p, out);
+  for (const param of node.params) callback(param, inner);
+  callback(node.body, inner);
 }
 
 /** Имена, объявленные локально в теле функции (var/let/const/function). */
-function addLocalBindings(body: AnyNode | null, out: Set<string>): void {
-  if (!body || body.type !== "BlockStatement") return;
-  const statements = (body.body as AnyNode[] | undefined) ?? [];
-  for (const stmt of statements) {
+function addLocalBindings(body: FunctionNode["body"], out: Set<string>): void {
+  if (body.type !== "BlockStatement") return;
+  for (const stmt of body.body) {
     if (stmt.type === "VariableDeclaration") {
-      const decls = (stmt.declarations as AnyNode[] | undefined) ?? [];
-      for (const d of decls) collectPatternNames(d.id as AnyNode, out);
+      for (const d of stmt.declarations) collectPatternNames(d.id, out);
     } else if (stmt.type === "FunctionDeclaration" && stmt.id) {
-      out.add((stmt.id as AnyNode).name as string);
+      out.add(stmt.id.name);
     }
   }
 }
 
 /** Извлекает все связываемые имена из паттерна (Identifier/Object/Array/...). */
-function collectPatternNames(node: AnyNode | null, out: Set<string>): void {
-  if (!node) return;
+function collectPatternNames(
+  node: Pattern | Identifier,
+  out: Set<string>,
+): void {
   switch (node.type) {
     case "Identifier":
-      out.add(node.name as string);
+      out.add(node.name);
       return;
     case "AssignmentPattern":
-      collectPatternNames(node.left as AnyNode, out);
+      collectPatternNames(node.left, out);
       return;
     case "RestElement":
-      collectPatternNames(node.argument as AnyNode, out);
+      collectPatternNames(node.argument, out);
       return;
-    case "ArrayPattern": {
-      const elements = (node.elements as Array<AnyNode | null>) ?? [];
-      for (const el of elements) collectPatternNames(el, out);
+    case "ArrayPattern":
+      for (const el of node.elements) {
+        if (el) collectPatternNames(el, out);
+      }
       return;
-    }
-    case "ObjectPattern": {
-      const properties = (node.properties as AnyNode[]) ?? [];
-      for (const prop of properties) {
+    case "ObjectPattern":
+      for (const prop of node.properties) {
         if (prop.type === "RestElement") {
-          collectPatternNames(prop.argument as AnyNode, out);
+          collectPatternNames(prop.argument, out);
         } else {
-          collectPatternNames(prop.value as AnyNode, out);
+          collectPatternNames(prop.value, out);
         }
       }
       return;
-    }
     default:
       return;
   }
@@ -373,11 +326,3 @@ function applyPatches(
   }
   return result;
 }
-
-/** Узлы acorn, к которым обращаемся динамически по полям. */
-type AnyNode = Node & {
-  type: string;
-  start: number;
-  end: number;
-  [key: string]: unknown;
-};

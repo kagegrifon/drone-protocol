@@ -18,7 +18,6 @@ docs/features/
 |---|---|---|
 | [congestion-metric.md](planned/congestion-metric.md) | Метрика Congestion (затор дронов) | planned |
 | [drone-modifiers.md](planned/drone-modifiers.md) | Система модификаторов дрона | planned |
-| [library-modules-import.md](planned/library-modules-import.md) | Подключение модулей в программы дронов (library imports) | planned |
 
 
 ### done
@@ -38,3 +37,4 @@ docs/features/
 | [drone-code-mode-core.md](done/drone-code-mode-core.md) | Code Mode (этап 1) — ядро исполнения JS-кода |
 | [object-world-api.md](done/object-world-api.md) | Объектный World API для скриптов дронов (Screeps-style) |
 | [drone-code-mode-monaco.md](done/drone-code-mode-monaco.md) | Code Mode (этап 2) — редактор Monaco |
+| [library-modules-import.md](done/library-modules-import.md) | Подключение модулей в программы дронов (library imports) |

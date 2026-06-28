@@ -1,6 +1,6 @@
 # Подключение модулей в программы дронов (library imports)
 
-**Статус:** planned
+**Статус:** done
 
 План реализации: [hidden-kindling-gizmo.md](../../../../../.claude/plans/hidden-kindling-gizmo.md) (локальный, вне репозитория)
 
@@ -39,29 +39,30 @@ default/namespace-импорты.
 
 ## Критерии готовности
 
-- [ ] Линкер `src/game/code/linker/` (чистые функции): `parseModule` (acorn,
+- [x] Линкер `src/game/code/linker/` (чистые функции): `parseModule` (acorn,
       `sourceType: "module"`), `linkProgram` (граф зависимостей, обнаружение циклов,
       неймспейсинг top-level-имён `__mod_<slug>__<name>`, эмиссия плоского кода + `lineMap`),
       `slug`, типизированные `LinkError`.
-- [ ] `CodeBehaviorDriver.step()` линкует программу через `ctx.registry` перед `postMessage`;
+- [x] `CodeBehaviorDriver.step()` линкует программу через `ctx.registry` перед `postMessage`;
       `LinkError` → `program.codeError`, воркер не стартует; строки маппятся через `lineMap`
       (v1: гасить подсветку в модулях).
-- [ ] Выход линкера парсится под опциями `instrument.ts` и собирается в `new AsyncFunction`
-      без ошибок (регрессионный тест); `instrument.ts` не изменён.
-- [ ] `setProgramCodeSource` (gameStore) транзитивно дропает сессии всех зависимых дронов
+- [x] Выход линкера парсится под опциями `instrument.ts` и собирается в `new AsyncFunction`
+      без ошибок (регрессионный тест `instrumentCompat.test.ts`); `instrument.ts` не изменён.
+- [x] `setProgramCodeSource` (gameStore) транзитивно дропает сессии всех зависимых дронов
       (`dependentsOf(programId, registry)` — чистая функция в linker/).
-- [ ] Типизация Monaco: `genModuleDts(programs)` генерирует `declare module "<slug>" { ... }`,
+- [x] Типизация Monaco: `genModuleDts(programs)` генерирует `declare module "<slug>" { ... }`,
       `updateModuleLibs` перерегистрирует их как extraLibs при изменении программ; амбиентный
       `drone-api.d.ts` сохраняется; `compilerOptions` не меняются.
-- [ ] UI: бейдж «exports» на программах с модульным интерфейсом в `ProgramEditor`.
-- [ ] Unit (Vitest): `parseModule` (обнаружение/отклонение синтаксиса); `linkProgram`
+- [x] UI: бейдж «exports» на программах с модульным интерфейсом в `ProgramEditor`.
+- [x] Unit (Vitest): `parseModule` (обнаружение/отклонение синтаксиса); `linkProgram`
       (инлайн импорта + переписывание ссылок; транзитивный A→B→C в топопорядке; «ромб»
       A→B,C→D — D один раз; цикл A↔B → `CycleError`; unknown specifier; missing export;
       duplicate slug; коллизия приватных имён не возникает); `lineMap`; `dependentsOf`;
       `genModuleDts` (JSDoc → типы, без JSDoc → `any[]`).
-- [ ] E2E (Playwright): создать модуль с `export`, импортировать в другую программу, назначить
-      дрону, проверить выполнение; проверить вывод ошибки при неизвестном импорте.
-- [ ] `npm test`, `npm run type-check`, `npm run test:e2e` зелёные.
+- [x] E2E (Playwright): создать модуль с `export`, импортировать в другую программу, назначить
+      дрону, проверить выполнение; проверить вывод ошибки при неизвестном импорте
+      (`e2e/library-modules.spec.ts`).
+- [x] `npm test` (282), `npm run type-check`, `npm run test:e2e` (9) зелёные.
 
 ## Технические заметки
 
@@ -85,7 +86,9 @@ acorn (уже зависимость, используется в
 имена. Патчи применяются с конца по acorn-offset'ам — **тот же приём, что уже в**
 [instrument.ts:60-71](../../../src/game/code/worker/instrument.ts). Переименование scope-aware:
 только top-level-биндинги, не параметры/локали/шейдоу — самая тонкая часть, покрыть тестами
-плотно.
+плотно. Обход AST — `acorn-walk` (`recursive`): visitor'ы для `Identifier` (переименование),
+`Function` (расширение scope) и `ImportDeclaration` (пропуск); `MemberExpression`/`Property`
+обходит base-walker (он сам не спускается в не-computed property/ключ объекта).
 
 **Модель данных.** `ProgramDef` остаётся только-код; экспорты/импорты выводятся парсингом
 `behavior.code` на лету (не денормализуем). Производный тип `ModuleInterface` —
