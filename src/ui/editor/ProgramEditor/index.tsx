@@ -3,6 +3,7 @@ import { useGameStore } from "../../../shared/store/gameStore.js";
 import { ProgramCodeBlock } from "../CodeEditor/ProgramCodeBlock.js";
 import { updateModuleLibs } from "../CodeEditor/monacoSetup.js";
 import { moduleInterfaceOf } from "../../../game/programs/moduleInterface.js";
+import type { EntityId } from "../../../shared/types/index.js";
 
 const TAB_BTN = (active: boolean): React.CSSProperties => ({
   background: active ? "#0d2040" : "transparent",
@@ -47,8 +48,8 @@ function ErrorBadge({ message }: { message: string }) {
 
 interface AssignedDronesListProps {
   programId: string;
-  drones: Array<{ id: string; assignedProgramId?: string }>;
-  onSelectDrone: (id: string) => void;
+  drones: Array<{ id: EntityId; assignedProgramId?: string }>;
+  onSelectDrone: (id: EntityId) => void;
 }
 
 function AssignedDronesList({

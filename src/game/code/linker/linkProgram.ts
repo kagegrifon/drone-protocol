@@ -49,7 +49,7 @@ export function linkProgram(
   };
 
   // Топологический порядок зависимостей entry (без самого entry).
-  const order = topoSortDeps(entryId, registry, slugIndex, parseFor);
+  const order = topoSortDeps({ entryId, registry, slugIndex, parseFor });
 
   const segments: string[] = [];
   const lineMap: LineMapSegment[] = [];
@@ -70,14 +70,14 @@ export function linkProgram(
   // Сначала тела модулей-зависимостей (только определения функций).
   for (const depId of order) {
     const def = registry.get(depId)!;
-    emit(depId, rewriteModule(def, parseFor(def), slugIndex, registry, false));
+    emit(depId, rewriteModule({ def, mod: parseFor(def), slugIndex, registry, isEntry: false }));
   }
 
   // В конце — entry-программа целиком (её top-level-тело исполняется).
   const entryDef = registry.get(entryId)!;
   emit(
     entryId,
-    rewriteModule(entryDef, parseFor(entryDef), slugIndex, registry, true),
+    rewriteModule({ def: entryDef, mod: parseFor(entryDef), slugIndex, registry, isEntry: true }),
   );
 
   return { code: segments.join("\n"), lineMap };
@@ -87,23 +87,30 @@ export function linkProgram(
 function buildSlugIndex(registry: ProgramRegistry): Map<string, string> {
   const index = new Map<string, string>();
   for (const def of registry.values()) {
-    const s = slug(def.name);
-    if (index.has(s)) throw new DuplicateSlug(s);
-    index.set(s, def.id);
+    const programSlug = slug(def.name);
+    if (index.has(programSlug)) throw new DuplicateSlug(programSlug);
+    index.set(programSlug, def.id);
   }
   return index;
+}
+
+interface TopoSortDepsArgs {
+  entryId: string;
+  registry: ProgramRegistry;
+  slugIndex: Map<string, string>;
+  parseFor: (def: ProgramDef) => ParsedModule;
 }
 
 /**
  * Итеративный DFS с post-order = топологический порядок. onStack ловит циклы.
  * Возвращает id зависимостей entry (без самого entry), глубокие — первыми.
  */
-function topoSortDeps(
-  entryId: string,
-  registry: ProgramRegistry,
-  slugIndex: Map<string, string>,
-  parseFor: (def: ProgramDef) => ParsedModule,
-): string[] {
+function topoSortDeps({
+  entryId,
+  registry,
+  slugIndex,
+  parseFor,
+}: TopoSortDepsArgs): string[] {
   const order: string[] = [];
   const visited = new Set<string>();
   const onStack = new Set<string>();
@@ -149,6 +156,14 @@ function topoSortDeps(
   return order;
 }
 
+interface RewriteModuleArgs {
+  def: ProgramDef;
+  mod: ParsedModule;
+  slugIndex: Map<string, string>;
+  registry: ProgramRegistry;
+  isEntry: boolean;
+}
+
 /**
  * Возвращает тело модуля с вырезанными import/export и переписанными ссылками:
  * top-level-имена → __mod_<slug>__<name>, импортированные локали →
@@ -156,13 +171,13 @@ function topoSortDeps(
  * префиксуются — это исполняемое тело, но импортированные локали всё равно
  * переписываются на префиксы их модулей.
  */
-function rewriteModule(
-  def: ProgramDef,
-  mod: ParsedModule,
-  slugIndex: Map<string, string>,
-  registry: ProgramRegistry,
-  isEntry: boolean,
-): string {
+function rewriteModule({
+  def,
+  mod,
+  slugIndex,
+  registry,
+  isEntry,
+}: RewriteModuleArgs): string {
   const code = def.behavior.code;
   const ownSlug = slug(def.name);
 
@@ -313,10 +328,9 @@ function applyPatches(
   cuts: Range[],
   renames: RenamePatch[],
 ): string {
-  type Op = { start: number; end: number; text: string };
-  const ops: Op[] = [
+  const ops: RenamePatch[] = [
     ...cuts.map(([start, end]) => ({ start, end, text: "" })),
-    ...renames.map((r) => ({ start: r.start, end: r.end, text: r.text })),
+    ...renames,
   ];
   ops.sort((a, b) => b.start - a.start);
 
