@@ -18,6 +18,7 @@ docs/features/
 |---|---|---|
 | [congestion-metric.md](planned/congestion-metric.md) | Метрика Congestion (затор дронов) | planned |
 | [drone-modifiers.md](planned/drone-modifiers.md) | Система модификаторов дрона | planned |
+| [library-modules-import.md](planned/library-modules-import.md) | Подключение модулей в программы дронов (library imports) | planned |
 
 
 ### done
