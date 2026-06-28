@@ -4,8 +4,17 @@ import { typescript } from "monaco-editor";
 import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
 import tsWorker from "monaco-editor/esm/vs/language/typescript/ts.worker?worker";
 import droneApiDts from "@/game/code/drone-api.d.ts?raw";
+import type { ProgramDef } from "@/game/programs/types.js";
+import { genModuleDts } from "@/game/code/linker/genModuleDts.js";
 
 let initialized = false;
+
+/** URI извлекаемого .d.ts с `declare module`-ами импортируемых программ. */
+const MODULE_LIBS_URI = "file:///drone-modules.d.ts";
+/** Disposable предыдущей регистрации module-libs — дропаем при обновлении. */
+let moduleLibsDisposable: monaco.IDisposable | null = null;
+/** Последний эмитированный .d.ts — чтобы не перерегистрировать без изменений. */
+let lastModuleDts = "";
 
 /**
  * Глобальная настройка Monaco: воркеры, типы drone-api, compiler options.
@@ -60,5 +69,23 @@ export function setupMonaco(): void {
   typescript.typescriptDefaults.addExtraLib(
     droneApiDts,
     "file:///drone-api.d.ts",
+  );
+}
+
+/**
+ * Перерегистрирует `declare module`-типы импортируемых программ как extraLib,
+ * чтобы `import { f } from "miner"` типизировался в Monaco. Вызывается при
+ * изменении списка программ. Амбиентный drone-api.d.ts не трогается — это
+ * отдельный extraLib. No-op, если набор модулей не изменился.
+ */
+export function updateModuleLibs(programs: ProgramDef[]): void {
+  const dts = genModuleDts(programs);
+  if (dts === lastModuleDts) return;
+  lastModuleDts = dts;
+
+  moduleLibsDisposable?.dispose();
+  moduleLibsDisposable = typescript.typescriptDefaults.addExtraLib(
+    dts,
+    MODULE_LIBS_URI,
   );
 }

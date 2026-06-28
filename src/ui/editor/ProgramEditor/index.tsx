@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useGameStore } from "../../../shared/store/gameStore.js";
 import { ProgramCodeBlock } from "../CodeEditor/ProgramCodeBlock.js";
+import { updateModuleLibs } from "../CodeEditor/monacoSetup.js";
+import { moduleInterfaceOf } from "../../../game/programs/moduleInterface.js";
 
 const TAB_BTN = (active: boolean): React.CSSProperties => ({
   background: active ? "#0d2040" : "transparent",
@@ -43,6 +45,27 @@ function ErrorBadge({ message }: { message: string }) {
   );
 }
 
+// Бейдж «exports» на программе с модульным интерфейсом — её можно импортировать.
+function ExportsBadge({ names }: { names: string[] }) {
+  return (
+    <span
+      title={`Экспортирует: ${names.join(", ")}`}
+      style={{
+        background: "#0d2040",
+        border: "1px solid #2a5a8f",
+        borderRadius: "2px",
+        color: "#4488ff",
+        fontFamily: "monospace",
+        fontSize: "9px",
+        padding: "1px 5px",
+        letterSpacing: "0.5px",
+      }}
+    >
+      exports
+    </span>
+  );
+}
+
 export function ProgramEditor() {
   const [tab, setTab] = useState<"drone" | "library" | "program">("drone");
   const [editingProgramId, setEditingProgramId] = useState<string | null>(null);
@@ -62,6 +85,13 @@ export function ProgramEditor() {
   const unassignProgram = useGameStore((s) => s.unassignProgram);
   const selectDrone = useGameStore((s) => s.selectDrone);
   const setProgramCodeSource = useGameStore((s) => s.setProgramCodeSource);
+
+  // Перерегистрируем типы импортируемых модулей в Monaco при изменении программ.
+  // Берём весь реестр (а не только library-programs), чтобы импорт резолвился по
+  // любому slug; programs в зависимостях — сигнал, что код мог измениться.
+  useEffect(() => {
+    updateModuleLibs([...registry.values()]);
+  }, [programs, registry]);
 
   const drone = drones.find((d) => d.id === selectedId);
 
@@ -363,108 +393,120 @@ export function ProgramEditor() {
 
         {tab === "library" && (
           <>
-            {programs.map((prog) => (
-              <div
-                key={prog.id}
-                style={{
-                  background: "#060f1e",
-                  border: "1px solid #1e3a5f",
-                  borderRadius: "4px",
-                  padding: "8px 10px",
-                  marginBottom: "6px",
-                  fontFamily: "monospace",
-                  fontSize: "12px",
-                }}
-              >
+            {programs.map((prog) => {
+              const moduleInterface = moduleInterfaceOf(prog);
+              const exportNames =
+                moduleInterface?.exports.map((e) => e.name) ?? [];
+              return (
                 <div
-                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                  key={prog.id}
+                  style={{
+                    background: "#060f1e",
+                    border: "1px solid #1e3a5f",
+                    borderRadius: "4px",
+                    padding: "8px 10px",
+                    marginBottom: "6px",
+                    fontFamily: "monospace",
+                    fontSize: "12px",
+                  }}
                 >
-                  <button
-                    data-testid={`program-edit-btn-${prog.id}`}
-                    onClick={() => {
-                      setEditingProgramId(prog.id);
-                      setTab("program");
-                    }}
+                  <div
                     style={{
-                      color: "#c0cfe0",
-                      flexShrink: 0,
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      fontFamily: "monospace",
-                      fontSize: "12px",
-                      padding: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
                     }}
                   >
-                    {prog.name}
-                  </button>
-                  {selectedId !== null && (
                     <button
-                      onClick={() => assignProgram(selectedId, prog.id)}
+                      data-testid={`program-edit-btn-${prog.id}`}
+                      onClick={() => {
+                        setEditingProgramId(prog.id);
+                        setTab("program");
+                      }}
                       style={{
-                        background: "#0a1628",
-                        border: "1px solid #1e3a5f",
-                        color: "#00ff88",
-                        fontFamily: "monospace",
-                        fontSize: "10px",
-                        padding: "2px 8px",
+                        color: "#c0cfe0",
+                        flexShrink: 0,
+                        background: "none",
+                        border: "none",
                         cursor: "pointer",
-                        borderRadius: "2px",
+                        fontFamily: "monospace",
+                        fontSize: "12px",
+                        padding: 0,
                       }}
                     >
-                      Assign
+                      {prog.name}
                     </button>
-                  )}
-                </div>
-                {(() => {
-                  const assignedDrones = drones.filter(
-                    (d) => d.assignedProgramId === prog.id,
-                  );
-                  return assignedDrones.length > 0 ? (
-                    <div
-                      style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: "4px",
-                        marginTop: "6px",
-                      }}
-                    >
-                      <span
+                    {exportNames.length > 0 && (
+                      <ExportsBadge names={exportNames} />
+                    )}
+                    {selectedId !== null && (
+                      <button
+                        onClick={() => assignProgram(selectedId, prog.id)}
                         style={{
-                          color: "#445566",
+                          background: "#0a1628",
+                          border: "1px solid #1e3a5f",
+                          color: "#00ff88",
                           fontFamily: "monospace",
                           fontSize: "10px",
-                          alignSelf: "center",
+                          padding: "2px 8px",
+                          cursor: "pointer",
+                          borderRadius: "2px",
                         }}
                       >
-                        назначена:
-                      </span>
-                      {assignedDrones.map((d) => (
-                        <button
-                          key={d.id}
-                          onClick={() => {
-                            selectDrone(d.id);
-                            setTab("drone");
-                          }}
+                        Assign
+                      </button>
+                    )}
+                  </div>
+                  {(() => {
+                    const assignedDrones = drones.filter(
+                      (d) => d.assignedProgramId === prog.id,
+                    );
+                    return assignedDrones.length > 0 ? (
+                      <div
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: "4px",
+                          marginTop: "6px",
+                        }}
+                      >
+                        <span
                           style={{
-                            background: "#0d2040",
-                            border: "1px solid #1e3a5f",
-                            color: "#4488ff",
+                            color: "#445566",
                             fontFamily: "monospace",
                             fontSize: "10px",
-                            padding: "1px 6px",
-                            cursor: "pointer",
-                            borderRadius: "2px",
+                            alignSelf: "center",
                           }}
                         >
-                          drone-{d.id} ↗
-                        </button>
-                      ))}
-                    </div>
-                  ) : null;
-                })()}
-              </div>
-            ))}
+                          назначена:
+                        </span>
+                        {assignedDrones.map((d) => (
+                          <button
+                            key={d.id}
+                            onClick={() => {
+                              selectDrone(d.id);
+                              setTab("drone");
+                            }}
+                            style={{
+                              background: "#0d2040",
+                              border: "1px solid #1e3a5f",
+                              color: "#4488ff",
+                              fontFamily: "monospace",
+                              fontSize: "10px",
+                              padding: "1px 6px",
+                              cursor: "pointer",
+                              borderRadius: "2px",
+                            }}
+                          >
+                            drone-{d.id} ↗
+                          </button>
+                        ))}
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+              );
+            })}
             <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
               <input
                 value={newProgramName}
