@@ -24,7 +24,7 @@ export function runCode(
   onDriverMessage: OnDriverMessage,
 ): Promise<void> {
   let resolveResume: (() => void) | null = null;
-  let currentLine = 0;
+  const lineStack: number[] = [0];
 
   function awaitResume(): Promise<void> {
     return new Promise((resolve) => {
@@ -33,7 +33,34 @@ export function runCode(
   }
 
   function __line(n: number): void {
-    currentLine = n;
+    lineStack[lineStack.length - 1] = n;
+  }
+
+  function __pushCall(callLine: number): void {
+    lineStack[lineStack.length - 1] = callLine;
+    lineStack.push(0);
+  }
+
+  function __popCall(): void {
+    lineStack.pop();
+  }
+
+  function __call<T>(callLine: number, invoke: () => T): T {
+    __pushCall(callLine);
+    let result: T;
+    try {
+      result = invoke();
+    } catch (err) {
+      __popCall();
+      throw err;
+    }
+    const isThenable =
+      result != null && typeof (result as { then?: unknown }).then === "function";
+    if (isThenable) {
+      return (result as unknown as Promise<unknown>).finally(__popCall) as T;
+    }
+    __popCall();
+    return result;
   }
 
   function requirePoint(point: unknown): Position {
@@ -50,12 +77,12 @@ export function runCode(
   }
 
   function sendMove(point: Position): Promise<void> {
-    post({ type: "intent", action: "moveTo", point, line: currentLine });
+    post({ type: "intent", action: "moveTo", point, line: lineStack[lineStack.length - 1], lineStack: [...lineStack] });
     return awaitResume();
   }
 
   function sendAction(action: CodeAction): Promise<void> {
-    post({ type: "intent", action, line: currentLine });
+    post({ type: "intent", action, line: lineStack[lineStack.length - 1], lineStack: [...lineStack] });
     return awaitResume();
   }
 
@@ -108,7 +135,7 @@ export function runCode(
       return sendAction("charge");
     }
     wait(seconds: number): Promise<void> {
-      post({ type: "wait", seconds, line: currentLine });
+      post({ type: "wait", seconds, line: lineStack[lineStack.length - 1], lineStack: [...lineStack] });
       return awaitResume();
     }
     findClosest<T extends Entity>(list: readonly T[]): T | null {
@@ -175,9 +202,9 @@ export function runCode(
     ...args: string[]
   ) => (...args: unknown[]) => Promise<void>;
 
-  const fn = new AsyncFunction("self", "World", "__line", instrumentedCode);
+  const fn = new AsyncFunction("self", "World", "__line", "__call", instrumentedCode);
 
-  return fn(self, World, __line)
+  return fn(self, World, __line, __call)
     .then(() => {
       post({ type: "finished" });
     })
