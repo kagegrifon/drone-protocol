@@ -57,6 +57,7 @@ export function instrument(code: string): string {
         line: awaitNode.loc.start.line,
         kind: "await-drone",
       });
+      return;
     }
 
     if (isModuleCall(node)) {
