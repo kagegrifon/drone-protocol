@@ -39,3 +39,4 @@ docs/features/
 | [drone-code-mode-monaco.md](done/drone-code-mode-monaco.md) | Code Mode (этап 2) — редактор Monaco |
 | [library-modules-import.md](done/library-modules-import.md) | Подключение модулей в программы дронов (library imports) |
 | [multimodule-debugging.md](done/multimodule-debugging.md) | Отладка многомодульных программ (stack trace + подсветка вызова подпрограммы) |
+| [step-mode-debugging.md](done/step-mode-debugging.md) | Step-режим отладки дронов (этап B) |
