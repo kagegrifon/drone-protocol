@@ -115,7 +115,7 @@ interface GameStore {
   setRunning(v: boolean): void;
   stepOnce(): void;
   setGameStatus(status: GameStatus, message?: string): void;
-  createProgram(name: string): void;
+  createProgram(name: string): string;
   assignProgram(droneId: EntityId, programId: string): void;
   unassignProgram(droneId: EntityId): void;
   restartProgram(droneId: EntityId): void;
@@ -346,6 +346,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     };
     registry.set(id, prog);
     set({ programs: filterPrograms(registry) });
+    return id;
   },
 
   assignProgram(droneId, programId) {
