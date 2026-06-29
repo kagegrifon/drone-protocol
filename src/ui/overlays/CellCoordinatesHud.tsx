@@ -88,6 +88,7 @@ export function CellCoordinatesHud() {
     copyTimerRef.current = setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
   };
 
+  // pointerEvents: оверлеи по умолчанию "none" — этому нужно "auto", чтобы кликалась кнопка копирования.
   return (
     <div style={{ ...CONTAINER, pointerEvents: "auto" }} data-testid="cell-coords-hud">
       {showPopup && (

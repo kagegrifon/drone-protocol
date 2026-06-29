@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import type { World } from "../../game/simulation/world/World.js";
 import type { Grid } from "../../game/simulation/world/Grid.js";
+import type { CellType } from "../../shared/constants/cellTypes.js";
 import type { EntityId } from "../../shared/types/index.js";
 import { DroneSprite } from "../sprites/DroneSprite.js";
 import { AudioManager } from "../audio/AudioManager.js";
@@ -168,24 +169,23 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private drawHoverHighlight(cell: { x: number; y: number }): void {
-    const isBuilding = this.isBuildingCell(cell.x, cell.y);
+  private drawHoverHighlight(cell: { x: number; y: number; isBuilding: boolean }): void {
     const px = cell.x * TILE_SIZE;
     const py = cell.y * TILE_SIZE;
 
     this._hoverHighlight.clear();
-    if (!isBuilding) {
+    if (!cell.isBuilding) {
       this._hoverHighlight.fillStyle(COLORS.DRONE_GLOW, 0.12);
       this._hoverHighlight.fillRect(px, py, TILE_SIZE, TILE_SIZE);
     }
     this._hoverHighlight.lineStyle(2, COLORS.DRONE_GLOW, 0.9);
+    // Обводку вжимаем на 1px со всех сторон, чтобы 2px-линия осталась внутри клетки.
     this._hoverHighlight.strokeRect(px + 1, py + 1, TILE_SIZE - 2, TILE_SIZE - 2);
     this._hoverHighlight.setVisible(true);
   }
 
-  private isBuildingCell(x: number, y: number): boolean {
-    const cell = this._grid.getTile(x, y);
-    return cell === "mine" || cell === "base" || cell === "charger";
+  private isBuildingTile(tile: CellType): boolean {
+    return tile === "mine" || tile === "base" || tile === "charger";
   }
 
   private clearHover(): void {
@@ -200,7 +200,8 @@ export class GameScene extends Phaser.Scene {
     const cellX = Math.floor(world.x / TILE_SIZE);
     const cellY = Math.floor(world.y / TILE_SIZE);
 
-    const onField = this._grid.getTile(cellX, cellY) !== "wall";
+    const tile = this._grid.getTile(cellX, cellY);
+    const onField = tile !== "wall";
     if (!onField) {
       this.clearHover();
       return;
@@ -210,7 +211,7 @@ export class GameScene extends Phaser.Scene {
     if (prev !== null && prev.x === cellX && prev.y === cellY) return;
 
     this._hoverPrevCell = { x: cellX, y: cellY };
-    this.drawHoverHighlight({ x: cellX, y: cellY });
+    this.drawHoverHighlight({ x: cellX, y: cellY, isBuilding: this.isBuildingTile(tile) });
     useGameStore.getState().setHoveredCell({ x: cellX, y: cellY });
   }
 
