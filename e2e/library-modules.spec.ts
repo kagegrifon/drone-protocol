@@ -30,6 +30,9 @@ async function createProgram(page: Page, name: string): Promise<string> {
   await page.getByPlaceholder("program name").fill(name);
   await page.getByRole("button", { name: "+ New" }).click();
 
+  // После создания UI автопереходит на вкладку PROGRAM (см. коммит 3cacf78), где
+  // кнопок program-edit-btn нет. Возвращаемся в LIBRARY, чтобы получить id программы.
+  await page.getByRole("button", { name: "LIBRARY" }).click();
   const editBtn = page.locator(`[data-testid^="program-edit-btn-"]`, {
     hasText: name,
   });
