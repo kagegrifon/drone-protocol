@@ -4,12 +4,28 @@ import type { Node, AwaitExpression, CallExpression, MemberExpression } from "ac
 /**
  * Инструментирует код игрока: перед каждым `await self.<action>()`
  * вставляет `(__line(N), ...)` где N — номер строки вызова (1-based).
+ * Каждый вызов `__mod_*()` оборачивается в `__call(N, () => ...)`.
  *
  * Для будущего step-режима тот же обходчик можно расширить:
  * вместо синхронного __line(N) вставлять `await __step(N)` на каждый
  * statement — это даст паузу на любой строке. Сейчас НЕ реализуем:
  * инструментируем только await self.* и __line синхронный.
  */
+
+type PatchKind = "await-drone" | "module-call";
+
+interface Patch {
+  start: number;
+  end: number;
+  line: number;
+  kind: PatchKind;
+}
+
+const PATCH_WRAPPERS: Record<PatchKind, (line: number, original: string) => string> = {
+  "await-drone": (line, original) => `;(__line(${line}), ${original})`,
+  "module-call": (line, original) => `__call(${line}, () => ${original})`,
+};
+
 export function instrument(code: string): string {
   const ast = parse(code, {
     ecmaVersion: 2020,
@@ -17,9 +33,11 @@ export function instrument(code: string): string {
     allowAwaitOutsideFunction: true,
   });
 
-  // Собираем все AwaitExpression вида `await drone.<action>(args)`
-  // в порядке убывания offset'а, чтобы вставки не смещали предыдущие позиции.
-  const patches: Array<{ start: number; end: number; line: number }> = [];
+  // Собираем все патчи: AwaitExpression вида `await drone.<action>(args)`
+  // и CallExpression вида `__mod_<slug>__<name>(args)`.
+  // Все сортируются по убыванию offset'а и применяются за один проход,
+  // чтобы вставки не смещали уже обработанные позиции.
+  const patches: Patch[] = [];
 
   function visit(node: Node): void {
     if (!node || typeof node !== "object") return;
@@ -37,7 +55,25 @@ export function instrument(code: string): string {
         start: awaitNode.start,
         end: awaitNode.end,
         line: awaitNode.loc.start.line,
+        kind: "await-drone",
       });
+    }
+
+    if (isModuleCall(node)) {
+      const callNode = node as CallExpression & {
+        start: number;
+        end: number;
+        loc: { start: { line: number } };
+      };
+      patches.push({
+        start: callNode.start,
+        end: callNode.end,
+        line: callNode.loc.start.line,
+        kind: "module-call",
+      });
+      // Не спускаемся в children CallExpression — внутренние self.* будут
+      // инструментированы отдельно через AwaitExpression на том же уровне.
+      return;
     }
 
     for (const key of Object.keys(node)) {
@@ -60,20 +96,24 @@ export function instrument(code: string): string {
   patches.sort((a, b) => b.start - a.start);
 
   let result = code;
-  for (const { start, end, line } of patches) {
+  for (const { start, end, line, kind } of patches) {
     const original = result.slice(start, end);
-    // Добавляем ; перед wrap-ом: без него две подряд строки без ; парсятся
-    // как вызов функции — expr1\n(expr2) → expr1(expr2).
-    result =
-      result.slice(0, start) +
-      `;(__line(${line}), ${original})` +
-      result.slice(end);
+    result = result.slice(0, start) + PATCH_WRAPPERS[kind](line, original) + result.slice(end);
   }
 
   return result;
 }
 
 const DRONE_ACTIONS = new Set(["moveTo", "mine", "drop", "charge", "wait"]);
+
+const MODULE_CALL_PREFIX = "__mod_";
+
+function isModuleCall(node: Node): boolean {
+  if (node.type !== "CallExpression") return false;
+  const call = node as CallExpression;
+  if (call.callee.type !== "Identifier") return false;
+  return (call.callee as { name: string }).name.startsWith(MODULE_CALL_PREFIX);
+}
 
 function isDroneCall(node: Node | null | undefined): boolean {
   if (!node || node.type !== "CallExpression") return false;
