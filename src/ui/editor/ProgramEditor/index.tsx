@@ -166,6 +166,13 @@ export function ProgramEditor() {
   // suppress unused warning — will be used in Phase 5 for scroll/highlight in library
   void highlightedProgramId;
 
+  const createNewProgram = () => {
+    const trimmedName = newProgramName.trim();
+    if (!trimmedName) return;
+    createProgram(trimmedName);
+    setNewProgramName("");
+  };
+
   const editingProgram = editingProgramId
     ? (registry.get(editingProgramId) ?? null)
     : null;
@@ -527,6 +534,9 @@ export function ProgramEditor() {
               <input
                 value={newProgramName}
                 onChange={(e) => setNewProgramName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") createNewProgram();
+                }}
                 placeholder="program name"
                 style={{
                   flex: 1,
@@ -540,12 +550,7 @@ export function ProgramEditor() {
                 }}
               />
               <button
-                onClick={() => {
-                  if (newProgramName.trim()) {
-                    createProgram(newProgramName.trim());
-                    setNewProgramName("");
-                  }
-                }}
+                onClick={createNewProgram}
                 style={{
                   background: "#0a1628",
                   border: "1px solid #1e3a5f",

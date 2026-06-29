@@ -142,6 +142,7 @@ export function AudioSettingsModal({
               borderColor: "#1a4a6a",
             }}
             onClick={onBackToMissions}
+            data-testid="back-to-missions"
           >
             ← ВЫБОР МИССИЙ
           </button>
