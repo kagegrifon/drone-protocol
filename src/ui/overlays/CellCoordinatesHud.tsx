@@ -55,6 +55,14 @@ export function CellCoordinatesHud() {
   const [showPopup, setShowPopup] = useState(false);
   const [copied, setCopied] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Очищаем таймер feedback-копирования при размонтировании.
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
 
   // На каждую смену клетки перезапускаем таймер задержки и прячем попап.
   useEffect(() => {
@@ -76,7 +84,8 @@ export function CellCoordinatesHud() {
   const handleCopy = async () => {
     await navigator.clipboard.writeText(copyText);
     setCopied(true);
-    setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
   };
 
   return (
