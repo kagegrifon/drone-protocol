@@ -78,11 +78,12 @@ describe("runCode", () => {
       action: "moveTo",
       point: { x: 3, y: 0 },
       line: 1,
+      lineStack: [1],
     });
 
     ch.deliver({ type: "resume", world: WORLD });
     await vi.waitFor(() => expect(ch.sent.length).toBe(2));
-    expect(ch.sent[1]).toEqual({ type: "intent", action: "mine", line: 1 });
+    expect(ch.sent[1]).toEqual({ type: "intent", action: "mine", line: 1, lineStack: [1] });
 
     ch.deliver({ type: "resume", world: WORLD });
     await done;
@@ -99,7 +100,7 @@ describe("runCode", () => {
       ch.onDriverMessage,
     );
     await vi.waitFor(() => expect(ch.sent.length).toBe(1));
-    expect(ch.sent[0]).toEqual({ type: "intent", action: "charge", line: 1 });
+    expect(ch.sent[0]).toEqual({ type: "intent", action: "charge", line: 1, lineStack: [1] });
   });
 
   it("sends error message on synchronous throw", async () => {
@@ -120,7 +121,7 @@ describe("runCode", () => {
       ch.onDriverMessage,
     );
     await vi.waitFor(() => expect(ch.sent.length).toBe(1));
-    expect(ch.sent[0]).toEqual({ type: "wait", seconds: 2, line: 1 });
+    expect(ch.sent[0]).toEqual({ type: "wait", seconds: 2, line: 1, lineStack: [1] });
   });
 
   it("computes distanceTo and reads oreRemaining from the snapshot", async () => {
@@ -137,7 +138,7 @@ describe("runCode", () => {
       ch.onDriverMessage,
     );
     await vi.waitFor(() => expect(ch.sent.length).toBe(1));
-    expect(ch.sent[0]).toEqual({ type: "intent", action: "mine", line: 4 });
+    expect(ch.sent[0]).toEqual({ type: "intent", action: "mine", line: 4, lineStack: [4] });
   });
 
   it("findClosest returns the nearest entity from a list", async () => {
@@ -208,9 +209,30 @@ describe("runCode", () => {
     ch.deliver({ type: "resume", world: updated });
     await vi.waitFor(() => expect(ch.sent.length).toBe(2));
     // если бы ссылка/поле не обновились — код бросил бы error вместо второго intent
-    expect(ch.sent[1]).toEqual({ type: "intent", action: "mine", line: 8 });
+    expect(ch.sent[1]).toEqual({ type: "intent", action: "mine", line: 8, lineStack: [8] });
 
     ch.deliver({ type: "resume", world: updated });
     await done;
+  });
+
+  it("lineStack содержит строку вызова при использовании __call", async () => {
+    const ch = makeChannel();
+    const code = `
+await self.moveTo({ x: 0, y: 0 });
+__call(2, () => { return (async () => { await self.mine(); })(); });
+    `.trim();
+
+    runCode(start(code), ch.post, ch.onDriverMessage);
+    await vi.waitFor(() => expect(ch.sent.length).toBe(1));
+    ch.deliver({ type: "resume", world: WORLD });
+
+    // ищем intent с action: "mine" чтобы проверить lineStack
+    await vi.waitFor(() => ch.sent.some((msg) => msg.type === "intent" && msg.action === "mine"));
+    const mineIntent = ch.sent.find((msg) => msg.type === "intent" && msg.action === "mine") as any;
+    expect(mineIntent).toMatchObject({
+      type: "intent",
+      action: "mine",
+      lineStack: [2, expect.any(Number)],
+    });
   });
 });
