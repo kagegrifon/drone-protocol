@@ -318,3 +318,28 @@ describe("store.init() — CodeBehaviorDriver подключён через Prog
     expect(state).toBe("mine");
   }, 5000);
 });
+
+describe("setHoveredCell — координата клетки под курсором", () => {
+  it("по умолчанию hoveredCell === null", () => {
+    expect(useGameStore.getState().hoveredCell).toBeNull();
+  });
+
+  it("устанавливает координату клетки", () => {
+    useGameStore.getState().setHoveredCell({ x: 3, y: 10 });
+    expect(useGameStore.getState().hoveredCell).toEqual({ x: 3, y: 10 });
+  });
+
+  it("сбрасывает в null", () => {
+    useGameStore.getState().setHoveredCell({ x: 3, y: 10 });
+    useGameStore.getState().setHoveredCell(null);
+    expect(useGameStore.getState().hoveredCell).toBeNull();
+  });
+
+  it("не создаёт новую ссылку при той же координате (дедупликация)", () => {
+    useGameStore.getState().setHoveredCell({ x: 5, y: 5 });
+    const first = useGameStore.getState().hoveredCell;
+    useGameStore.getState().setHoveredCell({ x: 5, y: 5 });
+    const second = useGameStore.getState().hoveredCell;
+    expect(second).toBe(first); // та же ссылка — set не вызывался
+  });
+});

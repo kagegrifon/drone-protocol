@@ -75,6 +75,8 @@ export interface StatsState {
   oreMined: number;
 }
 
+export type HoveredCell = { x: number; y: number } | null;
+
 interface Systems {
   collision: CollisionSystem;
   modifiers: ModifiersSystem;
@@ -91,6 +93,7 @@ interface GameStore {
   registry: ProgramRegistry;
   drones: DroneState[];
   selectedDroneId: EntityId | null;
+  hoveredCell: HoveredCell;
   programs: ProgramDef[];
   stats: StatsState;
   isRunning: boolean;
@@ -114,6 +117,7 @@ interface GameStore {
   setProgramCodeSource(programId: string, code: string): void;
   tick(): void;
   selectDrone(id: EntityId | null): void;
+  setHoveredCell(cell: HoveredCell): void;
   setRunning(v: boolean): void;
   stepOnce(): void;
   setGameStatus(status: GameStatus, message?: string): void;
@@ -199,6 +203,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   registry: new Map(),
   drones: [],
   selectedDroneId: null,
+  hoveredCell: null,
   programs: [],
   stats: { orePerMin: 0, congestion: 0, efficiency: 0, tick: 0, oreMined: 0 },
   isRunning: false,
@@ -298,6 +303,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   selectDrone(id) {
     set({ selectedDroneId: id });
+  },
+
+  setHoveredCell(cell) {
+    const prev = get().hoveredCell;
+    const same =
+      prev === cell ||
+      (prev !== null &&
+        cell !== null &&
+        prev.x === cell.x &&
+        prev.y === cell.y);
+    if (same) return;
+    set({ hoveredCell: cell });
   },
 
   setRunning(v) {
