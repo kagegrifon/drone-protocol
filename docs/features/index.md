@@ -38,3 +38,4 @@ docs/features/
 | [object-world-api.md](done/object-world-api.md) | Объектный World API для скриптов дронов (Screeps-style) |
 | [drone-code-mode-monaco.md](done/drone-code-mode-monaco.md) | Code Mode (этап 2) — редактор Monaco |
 | [library-modules-import.md](done/library-modules-import.md) | Подключение модулей в программы дронов (library imports) |
+| [multimodule-debugging.md](done/multimodule-debugging.md) | Отладка многомодульных программ (stack trace + подсветка вызова подпрограммы) |
