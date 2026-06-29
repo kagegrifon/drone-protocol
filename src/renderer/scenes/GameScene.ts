@@ -20,6 +20,8 @@ export class GameScene extends Phaser.Scene {
   private _dustEmitter!: Phaser.GameObjects.Particles.ParticleEmitter;
   private _chargingCount = 0;
   private _tick = 0;
+  private _hoverHighlight!: Phaser.GameObjects.Graphics;
+  private _hoverPrevCell: { x: number; y: number } | null = null;
 
   // Доинтерполяция внутри симуляционного тика: засекаем начало каждого тика,
   // чтобы плавно «доводить» прогресс шага между дискретными апдейтами симуляции.
@@ -66,11 +68,14 @@ export class GameScene extends Phaser.Scene {
 
     // Subscribe to game events
     this._setupEventListeners();
+    this.input.on("pointerout", () => this.clearHover());
 
     const worldW = this._grid.width * TILE_SIZE;
     const worldH = this._grid.height * TILE_SIZE;
     this.drawTileMap(worldW, worldH);
     this._trailGraphics = this.add.graphics().setDepth(8);
+    this._hoverHighlight = this.add.graphics().setDepth(6);
+    this._hoverHighlight.setVisible(false);
     this.setupEntitySprites();
     this.setupCamera(worldW, worldH);
 
@@ -159,6 +164,52 @@ export class GameScene extends Phaser.Scene {
       g.lineTo(worldW, i * TILE_SIZE);
       g.strokePath();
     }
+  }
+
+  private drawHoverHighlight(cell: { x: number; y: number }): void {
+    const isBuilding = this.isBuildingCell(cell.x, cell.y);
+    const px = cell.x * TILE_SIZE;
+    const py = cell.y * TILE_SIZE;
+
+    this._hoverHighlight.clear();
+    if (!isBuilding) {
+      this._hoverHighlight.fillStyle(COLORS.DRONE_GLOW, 0.12);
+      this._hoverHighlight.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+    }
+    this._hoverHighlight.lineStyle(2, COLORS.DRONE_GLOW, 0.9);
+    this._hoverHighlight.strokeRect(px + 1, py + 1, TILE_SIZE - 2, TILE_SIZE - 2);
+    this._hoverHighlight.setVisible(true);
+  }
+
+  private isBuildingCell(x: number, y: number): boolean {
+    const cell = this._grid.getTile(x, y);
+    return cell === "mine" || cell === "base" || cell === "charger";
+  }
+
+  private clearHover(): void {
+    if (this._hoverPrevCell === null) return;
+    this._hoverPrevCell = null;
+    this._hoverHighlight.setVisible(false);
+    useGameStore.getState().setHoveredCell(null);
+  }
+
+  private updateHoveredCell(pointer: Phaser.Input.Pointer): void {
+    const world = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+    const cellX = Math.floor(world.x / TILE_SIZE);
+    const cellY = Math.floor(world.y / TILE_SIZE);
+
+    const onField = this._grid.getTile(cellX, cellY) !== "wall";
+    if (!onField) {
+      this.clearHover();
+      return;
+    }
+
+    const prev = this._hoverPrevCell;
+    if (prev !== null && prev.x === cellX && prev.y === cellY) return;
+
+    this._hoverPrevCell = { x: cellX, y: cellY };
+    this.drawHoverHighlight({ x: cellX, y: cellY });
+    useGameStore.getState().setHoveredCell({ x: cellX, y: cellY });
   }
 
   private setupEntitySprites(): void {
@@ -349,7 +400,10 @@ export class GameScene extends Phaser.Scene {
       if (pointer.isDown) {
         cam.scrollX -= (pointer.x - pointer.prevPosition.x) / cam.zoom;
         cam.scrollY -= (pointer.y - pointer.prevPosition.y) / cam.zoom;
+        this.clearHover();
+        return;
       }
+      this.updateHoveredCell(pointer);
     });
 
     this.sys.game.canvas.addEventListener(
