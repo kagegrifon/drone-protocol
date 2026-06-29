@@ -22,3 +22,32 @@ export function mapLine(
   }
   return null;
 }
+
+interface MapStackToEntryLineArgs {
+  lineStack: number[];
+  lineMap: LineMapSegment[];
+  entryId: string;
+}
+
+/**
+ * Из стека склеенных строк выбирает строку для подсветки entry-программы:
+ * самую глубокую строку, принадлежащую entry-сегменту.
+ *
+ * Пока выполняется тело подпрограммы, lineStack содержит строку вызова (entry)
+ * и строки внутри модуля. mapLine для модульных строк вернёт null — они
+ * пропускаются; entry-строка вызова победит.
+ */
+export function mapStackToEntryLine({
+  lineStack,
+  lineMap,
+  entryId,
+}: MapStackToEntryLineArgs): number | null {
+  let result: number | null = null;
+  for (const gluedLine of lineStack) {
+    const mapped = mapLine(gluedLine, lineMap, entryId);
+    if (mapped !== null) {
+      result = mapped.origLine;
+    }
+  }
+  return result;
+}
