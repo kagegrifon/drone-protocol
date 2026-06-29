@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mapLine, mapStackToEntryLine } from "./mapLine.js";
+import { mapLine, mapStackToEntryLine, mapStackToFrames } from "./mapLine.js";
 import type { LineMapSegment } from "./linkProgram.js";
 
 // Склеенный код: строки 1-3 — модуль "m", строки 4-6 — entry "e".
@@ -61,5 +61,53 @@ describe("mapStackToEntryLine", () => {
 
   it("пустой стек → null", () => {
     expect(mapStackToEntryLine({ lineStack: [], lineMap: lineMapWithMod, entryId: "e" })).toBeNull();
+  });
+});
+
+// Склеенный код для трёх программ: строки 1-5 — modB, 6-10 — modA, 11-15 — entry "e"
+const lineMapThreeLevels: LineMapSegment[] = [
+  { fromLine: 1, toLine: 5, programId: "modB", origLine: 1 },
+  { fromLine: 6, toLine: 10, programId: "modA", origLine: 1 },
+  { fromLine: 11, toLine: 15, programId: "e", origLine: 1 },
+];
+
+describe("mapStackToFrames", () => {
+  it("стек [entry-строка, mod-строка] → 2 кадра с верными programId/line", () => {
+    // lineStack[0] = 8 → entry "e" origLine 1 + (8-6) = 3
+    // lineStack[1] = 3 → mod "mod" origLine 1 + (3-1) = 3
+    expect(mapStackToFrames({ lineStack: [8, 3], lineMap: lineMapWithMod })).toEqual([
+      { programId: "e", line: 3 },
+      { programId: "mod", line: 3 },
+    ]);
+  });
+
+  it("чисто-entry стек → 1 кадр", () => {
+    // glued 7 → entry origLine 1 + (7-6) = 2
+    expect(mapStackToFrames({ lineStack: [7], lineMap: lineMapWithMod })).toEqual([
+      { programId: "e", line: 2 },
+    ]);
+  });
+
+  it("тройной entry→modA→modB → 3 кадра в правильном порядке (внешний первым)", () => {
+    // 13 → entry origLine 1 + (13-11) = 3
+    // 7  → modA origLine 1 + (7-6)   = 2
+    // 2  → modB origLine 1 + (2-1)   = 2
+    expect(mapStackToFrames({ lineStack: [13, 7, 2], lineMap: lineMapThreeLevels })).toEqual([
+      { programId: "e", line: 3 },
+      { programId: "modA", line: 2 },
+      { programId: "modB", line: 2 },
+    ]);
+  });
+
+  it("строки вне сегментов пропускаются, не ломая массив", () => {
+    // 99 не попадает ни в один сегмент → пропущена; остаются 2 кадра
+    expect(mapStackToFrames({ lineStack: [8, 99, 3], lineMap: lineMapWithMod })).toEqual([
+      { programId: "e", line: 3 },
+      { programId: "mod", line: 3 },
+    ]);
+  });
+
+  it("пустой стек → []", () => {
+    expect(mapStackToFrames({ lineStack: [], lineMap: lineMapWithMod })).toEqual([]);
   });
 });

@@ -46,6 +46,64 @@ function addDrone(world: World, codeSource: string, x = 0, y = 0) {
   return { id, registry };
 }
 
+/**
+ * Добавляет дрона с entry-программой, импортирующей модуль. Registry содержит
+ * две программы: модуль "harvest" (экспортирует функцию) и entry "main",
+ * которая её вызывает. Пока тело модуля исполняется, lineStack содержит и
+ * строку вызова в entry, и строку внутри модуля — то есть ≥2 кадра.
+ */
+function addDroneWithModule(world: World) {
+  const id = world.createEntity();
+  world.addComponent(id, "Position", { x: 0, y: 0 });
+  world.addComponent(id, "Energy", {
+    current: 100,
+    max: 100,
+    drainPerMove: 5,
+    drainPerMine: 2,
+  });
+  world.addComponent(id, "Inventory", { ore: 0, capacity: 10 });
+  world.addComponent(id, "Movement", {
+    targetX: 0,
+    targetY: 0,
+    path: [],
+    progress: 0,
+    speed: 1,
+  });
+  world.addComponent(id, "Program", {
+    currentProgramId: "main",
+    callStack: [],
+    state: "running",
+    commandSlots: 4,
+    personalProgramId: "main",
+  });
+
+  const harvestModule = `export async function harvest() {
+  await self.mine();
+}`;
+  const mainProgram = `import { harvest } from "harvest";
+await harvest();`;
+
+  const registry: ProgramRegistry = new Map([
+    [
+      "harvest",
+      {
+        id: "harvest",
+        name: "harvest",
+        behavior: { sourceForm: "code", code: harvestModule },
+      },
+    ],
+    [
+      "main",
+      {
+        id: "main",
+        name: "main",
+        behavior: { sourceForm: "code", code: mainProgram },
+      },
+    ],
+  ]);
+  return { id, registry };
+}
+
 function ctx(world: World, registry: ProgramRegistry) {
   return { world, grid: EMPTY_GRID, registry, occupied: EMPTY_OCCUPIED };
 }
@@ -205,6 +263,51 @@ describe("CodeBehaviorDriver", () => {
     // Следующий step создаёт новую сессию и сбрасывает старую ошибку.
     driver.step(drone, ctx(world, registry));
     expect(world.getComponent(drone, "Program")!.codeError).toBeUndefined();
+  });
+
+  it("при исполнении внутри импортированного модуля codeStack содержит ≥2 кадра", async () => {
+    const { id: drone, registry } = addDroneWithModule(world);
+
+    await tickUntil(
+      driver,
+      drone,
+      world,
+      registry,
+      () => world.getComponent(drone, "Program")!.state === "mine",
+    );
+
+    const program = world.getComponent(drone, "Program")!;
+    const codeStack = program.codeStack!;
+    expect(codeStack).toBeTruthy();
+    expect(codeStack.length).toBeGreaterThanOrEqual(2);
+    // Внешний кадр — entry "main", самый глубокий — модуль "harvest".
+    expect(codeStack[0].programId).toBe("main");
+    expect(codeStack[codeStack.length - 1].programId).toBe("harvest");
+  });
+
+  it("сбрасывает codeStack в null при завершении программы (finished)", async () => {
+    const { id: drone, registry } = addDroneWithModule(world);
+
+    // Доводим до первого действия mine, затем «завершаем» его, чтобы код дошёл
+    // до конца и воркер прислал finished.
+    await tickUntil(
+      driver,
+      drone,
+      world,
+      registry,
+      () => world.getComponent(drone, "Program")!.state === "mine",
+    );
+    world.getComponent(drone, "Program")!.state = "running";
+
+    await tickUntil(
+      driver,
+      drone,
+      world,
+      registry,
+      () => world.getComponent(drone, "Program")!.state === "idle",
+    );
+
+    expect(world.getComponent(drone, "Program")!.codeStack).toBeNull();
   });
 
   it("identical code produces an identical state trace (determinism)", async () => {

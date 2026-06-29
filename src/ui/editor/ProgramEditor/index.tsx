@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useGameStore } from "../../../shared/store/gameStore.js";
 import { ProgramCodeBlock } from "../CodeEditor/ProgramCodeBlock.js";
+import { CodeEditor } from "../CodeEditor/CodeEditor.js";
+import { CallStackBreadcrumbs } from "../CallStackBreadcrumbs/index.js";
+import { resolveDisplayedFrame } from "./frameSelection.js";
 import { updateModuleLibs } from "../CodeEditor/monacoSetup.js";
 import { moduleInterfaceOf } from "../../../game/programs/moduleInterface.js";
 import type { EntityId } from "../../../shared/types/index.js";
@@ -121,6 +124,51 @@ function ExportsBadge({ names }: { names: string[] }) {
   );
 }
 
+interface ModulePreviewProps {
+  programName: string;
+  code: string;
+  highlightLine: number;
+}
+
+// Read-only превью кода импортированного модуля при step-into (follow/pin модульного
+// кадра). Редактирование модуля остаётся на вкладке PROGRAM — здесь только подсветка.
+function ModulePreview({ programName, code, highlightLine }: ModulePreviewProps) {
+  return (
+    <div
+      style={{
+        background: "#060f1e",
+        border: "1px solid #1e3a5f",
+        borderRadius: "4px",
+        padding: "8px 10px",
+        marginBottom: "8px",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "6px",
+          marginBottom: "8px",
+          color: "#88aacc",
+          fontFamily: "monospace",
+          fontSize: "11px",
+        }}
+      >
+        <span title="Код подпрограммы доступен только для чтения">🔒</span>
+        <span>{programName}</span>
+        <span style={{ color: "#445566" }}>(read-only)</span>
+      </div>
+      <CodeEditor
+        value={code}
+        onChange={() => {}}
+        readOnly
+        height="240px"
+        highlightLine={highlightLine}
+      />
+    </div>
+  );
+}
+
 export function ProgramEditor() {
   const [tab, setTab] = useState<"drone" | "library" | "program">("drone");
   const [editingProgramId, setEditingProgramId] = useState<string | null>(null);
@@ -130,6 +178,11 @@ export function ProgramEditor() {
   const [highlightedProgramId, setHighlightedProgramId] = useState<
     string | null
   >(null);
+  // Выбранный кадр стека вызовов на DRONE-вкладке. null = follow (редактор следует
+  // за самым глубоким кадром, текущим исполнением); число = pin на конкретный кадр.
+  const [selectedFrameIndex, setSelectedFrameIndex] = useState<number | null>(
+    null,
+  );
 
   const selectedId = useGameStore((s) => s.selectedDroneId);
   const drones = useGameStore((s) => s.drones);
@@ -179,16 +232,47 @@ export function ProgramEditor() {
     ? (registry.get(editingProgramId) ?? null)
     : null;
 
-  const activeProgramId = drone
-    ? (drone.assignedProgramId ?? drone.personalProgramId)
-    : null;
-
   // Ошибка исполнения относится к активной программе дрона: assigned, если она
   // назначена, иначе personal. Только у активного блока показываем ⚠ и рамку.
   const codeError = drone?.codeError ?? null;
   const assignedHasError = !!assignedProgram && codeError !== null;
   const personalHasError =
     !assignedProgram && !!personalProgram && codeError !== null;
+
+  // Follow execution: редактор DRONE-вкладки следует за кадром стека вызовов.
+  const codeStack = drone?.codeStack ?? [];
+  const displayedFrame = resolveDisplayedFrame({
+    frames: codeStack,
+    selectedIndex: selectedFrameIndex,
+  });
+
+  // Если pin-кадр исчез (подпрограмма завершилась, стек укоротился) — вернуться в
+  // follow, чтобы не зависнуть на несуществующем индексе.
+  useEffect(() => {
+    if (selectedFrameIndex !== null && selectedFrameIndex >= codeStack.length) {
+      setSelectedFrameIndex(null);
+    }
+  }, [codeStack.length, selectedFrameIndex]);
+
+  // Отображаемый кадр принадлежит активной программе дрона (assigned/personal) →
+  // подсвечиваем её редактируемый блок. Иначе кадр модуля → отдельное read-only превью.
+  const displayedFrameProgramId = displayedFrame?.programId ?? null;
+  const assignedHighlightLine =
+    displayedFrameProgramId === drone?.assignedProgramId
+      ? (displayedFrame?.line ?? null)
+      : null;
+  const personalHighlightLine =
+    displayedFrameProgramId === drone?.personalProgramId
+      ? (displayedFrame?.line ?? null)
+      : null;
+
+  const isModuleFrame =
+    !!displayedFrame &&
+    displayedFrameProgramId !== drone?.assignedProgramId &&
+    displayedFrameProgramId !== drone?.personalProgramId;
+  const moduleFrameProgram = isModuleFrame
+    ? registry.get(displayedFrameProgramId!)
+    : undefined;
 
   return (
     <div
@@ -244,6 +328,33 @@ export function ProgramEditor() {
             )}
             {drone && (
               <>
+                {/* Call Stack — хлебные крошки над блоками кода (только при исполнении) */}
+                {codeStack.length > 0 && (
+                  <div style={{ marginBottom: "8px" }}>
+                    <CallStackBreadcrumbs
+                      frames={codeStack}
+                      selectedIndex={selectedFrameIndex}
+                      onSelectFrame={(index) =>
+                        setSelectedFrameIndex((prev) =>
+                          prev === index ? null : index,
+                        )
+                      }
+                      registry={registry}
+                    />
+                  </div>
+                )}
+
+                {/* Read-only превью кода модуля — когда отображаемый кадр модульный */}
+                {isModuleFrame && displayedFrame && (
+                  <ModulePreview
+                    programName={
+                      moduleFrameProgram?.name ?? displayedFrame.programId
+                    }
+                    code={moduleFrameProgram?.behavior.code ?? ""}
+                    highlightLine={displayedFrame.line}
+                  />
+                )}
+
                 {/* Assigned program block — only if present */}
                 {assignedProgram && (
                   <div
@@ -318,11 +429,7 @@ export function ProgramEditor() {
                           setProgramCodeSource(assignedProgram.id, code)
                         }
                         height="240px"
-                        highlightLine={
-                          drone.assignedProgramId === activeProgramId
-                            ? (drone.currentLine ?? null)
-                            : null
-                        }
+                        highlightLine={assignedHighlightLine}
                         codeError={drone.codeError ?? null}
                         affectedDroneIds={drones
                           .filter(
@@ -397,11 +504,7 @@ export function ProgramEditor() {
                           setProgramCodeSource(personalProgram.id, code)
                         }
                         height="240px"
-                        highlightLine={
-                          drone.personalProgramId === activeProgramId
-                            ? (drone.currentLine ?? null)
-                            : null
-                        }
+                        highlightLine={personalHighlightLine}
                         codeError={
                           !assignedProgram ? (drone.codeError ?? null) : null
                         }

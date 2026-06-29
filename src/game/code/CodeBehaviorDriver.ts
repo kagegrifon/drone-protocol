@@ -8,7 +8,7 @@ import { collectWorld } from "./worldSnapshot.js";
 import type { WorkerMessage } from "./types.js";
 import { linkProgram, type LineMapSegment } from "./linker/linkProgram.js";
 import { LinkError } from "./linker/errors.js";
-import { mapStackToEntryLine } from "./linker/mapLine.js";
+import { mapStackToFrames, type StackFrame } from "./linker/mapLine.js";
 
 // Бюджет на ответ воркера. Большой запас нужен из-за холодного старта в dev:
 // первый запуск worker-модуля под Vite (компиляция + конкуренция с Monaco
@@ -79,7 +79,7 @@ export class CodeBehaviorDriver implements BehaviorDriver {
         if (err instanceof LinkError) {
           program.state = "idle";
           program.codeError = err.message;
-          program.currentLine = null;
+          this.clearStack(program);
           return;
         }
         throw err;
@@ -186,20 +186,20 @@ export class CodeBehaviorDriver implements BehaviorDriver {
         } else if (msg.action === "charge") {
           program.state = "charge";
         }
-        program.currentLine = this.mapToEntryLine(session, msg.lineStack);
+        this.applyStack(session, program, msg.lineStack);
         session.phase = "action-pending";
         return;
       }
       case "wait": {
         session.waitRemaining = msg.seconds;
-        program.currentLine = this.mapToEntryLine(session, msg.lineStack);
+        this.applyStack(session, program, msg.lineStack);
         session.phase = "waiting";
         return;
       }
       case "finished": {
         session.phase = "done";
         program.state = "idle";
-        program.currentLine = null;
+        this.clearStack(program);
         this.clearTimeout(session);
         session.port.terminate();
         return;
@@ -208,7 +208,7 @@ export class CodeBehaviorDriver implements BehaviorDriver {
         session.phase = "done";
         program.state = "idle";
         program.codeError = msg.message;
-        program.currentLine = null;
+        this.clearStack(program);
         this.clearTimeout(session);
         session.port.terminate();
         return;
@@ -217,15 +217,24 @@ export class CodeBehaviorDriver implements BehaviorDriver {
   }
 
   /**
-   * Маппит строку склеенного кода в строку entry-программы для подсветки.
-   * v1: если исполнение внутри модуля — возвращает null (подсветка гаснет).
+   * Заполняет program.codeStack полным стеком кадров (включая модульные) и
+   * derived program.currentLine = строка самого глубокого кадра.
    */
-  private mapToEntryLine(session: Session, lineStack: number[]): number | null {
-    return mapStackToEntryLine({
-      lineStack,
-      lineMap: session.lineMap,
-      entryId: session.entryId,
-    });
+  private applyStack(
+    session: Session,
+    program: ProgramComponent,
+    lineStack: number[],
+  ): void {
+    const frames = mapStackToFrames({ lineStack, lineMap: session.lineMap });
+    program.codeStack = frames;
+    const deepestFrame: StackFrame | undefined = frames[frames.length - 1];
+    program.currentLine = deepestFrame ? deepestFrame.line : null;
+  }
+
+  /** Сбрасывает стек и подсветку — нет активного действия. */
+  private clearStack(program: ProgramComponent): void {
+    program.codeStack = null;
+    program.currentLine = null;
   }
 
   dispose(droneId: EntityId): void {
@@ -248,7 +257,7 @@ export class CodeBehaviorDriver implements BehaviorDriver {
       session.phase = "done";
       program.state = "idle";
       program.codeError = `code execution timeout (${timeoutMs}ms) — likely an infinite loop without await`;
-      program.currentLine = null;
+      this.clearStack(program);
     }, timeoutMs);
   }
 

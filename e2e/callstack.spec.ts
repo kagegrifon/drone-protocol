@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 
 // ---------------------------------------------------------------------------
-// Helpers (copied from library-modules.spec.ts)
+// Helpers (copied from subprogram-highlight.spec.ts)
 // ---------------------------------------------------------------------------
 
 async function skipIntro(page: Page) {
@@ -56,11 +56,9 @@ async function setProgramCode(page: Page, programId: string, code: string) {
 }
 
 // ---------------------------------------------------------------------------
-// Programs
+// Programs (same shape as subprogram-highlight: main imports harvest module)
 // ---------------------------------------------------------------------------
 
-// Submodule: loops mining so it keeps running long enough to observe the
-// call-site highlight in the main program while harvest() body executes.
 const HARVEST_MODULE = `export async function harvest() {
   while (self.inventory < self.inventoryMax) {
     await self.moveTo(World.mines[0].position);
@@ -72,9 +70,6 @@ const HARVEST_MODULE = `export async function harvest() {
   }
 }`;
 
-// Main program — line 3 ("  await harvest();") is the call site.
-// While harvest() body executes the lineStack maps back to this line and
-// drone.currentLine is set to 3, so the Monaco decoration appears on it.
 const MAIN_PROGRAM = `import { harvest } from "harvest";
 while (true) {
   await harvest();
@@ -89,7 +84,7 @@ test.use({
 });
 
 test(
-  "call line in main stays highlighted while subprogram body executes",
+  "стек вызовов: крошки модуля, read-only превью подпрограммы, возврат по клику",
   async ({ page }) => {
     test.setTimeout(120_000);
 
@@ -101,35 +96,49 @@ test(
     await waitForGame(page);
     await selectFirstDrone(page);
 
-    // Create the submodule library program.
     const harvestId = await createProgram(page, "harvest");
     await setProgramCode(page, harvestId, HARVEST_MODULE);
 
-    // Create the main entry program that imports harvest.
     const mainId = await createProgram(page, "main");
     await setProgramCode(page, mainId, MAIN_PROGRAM);
 
-    // Assign main to the selected drone.
+    // Назначаем main выбранному дрону.
     await page.getByRole("button", { name: "LIBRARY" }).click();
     const mainRow = page
       .locator(`[data-testid="program-edit-btn-${mainId}"]`)
       .locator("xpath=..");
     await mainRow.getByRole("button", { name: "Assign" }).click();
 
-    // Switch back to the DRONE tab so the assigned-program code block with
-    // highlightLine is visible (the LIBRARY tab editor does not pass highlightLine).
+    // На вкладке DRONE видны крошки стека и редактор с подсветкой.
     await page.getByRole("button", { name: "DRONE", exact: true }).click();
 
-    // Start the simulation.
     await page.getByRole("button", { name: /Play/i }).click();
 
-    // The DRONE tab shows the assigned program's Monaco editor with the
-    // drone-line-highlight decoration. The editor is expanded by default.
-    // We wait up to 30 s for the drone to reach the mine and enter harvest().
-    const editor = page.locator(".monaco-editor").first();
-    await editor.waitFor({ state: "visible", timeout: 15_000 });
+    // Во время исполнения внутри модуля видны ≥2 крошки: main ▸ harvest.
+    const crumbOuter = page.locator('[data-testid="callstack-crumb-0"]');
+    const crumbInner = page.locator('[data-testid="callstack-crumb-1"]');
+    await expect(crumbOuter).toBeVisible({ timeout: 30_000 });
+    await expect(crumbInner).toBeVisible({ timeout: 30_000 });
 
-    const highlightedLine = editor.locator(".drone-line-highlight");
+    // Внешняя крошка — вызывающая программа main, внутренняя — модуль harvest.
+    await expect(crumbOuter).toContainText("main");
+    await expect(crumbInner).toContainText("harvest");
+
+    // Follow-режим: редактор автоматически показывает read-only код подпрограммы
+    // (самый глубокий кадр — модуль) с подсветкой строки. Тело harvest содержит
+    // уникальную строку self.inventory, которой нет в коде main.
+    const highlightedLine = page.locator(".drone-line-highlight").first();
     await expect(highlightedLine).toBeVisible({ timeout: 30_000 });
+    const firstEditor = page.locator(".monaco-editor").first();
+    await expect(firstEditor).toContainText("self.inventory", {
+      timeout: 10_000,
+    });
+
+    // Клик по внешней крошке (main) возвращает редактор к коду вызывающей программы.
+    // Код main содержит уникальную строку import { harvest } from "harvest".
+    await crumbOuter.click();
+    await expect(firstEditor).toContainText('import { harvest }', {
+      timeout: 10_000,
+    });
   },
 );

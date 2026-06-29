@@ -6,6 +6,8 @@ export type ProgramState =
   | "drop"
   | "charge";
 
+import type { StackFrame } from "../../code/linker/mapLine.js";
+
 export interface CallFrame {
   programId: string;
   instructionIndex: number;
@@ -30,6 +32,11 @@ export interface ProgramComponent {
   codeSource?: string;
   /** Сообщение об ошибке исполнения кода (включая таймаут синхронного участка). */
   codeError?: string;
-  /** Текущая исполняемая строка кода (1-based). null = нет активного действия. */
+  /** Текущая исполняемая строка кода (1-based). null = нет активного действия.
+   *  Derived: строка последнего (самого глубокого) кадра codeStack. */
   currentLine?: number | null;
+  /** Полный стек кадров вызова code-программы: внешний (entry) первым, самый
+   *  глубокий (текущая активная строка) — последним. null = нет активного
+   *  действия. Источник правды для подсветки и хлебных крошек Call Stack. */
+  codeStack?: StackFrame[] | null;
 }
