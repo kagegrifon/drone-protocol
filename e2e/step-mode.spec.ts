@@ -98,4 +98,6 @@ test("Step Mode: Step tick продвигает симуляцию на один
   // Step tick кликается без ошибок; симуляция остаётся на паузе (Play видна)
   await page.locator('[data-testid="step-tick-btn"]').click();
   await expect(page.getByRole("button", { name: /Play/i })).toBeVisible();
+  // Step tick не выходит из step-режима — панель остаётся на месте
+  await expect(page.locator('[data-testid="step-controls"]')).toBeVisible();
 });
