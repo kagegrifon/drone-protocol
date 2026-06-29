@@ -17,6 +17,7 @@ import { EnergySystem } from "../../game/simulation/systems/EnergySystem.js";
 import { StatisticsSystem } from "../../game/simulation/systems/StatisticsSystem.js";
 import { CodeBehaviorDriver } from "../../game/code/CodeBehaviorDriver.js";
 import { dependentsOf } from "../../game/code/linker/dependentsOf.js";
+import type { StackFrame } from "../../game/code/linker/mapLine.js";
 import { BrowserWorkerPort } from "../../game/code/worker/BrowserWorkerPort.js";
 import type { CodeWorkerPort } from "../../game/code/CodeWorkerPort.js";
 
@@ -34,6 +35,7 @@ export interface DroneState {
   localPaused: boolean;
   codeError?: string;
   currentLine: number | null;
+  codeStack: StackFrame[] | null;
 }
 
 export function computeActivePath(
@@ -184,6 +186,7 @@ function snapshotDrones(world: World): DroneState[] {
       localPaused: program.localPaused ?? false,
       codeError: program.codeError,
       currentLine: program.currentLine ?? null,
+      codeStack: program.codeStack ?? null,
     };
   });
 }
