@@ -68,7 +68,9 @@ export class GameScene extends Phaser.Scene {
 
     // Subscribe to game events
     this._setupEventListeners();
-    this.input.on("pointerout", () => this.clearHover());
+    // "gameout" fires when the pointer leaves the canvas element (not a game object).
+    // "pointerout" fires when the pointer leaves an interactive game object — wrong for this use.
+    this.input.on("gameout", () => this.clearHover());
 
     const worldW = this._grid.width * TILE_SIZE;
     const worldH = this._grid.height * TILE_SIZE;
