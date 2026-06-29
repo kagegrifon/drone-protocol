@@ -8,7 +8,7 @@ import { collectWorld } from "./worldSnapshot.js";
 import type { WorkerMessage } from "./types.js";
 import { linkProgram, type LineMapSegment } from "./linker/linkProgram.js";
 import { LinkError } from "./linker/errors.js";
-import { mapLine } from "./linker/mapLine.js";
+import { mapStackToEntryLine } from "./linker/mapLine.js";
 
 // Бюджет на ответ воркера. Большой запас нужен из-за холодного старта в dev:
 // первый запуск worker-модуля под Vite (компиляция + конкуренция с Monaco
@@ -186,13 +186,13 @@ export class CodeBehaviorDriver implements BehaviorDriver {
         } else if (msg.action === "charge") {
           program.state = "charge";
         }
-        program.currentLine = this.mapToEntryLine(session, msg.line);
+        program.currentLine = this.mapToEntryLine(session, msg.lineStack);
         session.phase = "action-pending";
         return;
       }
       case "wait": {
         session.waitRemaining = msg.seconds;
-        program.currentLine = this.mapToEntryLine(session, msg.line);
+        program.currentLine = this.mapToEntryLine(session, msg.lineStack);
         session.phase = "waiting";
         return;
       }
@@ -220,9 +220,12 @@ export class CodeBehaviorDriver implements BehaviorDriver {
    * Маппит строку склеенного кода в строку entry-программы для подсветки.
    * v1: если исполнение внутри модуля — возвращает null (подсветка гаснет).
    */
-  private mapToEntryLine(session: Session, gluedLine: number): number | null {
-    const mapped = mapLine(gluedLine, session.lineMap, session.entryId);
-    return mapped?.origLine ?? null;
+  private mapToEntryLine(session: Session, lineStack: number[]): number | null {
+    return mapStackToEntryLine({
+      lineStack,
+      lineMap: session.lineMap,
+      entryId: session.entryId,
+    });
   }
 
   dispose(droneId: EntityId): void {

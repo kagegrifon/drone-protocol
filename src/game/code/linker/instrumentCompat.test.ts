@@ -27,7 +27,7 @@ function buildable(entryId: string, reg: ProgramRegistry): void {
   // 2. Инструментируется без ошибок.
   const instrumented = instrument(code);
   // 3. Собирается в тело AsyncFunction без SyntaxError.
-  new AsyncFunction("self", "World", "__line", instrumented);
+  new AsyncFunction("self", "World", "__line", "__call", instrumented);
 }
 
 describe("linker output ↔ instrument compatibility", () => {

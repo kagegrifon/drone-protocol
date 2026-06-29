@@ -80,7 +80,7 @@ while (true) {
     expect(result.match(/__line\(/g)?.length ?? 0).toBe(4);
   });
 
-  it("корректно обрабатывает вложенные while без точек с запятой", async () => {
+  it("корректно обрабатывает вложенные while без точек с запятой (backward compat)", async () => {
     const code = `while (true) {
   while (self.inventory === 0) {
     await self.moveTo({ x: 1, y: 1 })
@@ -118,5 +118,44 @@ while (true) {
     ) => (...args: unknown[]) => Promise<void>;
     const fn = new AsyncFn("self", "__line", result);
     await expect(fn(self, __line)).rejects.toThrow("stop");
+  });
+});
+
+describe("instrument — __mod_* calls", () => {
+  it("оборачивает await __mod_*() вызов в __call", () => {
+    // Имитируем склеенный код: модульная функция с await
+    const code = `await __mod_my__goToBase();`;
+    const result = instrument(code);
+    expect(result).toContain("__call(");
+    expect(result).toContain("__mod_my__goToBase()");
+    // await должен быть снаружи __call, а не внутри
+    expect(result).toMatch(/await __call\(\d+,/);
+  });
+
+  it("оборачивает синхронный __mod_*() вызов в __call (без await)", () => {
+    const code = `__mod_my__helper();`;
+    const result = instrument(code);
+    expect(result).toContain("__call(");
+    expect(result).toContain("__mod_my__helper()");
+  });
+
+  it("не трогает обычные вызовы self.* и локальные хелперы", () => {
+    const code = `await self.mine();\nhelperFn();`;
+    const result = instrument(code);
+    expect(result).not.toMatch(/__call\(/);
+    expect(result).toContain("__line(");
+  });
+
+  it("правильно обрабатывает __mod_* с аргументами", () => {
+    const code = `await __mod_utils__moveTo({ x: 1, y: 2 });`;
+    const result = instrument(code);
+    expect(result).toMatch(/await __call\(\d+, \(\) => __mod_utils__moveTo\(\{ x: 1, y: 2 \}\)\)/);
+  });
+
+  it("сохраняет __line для await self.* внутри кода рядом с __mod_* вызовами", () => {
+    const code = `await self.mine();\nawait __mod_my__fn();`;
+    const result = instrument(code);
+    expect(result).toContain("__line(1)");  // для self.mine()
+    expect(result).toContain("__call(2,");  // для __mod_my__fn()
   });
 });

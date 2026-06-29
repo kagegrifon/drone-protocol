@@ -68,6 +68,7 @@ describe("NodeWorkerPort", () => {
       action: "moveTo",
       point: { x: 1, y: 0 },
       line: 1,
+      lineStack: [1],
     });
 
     port.postMessage({ type: "resume", world: WORLD });
@@ -80,7 +81,7 @@ describe("NodeWorkerPort", () => {
       check();
     });
 
-    expect(messages[1]).toEqual({ type: "intent", action: "mine", line: 1 });
+    expect(messages[1]).toEqual({ type: "intent", action: "mine", line: 1, lineStack: [1] });
     port.postMessage({ type: "resume", world: WORLD });
 
     await new Promise<void>((resolve) => {
