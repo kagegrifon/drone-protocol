@@ -15,6 +15,7 @@ import { BottomPanel } from "./ui/layout/BottomPanel.js";
 import { IntroScreen } from "./ui/screens/IntroScreen.js";
 import { StartScreen } from "./ui/screens/StartScreen.js";
 import { LoadingScreen } from "./ui/screens/LoadingScreen.js";
+import { resetModuleLibs } from "./ui/editor/CodeEditor/monacoSetup.js";
 import { AudioSettingsModal } from "./ui/modals/AudioSettingsModal.js";
 import type { AudioManager } from "./renderer/audio/AudioManager.js";
 import { preloadUiSounds } from "./ui/audio/uiAudio.js";
@@ -74,6 +75,10 @@ export default function App() {
     if (!containerRef.current) return;
 
     controllerRef.current?.destroy();
+    // Сбрасываем Monaco module-libs прошлой миссии перед загрузкой новой: они
+    // живут в синглтоне на весь срок вкладки. ProgramEditor смонтируется позже
+    // (в game-фазе) и зарегистрирует типы текущей миссии заново.
+    resetModuleLibs();
     const ctrl = new GameController(ALL_MISSIONS[missionIndex]);
     ctrl.setup(containerRef.current, {
       onDroneClick: (id) => selectDrone(id),

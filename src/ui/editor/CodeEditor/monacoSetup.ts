@@ -89,3 +89,17 @@ export function updateModuleLibs(programs: ProgramDef[]): void {
     MODULE_LIBS_URI,
   );
 }
+
+/**
+ * Сбрасывает зарегистрированные module-libs и кэш последнего .d.ts. Вызывается
+ * при загрузке миссии: module-libs живут в синглтоне на весь срок вкладки, и без
+ * сброса extraLib предыдущей миссии остаётся в Monaco. Особенно опасно совпадение
+ * .d.ts двух миссий — тогда кэш `lastModuleDts` дал бы ложный no-op в
+ * updateModuleLibs, и старые типы пережили бы перезаход (автокомплит для прошлой
+ * миссии, импорты текущей подчёркнуты как ошибка).
+ */
+export function resetModuleLibs(): void {
+  moduleLibsDisposable?.dispose();
+  moduleLibsDisposable = null;
+  lastModuleDts = "";
+}
