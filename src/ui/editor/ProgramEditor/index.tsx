@@ -169,8 +169,10 @@ export function ProgramEditor() {
   const createNewProgram = () => {
     const trimmedName = newProgramName.trim();
     if (!trimmedName) return;
-    createProgram(trimmedName);
+    const newProgramId = createProgram(trimmedName);
     setNewProgramName("");
+    setEditingProgramId(newProgramId);
+    setTab("program");
   };
 
   const editingProgram = editingProgramId
