@@ -1,6 +1,7 @@
 # Координаты клетки под курсором
 
 **Статус:** planned
+**Plan:** docs/superpowers/plans/2026-06-28-cell-coordinates-hud.md
 
 ## Зачем
 
