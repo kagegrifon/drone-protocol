@@ -9,6 +9,7 @@ import { DroneInspector } from "./ui/panels/DroneInspector/index.js";
 import { ProgramEditor } from "./ui/editor/ProgramEditor/index.js";
 import { StatsPanel } from "./ui/panels/StatsPanel/index.js";
 import { OreHud } from "./ui/overlays/OreHud.js";
+import { CellCoordinatesHud } from "./ui/overlays/CellCoordinatesHud.js";
 import { MissionGoalButton } from "./ui/overlays/MissionGoalButton.js";
 import { GameStatusOverlay } from "./ui/overlays/GameStatusOverlay.js";
 import { BottomPanel } from "./ui/layout/BottomPanel.js";
@@ -195,6 +196,7 @@ export default function App() {
         {gamePhase === "game" && (
           <>
             <OreHud />
+            <CellCoordinatesHud />
             <MissionGoalButton mission={currentMission} />
             <GameStatusOverlay
               onReset={() => controllerRef.current?.reset()}
