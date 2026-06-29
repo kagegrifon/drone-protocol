@@ -19,6 +19,7 @@ import { resetModuleLibs } from "./ui/editor/CodeEditor/monacoSetup.js";
 import { AudioSettingsModal } from "./ui/modals/AudioSettingsModal.js";
 import type { AudioManager } from "./renderer/audio/AudioManager.js";
 import { preloadUiSounds } from "./ui/audio/uiAudio.js";
+import { GameControllerContext } from "./ui/controls/GameControllerContext.js";
 import "./global.css";
 
 type GamePhase = "intro" | "start" | "loading" | "game";
@@ -37,9 +38,21 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const selectedDroneId = useGameStore((s) => s.selectedDroneId);
+  const setStepMode = useGameStore((s) => s.setStepMode);
+  const isStepMode = useGameStore((s) => s.isStepMode);
 
   const currentMission = ALL_MISSIONS[missionIndex] ?? ALL_MISSIONS[0];
   const isLastMission = missionIndex === ALL_MISSIONS.length - 1;
+
+  const toggleStepMode = () => {
+    const next = !isStepMode;
+    setStepMode(next);
+    if (next) {
+      controllerRef.current?.pause();
+    } else {
+      controllerRef.current?.start();
+    }
+  };
 
   const openSettings = () => {
     if (gamePhase === "game") {
@@ -123,6 +136,7 @@ export default function App() {
   }, []);
 
   return (
+    <GameControllerContext.Provider value={controllerRef.current}>
     <div
       style={{
         height: "100vh",
@@ -152,6 +166,7 @@ export default function App() {
             onPlay={() => controllerRef.current?.start()}
             onPause={() => controllerRef.current?.pause()}
             onOpenSettings={openSettings}
+            onToggleStepMode={toggleStepMode}
           />
           <SectionLabel label="DRONES" />
           <DroneList />
@@ -242,6 +257,7 @@ export default function App() {
         }
       />
     </div>
+    </GameControllerContext.Provider>
   );
 }
 

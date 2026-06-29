@@ -4,6 +4,8 @@ interface SimControlsProps {
   onPlay: () => void;
   onPause: () => void;
   onOpenSettings: () => void;
+  /** Task 3 will implement the full UI; this prop is wired here for context. */
+  onToggleStepMode?: () => void;
 }
 
 const BTN: React.CSSProperties = {

@@ -94,6 +94,7 @@ interface GameStore {
   programs: ProgramDef[];
   stats: StatsState;
   isRunning: boolean;
+  isStepMode: boolean;
   gameStatus: GameStatus;
   statusMessage: string | null;
   _systems: Systems | null;
@@ -115,6 +116,7 @@ interface GameStore {
   tick(): void;
   selectDrone(id: EntityId | null): void;
   setRunning(v: boolean): void;
+  setStepMode(v: boolean): void;
   stepOnce(): void;
   setGameStatus(status: GameStatus, message?: string): void;
   createProgram(name: string): string;
@@ -202,6 +204,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   programs: [],
   stats: { orePerMin: 0, congestion: 0, efficiency: 0, tick: 0, oreMined: 0 },
   isRunning: false,
+  isStepMode: false,
   gameStatus: "idle" as GameStatus,
   statusMessage: null,
   _systems: null,
@@ -302,6 +305,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   setRunning(v) {
     set({ isRunning: v });
+  },
+
+  setStepMode(v) {
+    set({ isStepMode: v });
   },
 
   stepOnce() {
