@@ -72,8 +72,9 @@ export function instrument(code: string): string {
         line: callNode.loc.start.line,
         kind: "module-call",
       });
-      // Не спускаемся в children CallExpression — внутренние self.* будут
-      // инструментированы отдельно через AwaitExpression на том же уровне.
+      // Не спускаемся в children: __mod_*-вызовы в позиции аргумента
+      // (напр. __mod_a__fn(__mod_b__pos())) намеренно не оборачиваются в
+      // __call — они выполняются синхронно до await и не порождают highlight.
       return;
     }
 
