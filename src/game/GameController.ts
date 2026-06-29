@@ -5,10 +5,14 @@ import type { World as WorldType } from "./simulation/world/World.js";
 import type { MissionDef, EntityMeta } from "./missions/types.js";
 import type { WorldObjectType } from "../shared/types/index.js";
 import type { AudioManager } from "../renderer/audio/AudioManager.js";
+import type { ProgramState } from "./simulation/components/Program.js";
 import { GameLoop } from "./GameLoop.js";
 import { useGameStore } from "../shared/store/gameStore.js";
 import { GameRenderer } from "../renderer/GameRenderer.js";
 import { gameEvents } from "../shared/events/gameEvents.js";
+
+/** Защитный лимит: сколько тиков максимум проматывает один Step action. */
+const MAX_STEP_TICKS = 600;
 
 const ENTITY_LABEL: Record<WorldObjectType, string> = {
   mine: "Mine",
@@ -105,6 +109,39 @@ export class GameController {
     if (gameStatus === "won" || gameStatus === "failed") return;
     useGameStore.getState().tick();
     this.checkConditions();
+  }
+
+  /**
+   * Прогоняет тики до тех пор, пока выбранный дрон не начнёт следующее действие
+   * (сменится program.state/currentLine), либо до MAX_STEP_TICKS. No-op на won/failed.
+   */
+  stepDroneAction(droneId: EntityId): void {
+    const { gameStatus } = useGameStore.getState();
+    if (gameStatus === "won" || gameStatus === "failed") return;
+
+    const startMarker = this.actionMarker(droneId);
+    for (let tickCount = 0; tickCount < MAX_STEP_TICKS; tickCount++) {
+      useGameStore.getState().tick();
+      if (this.markerChanged(startMarker, this.actionMarker(droneId))) break;
+    }
+    this.checkConditions();
+  }
+
+  /** Снимок «текущего действия» дрона: его state и подсвеченная строка. */
+  private actionMarker(droneId: EntityId): {
+    state: ProgramState | null;
+    line: number | null;
+  } {
+    const program = this.world?.getComponent(droneId, "Program");
+    if (!program) return { state: null, line: null };
+    return { state: program.state, line: program.currentLine ?? null };
+  }
+
+  private markerChanged(
+    before: { state: ProgramState | null; line: number | null },
+    after: { state: ProgramState | null; line: number | null },
+  ): boolean {
+    return before.state !== after.state || before.line !== after.line;
   }
 
   reset(): void {
