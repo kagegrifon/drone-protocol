@@ -68,6 +68,7 @@ export function SimControls({
         }}
         onClick={onOpenSettings}
         title="Настройки"
+        data-testid="open-settings"
       >
         ⚙
       </button>
