@@ -293,6 +293,7 @@ export function ProgramEditor() {
         }}
       >
         <button
+          data-testid="drone-tab"
           style={{ ...TAB_BTN(tab === "drone"), position: "relative" }}
           onClick={() => setTab("drone")}
         >
