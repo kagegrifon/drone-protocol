@@ -1,7 +1,6 @@
 import Phaser from "phaser";
 import type { World } from "../../game/simulation/world/World.js";
 import type { Grid } from "../../game/simulation/world/Grid.js";
-import type { CellType } from "../../shared/constants/cellTypes.js";
 import type { EntityId } from "../../shared/types/index.js";
 import { DroneSprite } from "../sprites/DroneSprite.js";
 import { AudioManager } from "../audio/AudioManager.js";
@@ -10,11 +9,7 @@ import { TILE_SIZE, COLORS, TILE_COLORS } from "../config.js";
 import { useGameStore } from "../../shared/store/gameStore.js";
 import { DT } from "../../game/simulation/constants.js";
 import { interpolateVisualPos } from "./interpolatePosition.js";
-
-const BUILDING_TILES = new Set<CellType>(["mine", "base", "charger"]);
-
-// Смещение указателя (в пикселях) больше этого порога считаем панорамированием, а не кликом.
-const CLICK_DRAG_THRESHOLD_PX = 4;
+import { PointerInteractionController } from "./PointerInteractionController.js";
 
 export class GameScene extends Phaser.Scene {
   private _world!: World;
@@ -26,18 +21,13 @@ export class GameScene extends Phaser.Scene {
   private _dustEmitter!: Phaser.GameObjects.Particles.ParticleEmitter;
   private _chargingCount = 0;
   private _tick = 0;
-  private _hoverHighlight!: Phaser.GameObjects.Graphics;
-  private _hoverPrevCell: { x: number; y: number } | null = null;
-  // Различаем клик по клетке от драг-панорамирования: запоминаем старт жеста,
-  // а флаг взводится, если на этом жесте уже выбран дрон (у дрона приоритет).
-  private _pointerDownAt: { x: number; y: number } | null = null;
-  private _droneSelectedThisGesture = false;
 
   // Доинтерполяция внутри симуляционного тика: засекаем начало каждого тика,
   // чтобы плавно «доводить» прогресс шага между дискретными апдейтами симуляции.
   private _lastSimTick = -1;
   private _tickStartMs = 0;
   private _lastSelectedId: EntityId | null = null;
+  private _pointerInteraction!: PointerInteractionController;
 
   constructor() {
     super({ key: "GameScene" });
@@ -78,16 +68,15 @@ export class GameScene extends Phaser.Scene {
 
     // Subscribe to game events
     this._setupEventListeners();
-    // "gameout" fires when the pointer leaves the canvas element (not a game object).
-    // "pointerout" fires when the pointer leaves an interactive game object — wrong for this use.
-    this.input.on("gameout", () => this.clearHover());
 
     const worldW = this._grid.width * TILE_SIZE;
     const worldH = this._grid.height * TILE_SIZE;
     this.drawTileMap(worldW, worldH);
     this._trailGraphics = this.add.graphics().setDepth(8);
-    this._hoverHighlight = this.add.graphics().setDepth(6);
-    this._hoverHighlight.setVisible(false);
+    this._pointerInteraction = new PointerInteractionController({
+      scene: this,
+      grid: this._grid,
+    });
     this.setupEntitySprites();
     this.setupCamera(worldW, worldH);
 
@@ -178,107 +167,6 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private drawHoverHighlight(cell: {
-    x: number;
-    y: number;
-    isBuilding: boolean;
-  }): void {
-    const px = cell.x * TILE_SIZE;
-    const py = cell.y * TILE_SIZE;
-
-    this._hoverHighlight.clear();
-    if (!cell.isBuilding) {
-      this._hoverHighlight.fillStyle(COLORS.DRONE_GLOW, 0.12);
-      this._hoverHighlight.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-    }
-    this._hoverHighlight.lineStyle(2, COLORS.DRONE_GLOW, 0.9);
-    // Обводку вжимаем на 1px со всех сторон, чтобы 2px-линия осталась внутри клетки.
-    this._hoverHighlight.strokeRect(
-      px + 1,
-      py + 1,
-      TILE_SIZE - 2,
-      TILE_SIZE - 2,
-    );
-    this._hoverHighlight.setVisible(true);
-  }
-
-  private isBuildingTile(tile: CellType): boolean {
-    return BUILDING_TILES.has(tile);
-  }
-
-  /**
-   * Курсор действительно над спрайтом дрона (hit-test по реальной, интерполированной
-   * позиции на экране) — дрон плавно едет между клетками, поэтому логическая Position
-   * не годится: во время движения она отстаёт от того, что видит игрок.
-   */
-  private isPointerOverDrone(pointer: Phaser.Input.Pointer): boolean {
-    const objectsUnderPointer = this.input.hitTestPointer(pointer);
-    for (const sprite of this._droneSprites.values()) {
-      if (objectsUnderPointer.includes(sprite)) return true;
-    }
-    return false;
-  }
-
-  private clearHover(): void {
-    this.sys.game.canvas.style.cursor = "default";
-    this.clearHoverHighlightOnly();
-  }
-
-  /** Убрать подсветку клетки и сброс store, не трогая курсор мыши. */
-  private clearHoverHighlightOnly(): void {
-    if (this._hoverPrevCell === null) return;
-    this._hoverPrevCell = null;
-    this._hoverHighlight.setVisible(false);
-    useGameStore.getState().setHoveredCell(null);
-  }
-
-  private updateHoveredCell(pointer: Phaser.Input.Pointer): void {
-    // Над дроном не работает механизм ховера клетки вообще (как будто вне поля):
-    // дрон плавно едет между клетками, у него своё кольцо выделения, а заливка
-    // клетки под ним визуально путается с выбором дрона.
-    if (this.isPointerOverDrone(pointer)) {
-      this.sys.game.canvas.style.cursor = "pointer";
-      this.clearHoverHighlightOnly();
-      return;
-    }
-
-    const world = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-    const cellX = Math.floor(world.x / TILE_SIZE);
-    const cellY = Math.floor(world.y / TILE_SIZE);
-
-    const tile = this._grid.getTile(cellX, cellY);
-    const onField = tile !== "wall";
-    if (!onField) {
-      this.clearHover();
-      return;
-    }
-
-    const isBuilding = this.isBuildingTile(tile);
-    this.sys.game.canvas.style.cursor = isBuilding ? "pointer" : "default";
-
-    const prev = this._hoverPrevCell;
-    if (prev !== null && prev.x === cellX && prev.y === cellY) return;
-
-    this._hoverPrevCell = { x: cellX, y: cellY };
-    this.drawHoverHighlight({
-      x: cellX,
-      y: cellY,
-      isBuilding,
-    });
-    useGameStore.getState().setHoveredCell({ x: cellX, y: cellY });
-  }
-
-  /** Клетка сетки под указателем, либо null если указатель вне сетки. */
-  private pointerToCell(
-    pointer: Phaser.Input.Pointer,
-  ): { x: number; y: number } | null {
-    const world = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-    const cellX = Math.floor(world.x / TILE_SIZE);
-    const cellY = Math.floor(world.y / TILE_SIZE);
-    if (this._grid.getTile(cellX, cellY) === "wall") return null;
-    return { x: cellX, y: cellY };
-  }
-
   private setupEntitySprites(): void {
     for (const entityId of this._world.query("Position", "Renderable")) {
       this.ensureSprite(entityId);
@@ -296,6 +184,7 @@ export class GameScene extends Phaser.Scene {
     if (renderable.spriteType === "drone") {
       if (!this._droneSprites.has(entityId)) {
         const sprite = new DroneSprite(this, cx, cy);
+        sprite.setData("isDrone", true);
         const onDroneClick = this.registry.get("onDroneClick") as
           | ((id: EntityId) => void)
           | undefined;
@@ -304,8 +193,8 @@ export class GameScene extends Phaser.Scene {
           sprite.setInteractive();
           sprite.on("pointerdown", () => {
             // Дрон имеет приоритет над выбором клетки: помечаем жест, чтобы
-            // pointerup сцены не перезаписал выбор клеткой под дроном.
-            this._droneSelectedThisGesture = true;
+            // pointerup контроллера не перезаписал выбор клеткой под дроном.
+            this._pointerInteraction.markDroneSelectedThisGesture();
             onDroneClick(entityId);
           });
         }
@@ -472,40 +361,7 @@ export class GameScene extends Phaser.Scene {
       if (pointer.isDown) {
         cam.scrollX -= (pointer.x - pointer.prevPosition.x) / cam.zoom;
         cam.scrollY -= (pointer.y - pointer.prevPosition.y) / cam.zoom;
-        this.clearHover();
-        return;
       }
-      this.updateHoveredCell(pointer);
-    });
-
-    // Клик по клетке (не по дрону, не панорама) → выбрать клетку в INSPECTOR.
-    // Флаг _droneSelectedThisGesture НЕ сбрасываем здесь: Phaser эмитит
-    // object-level "pointerdown" спрайта дрона раньше сценевого "pointerdown"
-    // (см. InputPlugin.processDownEvents), так что сброс тут перезаписал бы
-    // флаг, который спрайт уже взвёл в рамках того же жеста. Сбрасываем его
-    // в pointerup — к следующему жесту он снова false.
-    this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      this._pointerDownAt = { x: pointer.x, y: pointer.y };
-    });
-
-    this.input.on("pointerup", (pointer: Phaser.Input.Pointer) => {
-      const downAt = this._pointerDownAt;
-      this._pointerDownAt = null;
-      const droneSelected = this._droneSelectedThisGesture;
-      this._droneSelectedThisGesture = false;
-      if (droneSelected) return; // дрон уже выбран этим жестом
-      if (!downAt) return;
-
-      const moved = Math.hypot(pointer.x - downAt.x, pointer.y - downAt.y);
-      if (moved > CLICK_DRAG_THRESHOLD_PX) return; // это было панорамирование
-
-      const cell = this.pointerToCell(pointer);
-      if (!cell) return;
-
-      const onCellClick = this.registry.get("onCellClick") as
-        | ((cell: { x: number; y: number }) => void)
-        | undefined;
-      onCellClick?.(cell);
     });
 
     this.sys.game.canvas.addEventListener(
