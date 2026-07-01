@@ -3,6 +3,7 @@ import { useGameStore } from "../../shared/store/gameStore.js";
 interface SimControlsProps {
   onPlay: () => void;
   onPause: () => void;
+  onToggleStepMode: () => void;
   onOpenSettings: () => void;
 }
 
@@ -30,15 +31,39 @@ const BTN_DISABLED: React.CSSProperties = {
   cursor: "default",
 };
 
+const BTN_STEP: React.CSSProperties = {
+  ...BTN,
+  color: "#ff7a1a",
+  border: "1px solid #5a3a1f",
+};
+
+const BTN_STEP_ACTIVE: React.CSSProperties = {
+  ...BTN,
+  background: "#ff7a1a",
+  color: "#1a0d00",
+  border: "1px solid #ff7a1a",
+  fontWeight: "bold",
+};
+
 export function SimControls({
   onPlay,
   onPause,
+  onToggleStepMode,
   onOpenSettings,
 }: SimControlsProps) {
   const isRunning = useGameStore((s) => s.isRunning);
   const gameStatus = useGameStore((s) => s.gameStatus);
+  const isStepMode = useGameStore((s) => s.isStepMode);
 
   const isFinished = gameStatus === "won" || gameStatus === "failed";
+
+  function playButtonStyle(): React.CSSProperties {
+    if (isFinished) return BTN_DISABLED;
+    if (isRunning) return BTN_ACTIVE;
+    return BTN;
+  }
+
+  const stepButtonStyle = isStepMode ? BTN_STEP_ACTIVE : BTN_STEP;
 
   return (
     <div
@@ -52,13 +77,23 @@ export function SimControls({
         flexWrap: "wrap",
       }}
     >
-      <button
-        style={isFinished ? BTN_DISABLED : isRunning ? BTN_ACTIVE : BTN}
-        disabled={isFinished}
-        onClick={() => (isRunning ? onPause() : onPlay())}
-      >
-        {isRunning ? "⏸ Pause" : "▶ Play"}
-      </button>
+      <div style={{ display: "flex", gap: "8px" }}>
+        <button
+          style={playButtonStyle()}
+          disabled={isFinished}
+          onClick={() => (isRunning ? onPause() : onPlay())}
+        >
+          {isRunning ? "⏸ Pause" : "▶ Play"}
+        </button>
+        <button
+          style={stepButtonStyle}
+          onClick={onToggleStepMode}
+          data-testid="step-mode-toggle"
+          title="Пошаговый просмотр работы дрона"
+        >
+          ⏯ Step Mode
+        </button>
+      </div>
       <button
         style={{
           ...BTN,

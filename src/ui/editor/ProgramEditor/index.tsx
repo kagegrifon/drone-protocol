@@ -3,6 +3,7 @@ import { useGameStore } from "../../../shared/store/gameStore.js";
 import { ProgramCodeBlock } from "../CodeEditor/ProgramCodeBlock.js";
 import { CodeEditor } from "../CodeEditor/CodeEditor.js";
 import { CallStackBreadcrumbs } from "../CallStackBreadcrumbs/index.js";
+import { StepControls } from "../StepControls/index.js";
 import { resolveDisplayedFrame } from "./frameSelection.js";
 import { updateModuleLibs } from "../CodeEditor/monacoSetup.js";
 import { moduleInterfaceOf } from "../../../game/programs/moduleInterface.js";
@@ -186,6 +187,7 @@ export function ProgramEditor() {
 
   const selectedId = useGameStore((s) => s.selectedDroneId);
   const drones = useGameStore((s) => s.drones);
+  const isStepMode = useGameStore((s) => s.isStepMode);
   const programs = useGameStore((s) => s.programs);
   const registry = useGameStore((s) => s.registry);
   const createProgram = useGameStore((s) => s.createProgram);
@@ -291,10 +293,25 @@ export function ProgramEditor() {
         }}
       >
         <button
-          style={TAB_BTN(tab === "drone")}
+          data-testid="drone-tab"
+          style={{ ...TAB_BTN(tab === "drone"), position: "relative" }}
           onClick={() => setTab("drone")}
         >
           DRONE
+          {isStepMode && (
+            <span
+              data-testid="drone-tab-step-indicator"
+              style={{
+                position: "absolute",
+                top: "3px",
+                right: "4px",
+                width: "6px",
+                height: "6px",
+                borderRadius: "50%",
+                background: "#ff4d2e",
+              }}
+            />
+          )}
         </button>
         <button
           style={TAB_BTN(tab === "library")}
@@ -328,6 +345,8 @@ export function ProgramEditor() {
             )}
             {drone && (
               <>
+                {isStepMode && <StepControls droneId={drone.id} />}
+
                 {/* Call Stack — хлебные крошки над блоками кода (только при исполнении) */}
                 {codeStack.length > 0 && (
                   <div style={{ marginBottom: "8px" }}>

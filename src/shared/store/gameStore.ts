@@ -44,6 +44,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   programs: [],
   stats: { orePerMin: 0, congestion: 0, efficiency: 0, tick: 0, oreMined: 0 },
   isRunning: false,
+  isStepMode: false,
   gameStatus: "idle" as GameStatus,
   statusMessage: null,
   _systems: null,
@@ -167,6 +168,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   setRunning(v) {
     set({ isRunning: v });
+  },
+
+  setStepMode(v) {
+    set({ isStepMode: v });
   },
 
   stepOnce() {

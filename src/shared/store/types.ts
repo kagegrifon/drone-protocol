@@ -80,6 +80,7 @@ export interface GameStore {
   programs: ProgramDef[];
   stats: StatsState;
   isRunning: boolean;
+  isStepMode: boolean;
   gameStatus: GameStatus;
   statusMessage: string | null;
   _systems: Systems | null;
@@ -104,6 +105,7 @@ export interface GameStore {
   selectCell(cell: SelectedCell): void;
   setHoveredCell(cell: HoveredCell): void;
   setRunning(v: boolean): void;
+  setStepMode(v: boolean): void;
   stepOnce(): void;
   setGameStatus(status: GameStatus, message?: string): void;
   createProgram(name: string): string;
