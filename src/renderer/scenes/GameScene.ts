@@ -11,6 +11,8 @@ import { useGameStore } from "../../shared/store/gameStore.js";
 import { DT } from "../../game/simulation/constants.js";
 import { interpolateVisualPos } from "./interpolatePosition.js";
 
+const BUILDING_TILES = new Set<CellType>(["mine", "base", "charger"]);
+
 export class GameScene extends Phaser.Scene {
   private _world!: World;
   private _grid!: Grid;
@@ -185,7 +187,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private isBuildingTile(tile: CellType): boolean {
-    return tile === "mine" || tile === "base" || tile === "charger";
+    return BUILDING_TILES.has(tile);
   }
 
   private clearHover(): void {
