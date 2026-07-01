@@ -3,10 +3,7 @@ import { useGameStore } from "./gameStore.js";
 import { World } from "../../game/simulation/world/World.js";
 import { Grid } from "../../game/simulation/world/Grid.js";
 import type { ProgramState } from "../../game/simulation/components/Program.js";
-import type {
-  ProgramRegistry,
-  ProgramDef,
-} from "../../game/programs/types.js";
+import type { ProgramRegistry, ProgramDef } from "../../game/programs/types.js";
 
 function makeWorld(): World {
   return new World();
@@ -278,9 +275,8 @@ describe("store.programs — фильтрация", () => {
 
 describe("store.init() — CodeBehaviorDriver подключён через ProgramExecutionSystem", () => {
   it("дрон с personal-программой sourceForm='code' выполняет код через store.tick()", async () => {
-    const { NodeWorkerPort } = await import(
-      "../../game/code/worker/NodeWorkerPort.js"
-    );
+    const { NodeWorkerPort } =
+      await import("../../game/code/worker/NodeWorkerPort.js");
 
     const prog: ProgramDef = {
       id: "p1",
@@ -317,4 +313,118 @@ describe("store.init() — CodeBehaviorDriver подключён через Prog
 
     expect(state).toBe("mine");
   }, 5000);
+});
+
+describe("setHoveredCell — координата клетки под курсором", () => {
+  it("по умолчанию hoveredCell === null", () => {
+    expect(useGameStore.getState().hoveredCell).toBeNull();
+  });
+
+  it("устанавливает координату клетки", () => {
+    useGameStore.getState().setHoveredCell({ x: 3, y: 10 });
+    expect(useGameStore.getState().hoveredCell).toEqual({ x: 3, y: 10 });
+  });
+
+  it("сбрасывает в null", () => {
+    useGameStore.getState().setHoveredCell({ x: 3, y: 10 });
+    useGameStore.getState().setHoveredCell(null);
+    expect(useGameStore.getState().hoveredCell).toBeNull();
+  });
+
+  it("не создаёт новую ссылку при той же координате (дедупликация)", () => {
+    useGameStore.getState().setHoveredCell({ x: 5, y: 5 });
+    const first = useGameStore.getState().hoveredCell;
+    useGameStore.getState().setHoveredCell({ x: 5, y: 5 });
+    const second = useGameStore.getState().hoveredCell;
+    expect(second).toBe(first); // та же ссылка — set не вызывался
+  });
+});
+
+// ─── selectCell / selectDrone — взаимоисключающий выбор ──────────────────────
+
+describe("store.selectCell / selectDrone — взаимоисключаемость", () => {
+  it("selectCell пишет selectedCell и обнуляет selectedDroneId", () => {
+    useGameStore.getState().selectDrone(7);
+    useGameStore.getState().selectCell({ x: 2, y: 4 });
+
+    expect(useGameStore.getState().selectedCell).toEqual({ x: 2, y: 4 });
+    expect(useGameStore.getState().selectedDroneId).toBeNull();
+  });
+
+  it("selectDrone обнуляет selectedCell", () => {
+    useGameStore.getState().selectCell({ x: 2, y: 4 });
+    useGameStore.getState().selectDrone(7);
+
+    expect(useGameStore.getState().selectedDroneId).toBe(7);
+    expect(useGameStore.getState().selectedCell).toBeNull();
+  });
+});
+
+// ─── snapshotBuildings — срез зданий с ref и остатком руды ───────────────────
+
+describe("store.buildings — срез зданий для INSPECTOR", () => {
+  function makeWorldWithBuildings(): {
+    world: World;
+    staticEntities: Array<{ id: number; type: "mine" | "base" | "charger" }>;
+  } {
+    const world = new World();
+
+    const baseId = world.createEntity();
+    world.addComponent(baseId, "Position", { x: 1, y: 1 });
+    world.addComponent(baseId, "Inventory", { ore: 0, capacity: 999 });
+
+    const mineId = world.createEntity();
+    world.addComponent(mineId, "Position", { x: 5, y: 6 });
+    world.addComponent(mineId, "Deposit", { oreRemaining: 200, mineRate: 1 });
+
+    // Порядок в staticEntities задаёт индексы рефов.
+    return {
+      world,
+      staticEntities: [
+        { id: baseId, type: "base" },
+        { id: mineId, type: "mine" },
+      ],
+    };
+  }
+
+  it("формирует ref по типу с индексом внутри типа", () => {
+    const { world, staticEntities } = makeWorldWithBuildings();
+    useGameStore
+      .getState()
+      .init(world, makeGrid(), makeRegistry(), { staticEntities });
+
+    const { buildings } = useGameStore.getState();
+    const base = buildings.find((b) => b.type === "base")!;
+    const mine = buildings.find((b) => b.type === "mine")!;
+
+    expect(base.ref).toBe("World.bases[0]");
+    expect(mine.ref).toBe("World.mines[0]");
+  });
+
+  it("для шахты кладёт oreRemaining, для базы — нет", () => {
+    const { world, staticEntities } = makeWorldWithBuildings();
+    useGameStore
+      .getState()
+      .init(world, makeGrid(), makeRegistry(), { staticEntities });
+
+    const { buildings } = useGameStore.getState();
+    const mine = buildings.find((b) => b.type === "mine")!;
+    const base = buildings.find((b) => b.type === "base")!;
+
+    expect(mine.oreRemaining).toBe(200);
+    expect(base.oreRemaining).toBeUndefined();
+  });
+
+  it("координаты здания берутся из компонента Position", () => {
+    const { world, staticEntities } = makeWorldWithBuildings();
+    useGameStore
+      .getState()
+      .init(world, makeGrid(), makeRegistry(), { staticEntities });
+
+    const mine = useGameStore
+      .getState()
+      .buildings.find((b) => b.type === "mine")!;
+    expect(mine.x).toBe(5);
+    expect(mine.y).toBe(6);
+  });
 });
