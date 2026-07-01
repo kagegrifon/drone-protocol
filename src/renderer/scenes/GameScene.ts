@@ -206,7 +206,26 @@ export class GameScene extends Phaser.Scene {
     return BUILDING_TILES.has(tile);
   }
 
+  /**
+   * Курсор действительно над спрайтом дрона (hit-test по реальной, интерполированной
+   * позиции на экране) — дрон плавно едет между клетками, поэтому логическая Position
+   * не годится: во время движения она отстаёт от того, что видит игрок.
+   */
+  private isPointerOverDrone(pointer: Phaser.Input.Pointer): boolean {
+    const objectsUnderPointer = this.input.hitTestPointer(pointer);
+    for (const sprite of this._droneSprites.values()) {
+      if (objectsUnderPointer.includes(sprite)) return true;
+    }
+    return false;
+  }
+
   private clearHover(): void {
+    this.sys.game.canvas.style.cursor = "default";
+    this.clearHoverHighlightOnly();
+  }
+
+  /** Убрать подсветку клетки и сброс store, не трогая курсор мыши. */
+  private clearHoverHighlightOnly(): void {
     if (this._hoverPrevCell === null) return;
     this._hoverPrevCell = null;
     this._hoverHighlight.setVisible(false);
@@ -214,6 +233,15 @@ export class GameScene extends Phaser.Scene {
   }
 
   private updateHoveredCell(pointer: Phaser.Input.Pointer): void {
+    // Над дроном не работает механизм ховера клетки вообще (как будто вне поля):
+    // дрон плавно едет между клетками, у него своё кольцо выделения, а заливка
+    // клетки под ним визуально путается с выбором дрона.
+    if (this.isPointerOverDrone(pointer)) {
+      this.sys.game.canvas.style.cursor = "pointer";
+      this.clearHoverHighlightOnly();
+      return;
+    }
+
     const world = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
     const cellX = Math.floor(world.x / TILE_SIZE);
     const cellY = Math.floor(world.y / TILE_SIZE);
@@ -225,6 +253,9 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    const isBuilding = this.isBuildingTile(tile);
+    this.sys.game.canvas.style.cursor = isBuilding ? "pointer" : "default";
+
     const prev = this._hoverPrevCell;
     if (prev !== null && prev.x === cellX && prev.y === cellY) return;
 
@@ -232,7 +263,7 @@ export class GameScene extends Phaser.Scene {
     this.drawHoverHighlight({
       x: cellX,
       y: cellY,
-      isBuilding: this.isBuildingTile(tile),
+      isBuilding,
     });
     useGameStore.getState().setHoveredCell({ x: cellX, y: cellY });
   }
@@ -448,15 +479,21 @@ export class GameScene extends Phaser.Scene {
     });
 
     // Клик по клетке (не по дрону, не панорама) → выбрать клетку в INSPECTOR.
+    // Флаг _droneSelectedThisGesture НЕ сбрасываем здесь: Phaser эмитит
+    // object-level "pointerdown" спрайта дрона раньше сценевого "pointerdown"
+    // (см. InputPlugin.processDownEvents), так что сброс тут перезаписал бы
+    // флаг, который спрайт уже взвёл в рамках того же жеста. Сбрасываем его
+    // в pointerup — к следующему жесту он снова false.
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       this._pointerDownAt = { x: pointer.x, y: pointer.y };
-      this._droneSelectedThisGesture = false;
     });
 
     this.input.on("pointerup", (pointer: Phaser.Input.Pointer) => {
       const downAt = this._pointerDownAt;
       this._pointerDownAt = null;
-      if (this._droneSelectedThisGesture) return; // дрон уже выбран этим жестом
+      const droneSelected = this._droneSelectedThisGesture;
+      this._droneSelectedThisGesture = false;
+      if (droneSelected) return; // дрон уже выбран этим жестом
       if (!downAt) return;
 
       const moved = Math.hypot(pointer.x - downAt.x, pointer.y - downAt.y);
