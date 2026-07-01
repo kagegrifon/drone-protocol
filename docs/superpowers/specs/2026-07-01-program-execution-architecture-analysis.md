@@ -238,10 +238,13 @@ const ACTIONS: Record<CodeAction, ActionDef> = {
 update() {
   for (const droneId of world.query("Program")) {
     const program = world.getComponent(droneId, "Program");
-    if (program.activeAction === null) continue;
-    const action = ACTIONS[program.activeAction.kind];
-    const result = action.tick({ world, droneId, data: program.activeAction.data });
-    if (result === "done") program.activeAction = null;  // единственное место сброса
+    for (const slot of Object.keys(program.activeActions) as ActionSlot[]) {
+      const active = program.activeActions[slot];
+      if (!active) continue;
+      const action = ACTIONS[active.kind];
+      const result = action.tick({ world, droneId, data: active.data });
+      if (result === "done") delete program.activeActions[slot];  // единственное место сброса
+    }
   }
 }
 ```
@@ -249,9 +252,11 @@ update() {
 ### Изменение `ProgramComponent`
 
 Вместо `state: ProgramState` + `mineProgress?/chargeProgress?/dropProgress?` (россыпь
-опциональных полей, по одному на действие) — одно поле:
+опциональных полей, по одному на действие) — карта активных действий по слотам:
 
 ```ts
+type ActionSlot = "locomotion" | "tool";  // + "turret" и т.п., если появятся параллельные actuator'ы
+
 interface ActiveAction {
   kind: CodeAction;
   progress: number;     // [0..1) — единый прогресс для любого действия
@@ -260,9 +265,15 @@ interface ActiveAction {
 
 interface ProgramComponent {
   // ...
-  activeAction: ActiveAction | null;   // null = "running"/idle
+  activeActions: Partial<Record<ActionSlot, ActiveAction>>;   // {} = "running"/idle
 }
 ```
+
+Каждый `ActionDef` декларирует свой `slot` (`move` → `locomotion`; `mine`/`drop`/`charge`/`build` →
+`tool`). Сейчас в игре у дрона фактически один actuator за раз, поэтому на старте это можно
+реализовать как объект с максимум одним занятым ключом — но сам тип уже не мешает добавить второй
+слот (например будущую стрельбу как `turret`) без переписывания `ProgramComponent` и протокола
+intent/resume. См. §6 ниже.
 
 ### Важное уточнение: момент resume воркера НЕ меняется
 
@@ -276,7 +287,7 @@ interface ProgramComponent {
 ```ts
 // CodeBehaviorDriver.ts:134-146, меняется только условие проверки
 if (session.phase === "action-pending") {
-  if (program.activeAction !== null) return;   // было: program.state !== "running"
+  if (Object.keys(program.activeActions).length > 0) return;  // было: program.state !== "running"
   session.phase = "idle";
   session.port.postMessage({ type: "resume", world: ... });  // не меняется
   gameEvents.emit("drone:actionResumed", { droneId });        // не меняется
@@ -307,9 +318,41 @@ if (session.phase === "action-pending") {
 
 ---
 
+## 6. Дополнительные вопросы (follow-up после дизайна)
+
+### Нужна ли внешняя state-machine библиотека (XState и т.п.)?
+
+Нет, не рекомендуется. Такие библиотеки дают визуализацию, guards, parallel states "из коробки",
+но добавляют асинхронную событийную модель поверх уже синхронной, детерминированной модели тика —
+для 100мс-tick и Step Mode, где важна предсказуемость каждого перехода, это лишний непрозрачный
+слой поверх и так существующего Worker-протокола. Реестр `ActionDef` — это уже достаточная
+формализация: `Record<CodeAction, ActionDef>` — обычный TS discriminated-union dispatch,
+тайпчекается сам по себе. Из полезного — не библиотека, а мелкий внутренний хелпер:
+`defineAction()` с exhaustiveness-check (через `never`), чтобы TS не давал забыть завести
+`ActionDef` для нового `CodeAction`.
+
+### Несколько активных действий одновременно (например «ехать и стрелять»)
+
+Гипотетический будущий кейс — стрельбы/аналога сейчас нет в GDD, вопрос был "не закрыться
+архитектурно". Ответ заложен в дизайне §5 через `ActionSlot`: `move` занимает слот `locomotion`,
+`mine`/`drop`/`charge`/`build` — слот `tool`. Каждый `ActionDef` декларирует свой слот,
+`ActionExecutionSystem` крутит все занятые слоты одного дрона за тик независимо друг от друга,
+driver считает дрона свободным для resume, когда пусты **все** слоты (для будущего частичного
+resume — когда пуст только нужный слот, если API кода дрона это разрешит).
+
+**Важно:** реализовывать параллельные слоты сейчас не нужно (в игре пока один actuator).
+Единственное, что стоит сделать заранее — выбрать тип `activeActions: Partial<Record<ActionSlot, ActiveAction>>`
+вместо `activeAction: ActiveAction | null` на этапе рефакторинга, чтобы не пришлось второй раз
+менять форму `ProgramComponent` и протокол intent/resume, когда параллельный actuator появится.
+
+---
+
 ## Итог сессии
 
-Направление выбрано: **вариант A (реестр действий)**. Реализация не начата — эта сессия
-только диаграмма и анализ, по явному запросу в начале брейнсторминга. Если и когда будет
-решено реализовывать — нужен отдельный проход через `writing-plans` с конкретным планом
-переноса логики из Movement/Mining/Energy в `ActionDef`-модули.
+Направление выбрано: **вариант A (реестр действий)**, с `activeActions` по слотам
+(`ActionSlot`), чтобы не закрыться архитектурно на будущие параллельные actuator'ы
+(гипотетический пример — «ехать и стрелять»). Внешняя state-machine библиотека не нужна —
+реестр `ActionDef` уже достаточная формализация. Реализация не начата — эта сессия только
+диаграмма и анализ, по явному запросу в начале брейнсторминга. Если и когда будет решено
+реализовывать — нужен отдельный проход через `writing-plans` с конкретным планом переноса
+логики из Movement/Mining/Energy в `ActionDef`-модули.
