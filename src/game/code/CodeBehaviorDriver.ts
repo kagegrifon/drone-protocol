@@ -1,4 +1,5 @@
 import type { EntityId, WorldObjectType } from "../../shared/types/index.js";
+import { gameEvents } from "../../shared/events/gameEvents.js";
 import { DT } from "../simulation/constants.js";
 import type { ProgramComponent } from "../simulation/components/Program.js";
 import { extendPathTail, planMoveToPoint } from "../pathfinding/planMove.js";
@@ -126,6 +127,7 @@ export class CodeBehaviorDriver implements BehaviorDriver {
         world: collectWorld(ctx.world, droneId, this.typeMap),
       });
       this.armTimeout(session, program);
+      gameEvents.emit("drone:actionResumed", { droneId });
       return;
     }
 
@@ -139,6 +141,7 @@ export class CodeBehaviorDriver implements BehaviorDriver {
         world: collectWorld(ctx.world, droneId, this.typeMap),
       });
       this.armTimeout(session, program);
+      gameEvents.emit("drone:actionResumed", { droneId });
       return;
     }
 

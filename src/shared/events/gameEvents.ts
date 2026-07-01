@@ -15,6 +15,8 @@ export type GameEventMap = {
   };
   "entity:removed": { entityId: EntityId; lastX?: number; lastY?: number };
   "drone:blocked": { droneId: EntityId };
+  /** CodeBehaviorDriver отправил воркеру 'resume' — await self.* в коде дрона резолвится. */
+  "drone:actionResumed": { droneId: EntityId };
 };
 
 type Listener<T> = (data: T) => void;

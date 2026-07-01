@@ -4,11 +4,11 @@ vi.mock("../renderer/GameRenderer.js", () => ({ GameRenderer: class {} }));
 
 import { useGameStore } from "../shared/store/gameStore.js";
 import type { EntityId } from "../shared/types/index.js";
+import { gameEvents } from "../shared/events/gameEvents.js";
 import { World } from "./simulation/world/World.js";
 import type { ProgramComponent } from "./simulation/components/Program.js";
 import { GameController } from "./GameController.js";
 
-// Хелпер: ставит дрону Program с заданными state/currentLine, имитируя позицию.
 function setAction(
   world: World,
   droneId: EntityId,
@@ -45,7 +45,8 @@ function makeStepController() {
   } as never);
   (controller as unknown as { world: World }).world = world;
 
-  function advanceToNextAction(opts: {
+  /** Настраивает tickSpy так, чтобы CodeBehaviorDriver "прислал resume" после N тиков. */
+  function resumeAfterTicks(opts: {
     afterTicks: number;
     toState: ProgramComponent["state"];
     toLine: number;
@@ -55,11 +56,12 @@ function makeStepController() {
       count++;
       if (count >= opts.afterTicks) {
         setAction(world, droneId, opts.toState, opts.toLine);
+        gameEvents.emit("drone:actionResumed", { droneId });
       }
     });
   }
 
-  return { controller, world, droneId, tickSpy, advanceToNextAction };
+  return { controller, world, droneId, tickSpy, resumeAfterTicks };
 }
 
 describe("GameController.stepDroneAction", () => {
@@ -77,22 +79,49 @@ describe("GameController.stepDroneAction", () => {
     expect(world.getComponent(droneId, "Program")!.currentLine).toBe(3);
   });
 
-  it("крутит тики, пока действие (state/line) не сменится", () => {
-    const { controller, world, droneId, advanceToNextAction } =
+  it("крутит тики, пока driver не пришлёт resume для этого дрона", () => {
+    const { controller, world, droneId, resumeAfterTicks, tickSpy } =
       makeStepController();
     setAction(world, droneId, "move", 3);
-    // Тестовый tick: после 2 тиков «действие сменилось» (см. фабрику).
-    advanceToNextAction({ afterTicks: 2, toState: "running", toLine: 4 });
+    resumeAfterTicks({ afterTicks: 2, toState: "running", toLine: 4 });
     controller.stepDroneAction(droneId);
     const program = world.getComponent(droneId, "Program")!;
     expect(program.currentLine).toBe(4);
+    expect(tickSpy.mock.calls.length).toBe(2);
   });
 
-  it("останавливается на MAX_STEP_TICKS, если действие не меняется", () => {
-    const { controller, world, droneId, tickSpy } = makeStepController();
-    setAction(world, droneId, "move", 3);
-    // действие никогда не меняется → должны упереться в лимит
+  it("останавливается на первом же resume, а не на конце всего пути moveTo", () => {
+    // Регрессия: раньше детектор сравнивал program.state/currentLine только до/после
+    // всего цикла. При moveTo (многошаговое движение — один await, continuous
+    // movement шлёт resume на каждой клетке) currentLine не менялся между шагами,
+    // и Step action пролетал сразу до конца всего маршрута.
+    const { controller, droneId, tickSpy } = makeStepController();
+    tickSpy.mockImplementation(() => {
+      // Имитация одного реального шага движения: driver сразу шлёт resume,
+      // хотя код дрона всё ещё в том же await self.moveTo(...) (следующая клетка).
+      gameEvents.emit("drone:actionResumed", { droneId });
+    });
     controller.stepDroneAction(droneId);
+    expect(tickSpy.mock.calls.length).toBe(1);
+  });
+
+  it("игнорирует resume другого дрона", () => {
+    const { controller, droneId, tickSpy } = makeStepController();
+    const otherDroneId = (droneId + 1) as EntityId;
+    let count = 0;
+    tickSpy.mockImplementation(() => {
+      count++;
+      if (count === 1) gameEvents.emit("drone:actionResumed", { droneId: otherDroneId });
+      if (count === 3) gameEvents.emit("drone:actionResumed", { droneId });
+    });
+    controller.stepDroneAction(droneId);
+    expect(tickSpy.mock.calls.length).toBe(3);
+  });
+
+  it("останавливается на MAX_STEP_TICKS, если resume не приходит", () => {
+    const { controller, tickSpy } = makeStepController();
+    // resume никогда не приходит → должны упереться в лимит
+    controller.stepDroneAction(1 as EntityId);
     expect(tickSpy.mock.calls.length).toBeLessThanOrEqual(600);
     expect(tickSpy.mock.calls.length).toBeGreaterThan(0);
   });
