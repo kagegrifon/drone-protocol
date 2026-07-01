@@ -41,22 +41,27 @@
 
 ### Ховер: Phaser → React через дедупликацию по значению клетки
 
-`pointermove` срабатывает десятки раз в секунду, но координата клетки меняется только при пересечении границы (TILE_SIZE). Пишем в store `hoveredCell` **только при смене клетки** (дедупликация по значению, не throttle). Уход курсора с канваса ловим через `gameout` (не `pointerout` — он для интерактивных game-объектов, не канваса). См. `GameScene.updateHoveredCell` / `clearHover` / `drawHoverHighlight`.
+`pointermove` срабатывает десятки раз в секунду, но координата клетки меняется только при пересечении границы (TILE_SIZE). Пишем в store `hoveredCell` **только при смене клетки** (дедупликация по значению, не throttle). Уход курсора с канваса ловим через `gameout` (не `pointerout` — он для интерактивных game-объектов, не канваса). См. `PointerInteractionController.updateHoveredCell` / `clearHover` / `drawHoverHighlight`.
 
-### Клик по клетке (`src/renderer/scenes/GameScene.ts`)
+### Клик по клетке (`src/renderer/scenes/PointerInteractionController.ts`)
 
-- `pointerdown` только запоминает старт жеста (координаты указателя). Обработчик клика спрайта дрона взводит флаг `_droneSelectedThisGesture` (у дрона приоритет).
+Ховер и выбор клетки кликом вынесены из `GameScene` в отдельный класс `PointerInteractionController` (рефакторинг разбиения раздутых файлов, см. `docs/superpowers/plans/2026-07-01-split-bloated-files.md`) — `GameScene` создаёт его в `create()` до `setupEntitySprites()` и передаёт `{ scene, grid }`.
+
+- `pointerdown` только запоминает старт жеста (координаты указателя). Обработчик клика спрайта дрона в `GameScene.ensureSprite` вызывает публичный метод контроллера `markDroneSelectedThisGesture()` (у дрона приоритет).
 - Флаг **не** сбрасывается в сценевом `pointerdown`: Phaser эмитит object-level `pointerdown` спрайта раньше сценевого (`InputPlugin.processDownEvents`), поэтому сброс там перезаписал бы флаг, который спрайт уже взвёл в рамках того же жеста. Сброс — в `pointerup`, к следующему жесту флаг снова `false`.
 - `pointerup`: если флаг взведён (уже выбран дрон) или смещение > `CLICK_DRAG_THRESHOLD_PX` (панорама) — выходим; иначе `pointerToCell` (та же арифметика `floor(world/TILE_SIZE)`, вне сетки → `null`) и вызов `onCellClick`.
 - `onCellClick` регистрируется в `registry` по образцу `onDroneClick`: `GameRenderer` → `GameController` → `App.tsx` (`selectCell`).
-- Ховер клетки использует hit-test (`isPointerOverDrone` через `input.hitTestPointer`), а не логическую `Position`: во время движения дрона отрисованная позиция отстаёт от логической, поэтому сравнение по клетке путало бы подсветку с самим дроном.
+- Ховер клетки использует hit-test (`isPointerOverDrone` через `input.hitTestPointer`), а не логическую `Position`: во время движения дрона отрисованная позиция отстаёт от логической, поэтому сравнение по клетке путало бы подсветку с самим дроном. Контроллер не владеет спрайтами дронов напрямую, поэтому спрайт дрона помечается `sprite.setData("isDrone", true)` при создании (`GameScene.ensureSprite`), а `isPointerOverDrone` фильтрует hit-test результат по этой метке.
+- Панорамирование камеры (`GameScene.setupCamera`) и ховер слушают `pointermove` независимо друг от друга — оба регистрируются на `this.input` и оба реагируют на `pointer.isDown` (камера скроллит, контроллер скрывает ховер).
 
 ### Store (`src/shared/store/gameStore.ts`)
 
 - `selectedCell: { x: number; y: number } | null`, action `selectCell` (обнуляет `selectedDroneId`); симметрично `selectDrone` обнуляет `selectedCell`.
-- `buildings: BuildingState[]` — срез зданий для React, заполняется в `init()` и обновляется каждый `tick()` (живой остаток руды). `snapshotBuildings` повторяет порядок и классификацию `collectWorld` (итерация по `typeMap`), поэтому индекс в массиве совпадает с индексом в World API → `ref = World.mines[0]`. `typeMap` сохраняется в приватном `_staticTypeMap`.
+- `buildings: BuildingState[]` — срез зданий для React, заполняется в `init()` и обновляется каждый `tick()` (живой остаток руды). `snapshotBuildings` (вынесена в `src/shared/store/snapshots.ts`) повторяет порядок и классификацию `collectWorld` (итерация по `typeMap`), поэтому индекс в массиве совпадает с индексом в World API → `ref = World.mines[0]`. `typeMap` сохраняется в приватном `_staticTypeMap`. Типы (`BuildingState`, `SelectedCell` и др.) вынесены в `src/shared/store/types.ts`; `gameStore.ts` реэкспортирует их для внешних потребителей.
 
-### INSPECTOR (`src/ui/panels/DroneInspector/index.tsx`)
+### INSPECTOR (`src/ui/panels/DroneInspector/`)
+
+Компоненты разбиты по файлам в каталоге `src/ui/panels/DroneInspector/`: `index.tsx` (главный компонент + `renderNonDrone`), `CellInspector.tsx`, `DroneControls.tsx`, `CopyableValue.tsx`, `Bar.tsx`, `Row.tsx`, `InspectorEmpty.tsx`, `useCopyFeedback.ts`, `styles.ts`.
 
 - Приоритет рендера: дрон (`selectedDroneId`) → клетка (`selectedCell`, компонент `CellInspector`) → пусто. Взаимоисключаемость гарантируется store.
 - `CellInspector` переиспользует `Row`; копирование — общий хук `useCopyFeedback` + компонент `CopyableValue` (используется и для `POS`, и для `REF`). `data-testid`: `cell-inspector`, `cell-inspector-pos`, `cell-inspector-copy`, `cell-inspector-ref`, `cell-inspector-ref-copy`, `cell-inspector-ore`.
