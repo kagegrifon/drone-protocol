@@ -39,6 +39,25 @@ Optimize every change for the next human reader, not for brevity or cleverness.
   const HANDLERS: Record<ActionKind, () => void> = { move: () => ..., mine: () => ..., drop: () => ... };
   HANDLERS[kind]();
   ```
+- **Model scattered logic as data in the right structure.** When several lines branch, compare, or accumulate over a fixed set of values, that's usually a data structure in disguise. Recognise it, then pick the structure whose shape matches the operation — readability, performance, and extensibility all follow from the fit. Adding a case becomes editing data, not rewriting control flow.
+
+  | The operation is… | The fitting structure |
+  |---|---|
+  | «is this value one of N known options?» | `Set` (membership, O(1)) |
+  | «which handler/value for this key?» | `Record`/`Map` (lookup, replaces `if`/`switch` chains) |
+  | «count / group / dedupe by key» | `Map` keyed by that key |
+  | «does this number fall in a range/bucket?» | sorted bounds array, not stacked `if (x < a) … else if (x < b)` |
+  | «ordered set of steps/states» | array (or state map), iterate instead of unrolling |
+
+  The membership case below is the most common smell — a long `x === a || x === b || x === c`:
+  ```ts
+  // ✗ piecewise OR-chain — grows with every new option
+  const isBuildingTile = (tile: CellType) => tile === "mine" || tile === "base" || tile === "charger";
+  // ✓ membership against a named set
+  const BUILDING_TILES = new Set<CellType>(["mine", "base", "charger"]);
+  const isBuildingTile = (tile: CellType) => BUILDING_TILES.has(tile);
+  ```
+  Before writing a third branch/comparison in a row, ask: «is there a structure whose native operation *is* this logic?» Usually yes.
 
 When in doubt: would a teammate understand this at a glance without untangling it? If not, rewrite it.
 
