@@ -25,11 +25,11 @@ async function enterGame(page: Page) {
 }
 
 /**
- * Returns a point in the upper quarter of the canvas that is over the playfield.
- * The BottomPanel overlay starts at 50% canvas height (DEFAULT_HEIGHT=360 at 720px),
- * so we stay in the upper 25% to avoid it.
+ * Точка в верхней четверти канваса над полем.
+ * BottomPanel занимает нижние 50% (DEFAULT_HEIGHT=360 при 720px), поэтому
+ * держимся выше — в верхних 25%.
  */
-function playfieldCenter(box: {
+function playfieldPoint(box: {
   x: number;
   y: number;
   width: number;
@@ -41,66 +41,46 @@ function playfieldCenter(box: {
   };
 }
 
-test("HUD координат появляется при наведении и исчезает при уходе", async ({
-  page,
-}) => {
-  await enterGame(page);
-
+async function clickPlayfield(page: Page) {
   const canvas = page.locator("canvas").first();
   const box = await canvas.boundingBox();
   if (!box) throw new Error("canvas not found");
+  const { x, y } = playfieldPoint(box);
+  await page.mouse.click(x, y);
+}
 
-  // Навести в верхнюю четверть канваса (выше BottomPanel, которая занимает нижние 50%)
-  const { x, y } = playfieldCenter(box);
-  await page.mouse.move(x, y);
-
-  const hud = page.locator('[data-testid="cell-coords-hud"]');
-  await expect(hud).toBeVisible({ timeout: 5_000 });
-  await expect(hud).toContainText(/x:\s*\d+\s+y:\s*\d+/);
-
-  // Dispatch synthetic mouseout на canvas — имитирует уход курсора за пределы canvas.
-  // Phaser слушает mouseout на canvas, вызывает setCanvasOut → emit "gameout" →
-  // clearHover → hoveredCell=null → HUD скрывается.
-  await page.evaluate(() => {
-    const canvas = document.querySelector("canvas");
-    canvas?.dispatchEvent(new MouseEvent("mouseout", { bubbles: true, cancelable: true }));
-  });
-  await expect(hud).toBeHidden({ timeout: 5_000 });
-});
-
-test("задержка ≥1с показывает попап, копирование кладёт {x,y} в буфер", async ({
+test("клик по клетке показывает координаты в INSPECTOR и копирует {x,y}", async ({
   page,
   context,
 }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await enterGame(page);
 
-  const canvas = page.locator("canvas").first();
-  const box = await canvas.boundingBox();
-  if (!box) throw new Error("canvas not found");
+  await clickPlayfield(page);
 
-  // Навести в верхнюю четверть (выше BottomPanel)
-  const { x, y } = playfieldCenter(box);
-  await page.mouse.move(x, y);
-  await expect(page.locator('[data-testid="cell-coords-hud"]')).toBeVisible({
-    timeout: 5_000,
-  });
+  const inspector = page.locator('[data-testid="cell-inspector"]');
+  await expect(inspector).toBeVisible({ timeout: 5_000 });
+  await expect(
+    page.locator('[data-testid="cell-inspector-pos"]'),
+  ).toContainText(/x:\s*\d+\s*y:\s*\d+/);
 
-  // Ждём появления попапа (таймер 1с)
-  await page.waitForTimeout(1100);
-  const popup = page.locator('[data-testid="cell-coords-popup"]');
-  await expect(popup).toBeVisible({ timeout: 5_000 });
-
-  // Кликаем кнопку через JS, не перемещая мышь: движение мыши к кнопке
-  // (нижний правый угол) вызвало бы clearHover в Phaser → попап исчез бы.
-  await expect(page.locator('[data-testid="cell-coords-copy"]')).toBeVisible();
-  await page.evaluate(() => {
-    const btn = document.querySelector(
-      '[data-testid="cell-coords-copy"]',
-    ) as HTMLButtonElement | null;
-    btn?.click();
-  });
-
+  await page.locator('[data-testid="cell-inspector-copy"]').click();
   const clipboard = await page.evaluate(() => navigator.clipboard.readText());
   expect(clipboard).toMatch(/^\{ x: \d+, y: \d+ \}$/);
+});
+
+test("выбор дрона и клетки взаимоисключающи", async ({ page }) => {
+  await enterGame(page);
+
+  // Выбираем дрона в списке → INSPECTOR показывает дрона, не клетку.
+  await page.locator('[data-testid^="drone-item-"]').first().click();
+  await expect(page.locator('[data-testid="drone-play-pause"]')).toBeVisible();
+  await expect(page.locator('[data-testid="cell-inspector"]')).toBeHidden();
+
+  // Клик по клетке поля → дрон сбрасывается, показывается клетка.
+  await clickPlayfield(page);
+  await expect(page.locator('[data-testid="cell-inspector"]')).toBeVisible({
+    timeout: 5_000,
+  });
+  await expect(page.locator('[data-testid="drone-play-pause"]')).toBeHidden();
 });

@@ -1,5 +1,11 @@
-import { memo } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { useGameStore } from "../../../shared/store/gameStore.js";
+import type {
+  BuildingState,
+  SelectedCell,
+} from "../../../shared/store/gameStore.js";
+
+const COPIED_FEEDBACK_MS = 1200;
 
 function Bar({
   value,
@@ -114,26 +120,141 @@ const DroneControls = memo(function DroneControls({
   );
 });
 
+const COPY_BTN: React.CSSProperties = {
+  background: "#0d2040",
+  border: "1px solid #1a3a5a",
+  color: "#4a8aaa",
+  borderRadius: "3px",
+  padding: "2px 8px",
+  cursor: "pointer",
+  fontFamily: "monospace",
+  fontSize: "12px",
+  lineHeight: 1,
+};
+
+const MONO: React.CSSProperties = {
+  fontFamily: "monospace",
+  fontSize: "12px",
+};
+
+function CellInspector({ cell }: { cell: { x: number; y: number } }) {
+  const buildings = useGameStore((s) => s.buildings);
+  const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
+
+  const building = buildings.find((b) => b.x === cell.x && b.y === cell.y);
+  const copyText = `{ x: ${cell.x}, y: ${cell.y} }`;
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(copyText);
+    setCopied(true);
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = setTimeout(
+      () => setCopied(false),
+      COPIED_FEEDBACK_MS,
+    );
+  };
+
+  return (
+    <div data-testid="cell-inspector" style={{ padding: "12px" }}>
+      <div
+        style={{
+          color: "#c0cfe0",
+          fontFamily: "monospace",
+          fontSize: "13px",
+          marginBottom: "12px",
+          borderBottom: "1px solid #1e3a5f",
+          paddingBottom: "8px",
+        }}
+      >
+        Cell
+      </div>
+
+      <Row label="POS">
+        <span
+          data-testid="cell-inspector-pos"
+          style={{ ...MONO, color: "#00d4ff" }}
+        >
+          x: {cell.x} y: {cell.y}
+        </span>
+        <button
+          data-testid="cell-inspector-copy"
+          style={COPY_BTN}
+          onClick={handleCopy}
+          title="Скопировать координаты"
+        >
+          {copied ? "✓" : "⧉"}
+        </button>
+      </Row>
+
+      {building && <BuildingRows building={building} />}
+    </div>
+  );
+}
+
+function BuildingRows({ building }: { building: BuildingState }) {
+  return (
+    <>
+      <Row label="REF">
+        <span
+          data-testid="cell-inspector-ref"
+          style={{ ...MONO, color: "#4488ff" }}
+        >
+          {building.ref}
+        </span>
+      </Row>
+      {building.type === "mine" && (
+        <Row label="ORE">
+          <span
+            data-testid="cell-inspector-ore"
+            style={{ ...MONO, color: "#00ff88" }}
+          >
+            {building.oreRemaining}
+          </span>
+        </Row>
+      )}
+    </>
+  );
+}
+
+function InspectorEmpty() {
+  return (
+    <div
+      data-testid="drone-inspector-empty"
+      style={{
+        padding: "16px 12px",
+        color: "#445566",
+        fontFamily: "monospace",
+        fontSize: "12px",
+        textAlign: "center",
+      }}
+    >
+      Select a drone
+    </div>
+  );
+}
+
+function renderNonDrone(selectedCell: SelectedCell) {
+  if (selectedCell === null) return <InspectorEmpty />;
+  return <CellInspector cell={selectedCell} />;
+}
+
 export function DroneInspector() {
   const selectedId = useGameStore((s) => s.selectedDroneId);
+  const selectedCell = useGameStore((s) => s.selectedCell);
   const drones = useGameStore((s) => s.drones);
   const drone = drones.find((d) => d.id === selectedId);
 
+  // Выбор дрона и клетки взаимоисключающи (гарантируется store). Приоритет:
+  // дрон → клетка → пусто.
   if (!drone) {
-    return (
-      <div
-        data-testid="drone-inspector-empty"
-        style={{
-          padding: "16px 12px",
-          color: "#445566",
-          fontFamily: "monospace",
-          fontSize: "12px",
-          textAlign: "center",
-        }}
-      >
-        Select a drone
-      </div>
-    );
+    return renderNonDrone(selectedCell);
   }
 
   const stateColor =

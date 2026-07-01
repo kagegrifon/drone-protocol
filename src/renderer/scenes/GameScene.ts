@@ -13,6 +13,9 @@ import { interpolateVisualPos } from "./interpolatePosition.js";
 
 const BUILDING_TILES = new Set<CellType>(["mine", "base", "charger"]);
 
+// Смещение указателя (в пикселях) больше этого порога считаем панорамированием, а не кликом.
+const CLICK_DRAG_THRESHOLD_PX = 4;
+
 export class GameScene extends Phaser.Scene {
   private _world!: World;
   private _grid!: Grid;
@@ -25,6 +28,10 @@ export class GameScene extends Phaser.Scene {
   private _tick = 0;
   private _hoverHighlight!: Phaser.GameObjects.Graphics;
   private _hoverPrevCell: { x: number; y: number } | null = null;
+  // Различаем клик по клетке от драг-панорамирования: запоминаем старт жеста,
+  // а флаг взводится, если на этом жесте уже выбран дрон (у дрона приоритет).
+  private _pointerDownAt: { x: number; y: number } | null = null;
+  private _droneSelectedThisGesture = false;
 
   // Доинтерполяция внутри симуляционного тика: засекаем начало каждого тика,
   // чтобы плавно «доводить» прогресс шага между дискретными апдейтами симуляции.
@@ -171,7 +178,11 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private drawHoverHighlight(cell: { x: number; y: number; isBuilding: boolean }): void {
+  private drawHoverHighlight(cell: {
+    x: number;
+    y: number;
+    isBuilding: boolean;
+  }): void {
     const px = cell.x * TILE_SIZE;
     const py = cell.y * TILE_SIZE;
 
@@ -182,7 +193,12 @@ export class GameScene extends Phaser.Scene {
     }
     this._hoverHighlight.lineStyle(2, COLORS.DRONE_GLOW, 0.9);
     // Обводку вжимаем на 1px со всех сторон, чтобы 2px-линия осталась внутри клетки.
-    this._hoverHighlight.strokeRect(px + 1, py + 1, TILE_SIZE - 2, TILE_SIZE - 2);
+    this._hoverHighlight.strokeRect(
+      px + 1,
+      py + 1,
+      TILE_SIZE - 2,
+      TILE_SIZE - 2,
+    );
     this._hoverHighlight.setVisible(true);
   }
 
@@ -213,8 +229,23 @@ export class GameScene extends Phaser.Scene {
     if (prev !== null && prev.x === cellX && prev.y === cellY) return;
 
     this._hoverPrevCell = { x: cellX, y: cellY };
-    this.drawHoverHighlight({ x: cellX, y: cellY, isBuilding: this.isBuildingTile(tile) });
+    this.drawHoverHighlight({
+      x: cellX,
+      y: cellY,
+      isBuilding: this.isBuildingTile(tile),
+    });
     useGameStore.getState().setHoveredCell({ x: cellX, y: cellY });
+  }
+
+  /** Клетка сетки под указателем, либо null если указатель вне сетки. */
+  private pointerToCell(
+    pointer: Phaser.Input.Pointer,
+  ): { x: number; y: number } | null {
+    const world = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+    const cellX = Math.floor(world.x / TILE_SIZE);
+    const cellY = Math.floor(world.y / TILE_SIZE);
+    if (this._grid.getTile(cellX, cellY) === "wall") return null;
+    return { x: cellX, y: cellY };
   }
 
   private setupEntitySprites(): void {
@@ -240,7 +271,12 @@ export class GameScene extends Phaser.Scene {
         if (onDroneClick) {
           sprite.setSize(TILE_SIZE, TILE_SIZE);
           sprite.setInteractive();
-          sprite.on("pointerdown", () => onDroneClick(entityId));
+          sprite.on("pointerdown", () => {
+            // Дрон имеет приоритет над выбором клетки: помечаем жест, чтобы
+            // pointerup сцены не перезаписал выбор клеткой под дроном.
+            this._droneSelectedThisGesture = true;
+            onDroneClick(entityId);
+          });
         }
         this._droneSprites.set(entityId, sprite);
       }
@@ -409,6 +445,30 @@ export class GameScene extends Phaser.Scene {
         return;
       }
       this.updateHoveredCell(pointer);
+    });
+
+    // Клик по клетке (не по дрону, не панорама) → выбрать клетку в INSPECTOR.
+    this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      this._pointerDownAt = { x: pointer.x, y: pointer.y };
+      this._droneSelectedThisGesture = false;
+    });
+
+    this.input.on("pointerup", (pointer: Phaser.Input.Pointer) => {
+      const downAt = this._pointerDownAt;
+      this._pointerDownAt = null;
+      if (this._droneSelectedThisGesture) return; // дрон уже выбран этим жестом
+      if (!downAt) return;
+
+      const moved = Math.hypot(pointer.x - downAt.x, pointer.y - downAt.y);
+      if (moved > CLICK_DRAG_THRESHOLD_PX) return; // это было панорамирование
+
+      const cell = this.pointerToCell(pointer);
+      if (!cell) return;
+
+      const onCellClick = this.registry.get("onCellClick") as
+        | ((cell: { x: number; y: number }) => void)
+        | undefined;
+      onCellClick?.(cell);
     });
 
     this.sys.game.canvas.addEventListener(

@@ -77,6 +77,23 @@ export interface StatsState {
 
 export type HoveredCell = { x: number; y: number } | null;
 
+export type SelectedCell = { x: number; y: number } | null;
+
+/**
+ * Здание (шахта/база/зарядка) для INSPECTOR. `ref` — строка вида `World.mines[0]`,
+ * которую игрок может вставить в код дрона. Индекс совпадает с индексом в World API,
+ * т.к. порядок берётся из того же `typeMap`, что видит код дрона (см. collectWorld).
+ */
+export interface BuildingState {
+  entityId: EntityId;
+  type: WorldObjectType;
+  x: number;
+  y: number;
+  ref: string;
+  /** Остаток руды — только для шахты. */
+  oreRemaining?: number;
+}
+
 interface Systems {
   collision: CollisionSystem;
   modifiers: ModifiersSystem;
@@ -92,7 +109,9 @@ interface GameStore {
   grid: Grid | null;
   registry: ProgramRegistry;
   drones: DroneState[];
+  buildings: BuildingState[];
   selectedDroneId: EntityId | null;
+  selectedCell: SelectedCell;
   hoveredCell: HoveredCell;
   programs: ProgramDef[];
   stats: StatsState;
@@ -100,6 +119,7 @@ interface GameStore {
   gameStatus: GameStatus;
   statusMessage: string | null;
   _systems: Systems | null;
+  _staticTypeMap: ReadonlyMap<EntityId, WorldObjectType>;
   _tickCount: number;
 
   init(
@@ -117,6 +137,7 @@ interface GameStore {
   setProgramCodeSource(programId: string, code: string): void;
   tick(): void;
   selectDrone(id: EntityId | null): void;
+  selectCell(cell: SelectedCell): void;
   setHoveredCell(cell: HoveredCell): void;
   setRunning(v: boolean): void;
   stepOnce(): void;
@@ -195,6 +216,47 @@ function snapshotDrones(world: World): DroneState[] {
   });
 }
 
+/** Множественное число типа здания для рефа: mine → mines и т.д. */
+const REF_ARRAY_BY_TYPE: Record<WorldObjectType, string> = {
+  mine: "mines",
+  base: "bases",
+  charger: "chargers",
+};
+
+/**
+ * Срез зданий для React. Порядок и классификация — как в collectWorld:
+ * итерация по typeMap, поэтому индекс внутри массива своего типа совпадает
+ * с индексом в World API (`World.mines[0]`).
+ */
+function snapshotBuildings(
+  world: World,
+  typeMap: ReadonlyMap<EntityId, WorldObjectType>,
+): BuildingState[] {
+  const indexByType: Record<WorldObjectType, number> = {
+    mine: 0,
+    base: 0,
+    charger: 0,
+  };
+  const buildings: BuildingState[] = [];
+
+  for (const [entityId, type] of typeMap) {
+    const pos = world.getComponent(entityId, "Position");
+    if (!pos) continue; // уничтоженные сущности — пропускаем
+
+    const index = indexByType[type]++;
+    const ref = `World.${REF_ARRAY_BY_TYPE[type]}[${index}]`;
+
+    const building: BuildingState = { entityId, type, x: pos.x, y: pos.y, ref };
+    if (type === "mine") {
+      const deposit = world.getComponent(entityId, "Deposit");
+      building.oreRemaining = deposit?.oreRemaining ?? 0;
+    }
+    buildings.push(building);
+  }
+
+  return buildings;
+}
+
 let _programIdCounter = 1;
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -202,7 +264,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   grid: null,
   registry: new Map(),
   drones: [],
+  buildings: [],
   selectedDroneId: null,
+  selectedCell: null,
   hoveredCell: null,
   programs: [],
   stats: { orePerMin: 0, congestion: 0, efficiency: 0, tick: 0, oreMined: 0 },
@@ -210,6 +274,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   gameStatus: "idle" as GameStatus,
   statusMessage: null,
   _systems: null,
+  _staticTypeMap: new Map(),
   _tickCount: 0,
 
   init(world, grid, registry, options) {
@@ -248,14 +313,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     const programs = filterPrograms(registry);
     const drones = snapshotDrones(world);
+    const buildings = snapshotBuildings(world, typeMap);
 
     set({
       world,
       grid,
       registry,
       _systems: systems,
+      _staticTypeMap: typeMap,
       programs,
       drones,
+      buildings,
+      selectedCell: null,
       _tickCount: 0,
       stats: {
         orePerMin: 0,
@@ -287,6 +356,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     set({
       drones: snapshotDrones(world),
+      buildings: snapshotBuildings(world, get()._staticTypeMap),
       stats: {
         orePerMin: Math.round(s.orePerMinute * 10) / 10,
         congestion:
@@ -302,7 +372,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   selectDrone(id) {
-    set({ selectedDroneId: id });
+    // Выбор дрона и выбор клетки взаимоисключающи: INSPECTOR показывает что-то одно.
+    set({ selectedDroneId: id, selectedCell: null });
+  },
+
+  selectCell(cell) {
+    set({ selectedCell: cell, selectedDroneId: null });
   },
 
   setHoveredCell(cell) {

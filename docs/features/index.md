@@ -39,4 +39,4 @@ docs/features/
 | [drone-code-mode-monaco.md](done/drone-code-mode-monaco.md) | Code Mode (этап 2) — редактор Monaco |
 | [library-modules-import.md](done/library-modules-import.md) | Подключение модулей в программы дронов (library imports) |
 | [multimodule-debugging.md](done/multimodule-debugging.md) | Отладка многомодульных программ (stack trace + подсветка вызова подпрограммы) |
-| [cell-coordinates-hud.md](done/cell-coordinates-hud.md) | Координаты клетки под курсором |
+| [cell-coordinates-hud.md](done/cell-coordinates-hud.md) | Координаты клетки: ховер + выбор клетки в INSPECTOR (ref/руда) |

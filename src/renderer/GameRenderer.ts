@@ -9,6 +9,7 @@ import { COLORS } from "./config.js";
 
 export interface GameRendererOptions {
   onDroneClick?: (id: EntityId) => void;
+  onCellClick?: (cell: { x: number; y: number }) => void;
   onReady?: () => void;
   onAudioReady?: (am: AudioManager) => void;
   focusPoint: { x: number; y: number };
@@ -40,6 +41,8 @@ export class GameRenderer {
           game.registry.set("focusPoint", options.focusPoint);
           if (options.onDroneClick)
             game.registry.set("onDroneClick", options.onDroneClick);
+          if (options.onCellClick)
+            game.registry.set("onCellClick", options.onCellClick);
           if (options.onReady) game.registry.set("onReady", options.onReady);
           if (options.onAudioReady)
             game.registry.set("onAudioReady", options.onAudioReady);
