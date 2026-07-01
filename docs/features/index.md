@@ -40,3 +40,4 @@ docs/features/
 | [library-modules-import.md](done/library-modules-import.md) | Подключение модулей в программы дронов (library imports) |
 | [multimodule-debugging.md](done/multimodule-debugging.md) | Отладка многомодульных программ (stack trace + подсветка вызова подпрограммы) |
 | [step-mode-debugging.md](done/step-mode-debugging.md) | Step-режим отладки дронов (этап B) |
+| [cell-coordinates-hud.md](done/cell-coordinates-hud.md) | Координаты клетки: ховер + выбор клетки в INSPECTOR (ref/руда) |

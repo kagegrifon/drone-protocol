@@ -1,139 +1,26 @@
-import { memo } from "react";
 import { useGameStore } from "../../../shared/store/gameStore.js";
+import type { SelectedCell } from "../../../shared/store/gameStore.js";
+import { Bar } from "./Bar.js";
+import { Row } from "./Row.js";
+import { DroneControls } from "./DroneControls.js";
+import { CellInspector } from "./CellInspector.js";
+import { InspectorEmpty } from "./InspectorEmpty.js";
 
-function Bar({
-  value,
-  max,
-  color,
-}: {
-  value: number;
-  max: number;
-  color: string;
-}) {
-  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
-  return (
-    <div
-      style={{
-        height: "6px",
-        background: "#0a1a2a",
-        borderRadius: "3px",
-        overflow: "hidden",
-        flex: 1,
-      }}
-    >
-      <div
-        style={{
-          height: "100%",
-          width: `${pct}%`,
-          background: color,
-          borderRadius: "3px",
-          transition: "width 0.1s",
-        }}
-      />
-    </div>
-  );
+function renderNonDrone(selectedCell: SelectedCell) {
+  if (selectedCell === null) return <InspectorEmpty />;
+  return <CellInspector cell={selectedCell} />;
 }
-
-function Row({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "8px",
-        marginBottom: "8px",
-      }}
-    >
-      <span
-        style={{
-          color: "#445566",
-          fontFamily: "monospace",
-          fontSize: "11px",
-          width: "72px",
-          flexShrink: 0,
-          letterSpacing: "0.5px",
-        }}
-      >
-        {label}
-      </span>
-      {children}
-    </div>
-  );
-}
-
-const BTN: React.CSSProperties = {
-  background: "#0a1628",
-  border: "1px solid #1e3a5f",
-  color: "#aabbcc",
-  fontFamily: "monospace",
-  fontSize: "13px",
-  padding: "4px 10px",
-  borderRadius: "3px",
-  cursor: "pointer",
-  lineHeight: 1,
-};
-
-const DroneControls = memo(function DroneControls({
-  droneId,
-  localPaused,
-}: {
-  droneId: number;
-  localPaused: boolean;
-}) {
-  const startDrone = useGameStore((s) => s.startDrone);
-  const pauseDrone = useGameStore((s) => s.pauseDrone);
-  const resetDrone = useGameStore((s) => s.resetDrone);
-
-  return (
-    <div style={{ display: "flex", gap: "6px", marginBottom: "12px" }}>
-      <button
-        data-testid="drone-play-pause"
-        style={BTN}
-        onClick={() =>
-          localPaused ? startDrone(droneId) : pauseDrone(droneId)
-        }
-        title={localPaused ? "Resume drone" : "Pause drone"}
-      >
-        {localPaused ? "▶" : "⏸"}
-      </button>
-      <button
-        data-testid="drone-reset"
-        style={BTN}
-        onClick={() => resetDrone(droneId)}
-        title="Reset drone program"
-      >
-        ↺
-      </button>
-    </div>
-  );
-});
 
 export function DroneInspector() {
   const selectedId = useGameStore((s) => s.selectedDroneId);
+  const selectedCell = useGameStore((s) => s.selectedCell);
   const drones = useGameStore((s) => s.drones);
   const drone = drones.find((d) => d.id === selectedId);
 
+  // Выбор дрона и клетки взаимоисключающи (гарантируется store). Приоритет:
+  // дрон → клетка → пусто.
   if (!drone) {
-    return (
-      <div
-        data-testid="drone-inspector-empty"
-        style={{
-          padding: "16px 12px",
-          color: "#445566",
-          fontFamily: "monospace",
-          fontSize: "12px",
-          textAlign: "center",
-        }}
-      >
-        Select a drone
-      </div>
-    );
+    return renderNonDrone(selectedCell);
   }
 
   const stateColor =

@@ -31,6 +31,7 @@ export default function App() {
   const controllerRef = useRef<GameController | null>(null);
   const wasRunningRef = useRef<boolean>(false);
   const selectDrone = useGameStore((s) => s.selectDrone);
+  const selectCell = useGameStore((s) => s.selectCell);
 
   const [gamePhase, setGamePhase] = useState<GamePhase>("intro");
   const [missionIndex, setMissionIndex] = useState<number>(0);
@@ -95,6 +96,7 @@ export default function App() {
     const ctrl = new GameController(ALL_MISSIONS[missionIndex]);
     ctrl.setup(containerRef.current, {
       onDroneClick: (id) => selectDrone(id),
+      onCellClick: (cell) => selectCell(cell),
       onReady: () => setGamePhase("game"),
       onAudioReady: (am) => {
         const { musicVol, sfxVol } = useAudioStore.getState();

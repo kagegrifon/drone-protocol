@@ -9,6 +9,7 @@ import { TILE_SIZE, COLORS, TILE_COLORS } from "../config.js";
 import { useGameStore } from "../../shared/store/gameStore.js";
 import { DT } from "../../game/simulation/constants.js";
 import { interpolateVisualPos } from "./interpolatePosition.js";
+import { PointerInteractionController } from "./PointerInteractionController.js";
 
 export class GameScene extends Phaser.Scene {
   private _world!: World;
@@ -26,6 +27,7 @@ export class GameScene extends Phaser.Scene {
   private _lastSimTick = -1;
   private _tickStartMs = 0;
   private _lastSelectedId: EntityId | null = null;
+  private _pointerInteraction!: PointerInteractionController;
 
   constructor() {
     super({ key: "GameScene" });
@@ -71,6 +73,10 @@ export class GameScene extends Phaser.Scene {
     const worldH = this._grid.height * TILE_SIZE;
     this.drawTileMap(worldW, worldH);
     this._trailGraphics = this.add.graphics().setDepth(8);
+    this._pointerInteraction = new PointerInteractionController({
+      scene: this,
+      grid: this._grid,
+    });
     this.setupEntitySprites();
     this.setupCamera(worldW, worldH);
 
@@ -178,13 +184,19 @@ export class GameScene extends Phaser.Scene {
     if (renderable.spriteType === "drone") {
       if (!this._droneSprites.has(entityId)) {
         const sprite = new DroneSprite(this, cx, cy);
+        sprite.setData("isDrone", true);
         const onDroneClick = this.registry.get("onDroneClick") as
           | ((id: EntityId) => void)
           | undefined;
         if (onDroneClick) {
           sprite.setSize(TILE_SIZE, TILE_SIZE);
           sprite.setInteractive();
-          sprite.on("pointerdown", () => onDroneClick(entityId));
+          sprite.on("pointerdown", () => {
+            // Дрон имеет приоритет над выбором клетки: помечаем жест, чтобы
+            // pointerup контроллера не перезаписал выбор клеткой под дроном.
+            this._pointerInteraction.markDroneSelectedThisGesture();
+            onDroneClick(entityId);
+          });
         }
         this._droneSprites.set(entityId, sprite);
       }

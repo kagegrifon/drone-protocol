@@ -62,6 +62,7 @@ export function checkFail(fail: FailCondition, stats: StatsState): boolean {
 
 export interface GameControllerSetupOptions {
   onDroneClick: (id: EntityId) => void;
+  onCellClick?: (cell: { x: number; y: number }) => void;
   onReady?: () => void;
   onAudioReady?: (am: AudioManager) => void;
 }
@@ -166,6 +167,7 @@ export class GameController {
     gameEvents.clearAll();
     this.renderer = new GameRenderer(scene.world, scene.grid, this.container!, {
       onDroneClick: this._setupOptions?.onDroneClick,
+      onCellClick: this._setupOptions?.onCellClick,
       onReady: this._setupOptions?.onReady,
       onAudioReady: this._setupOptions?.onAudioReady,
       focusPoint: scene.focusPoint,

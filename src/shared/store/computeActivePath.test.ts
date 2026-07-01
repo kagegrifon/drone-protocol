@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeActivePath } from "./gameStore.js";
+import { computeActivePath } from "./computeActivePath.js";
 import type { CallFrame } from "../../game/simulation/components/Program.js";
 
 describe("computeActivePath", () => {
